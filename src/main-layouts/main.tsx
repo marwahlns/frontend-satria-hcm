@@ -2,7 +2,7 @@ import Footer from "../components/Footer";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import SearchModal from "../components/SearchModal";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
 
@@ -17,6 +17,11 @@ const Main: React.FC<CardProps> = ({ children }) => {
     Cookies.remove("token");
     router.push("/auth/login");
   };
+
+  useEffect(() => {
+    const role = Cookies.get("role");
+    console.log("Role from cookies:", role);
+  }, []);
 
   return (
     <>

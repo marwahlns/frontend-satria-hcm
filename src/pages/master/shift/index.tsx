@@ -3,163 +3,45 @@ import DataTable from "../../../components/Datatables";
 import clsx from "clsx";
 import axios from "axios";
 import Swal from "sweetalert2";
-import Cookies from "js-cookie";
+import CreateModal from "./CreateModal";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-
-const schema = yup.object().shape({
-  code: yup
-    .string()
-    .required("Code is required")
-    .matches(/^[A-Za-z0-9]+$/, "Code can only contain letters and numbers"),
-
-  name: yup
-    .string()
-    .required("Name is required")
-    .min(3, "Name must be at least 3 characters"),
-
-  inTime: yup
-    .string()
-    .required("In Time is required")
-    .matches(/^([01]\d|2[0-3]):([0-5]\d)$/, "Time format must be HH:mm"),
-
-  outTime: yup
-    .string()
-    .required("Out Time is required")
-    .matches(/^([01]\d|2[0-3]):([0-5]\d)$/, "Time format must be HH:mm"),
-
-  graceBeforeIn: yup
-    .number()
-    .typeError("Grace Time Before In must be a number")
-    .min(0, "Cannot be negative")
-    .required("Grace Time Before In is required"),
-
-  graceAfterIn: yup
-    .number()
-    .typeError("Grace Time After In must be a number")
-    .min(0, "Cannot be negative")
-    .required("Grace Time After In is required"),
-
-  graceBeforeOut: yup
-    .number()
-    .typeError("Grace Time Before Out must be a number")
-    .min(0, "Cannot be negative")
-    .required("Grace Time Before Out is required"),
-
-  graceAfterOut: yup
-    .number()
-    .typeError("Grace Time After Out must be a number")
-    .min(0, "Cannot be negative")
-    .required("Grace Time After Out is required"),
-});
+import { useState } from "react";
+import UpdateModal from "./UpdateModal";
+import DetailModal from "./DetailModal";
 
 export default function Home() {
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [selectedShift, setSelectedShift] = useState(null);
-  const [isRefresh, setIsRefresh] = useState<number>(0);
-  const isEditing = selectedShift !== null;
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedData, setSelectedData] = useState(null);
+  const [isRefetch, setIsRefetch] = useState(false);
 
-  const {
-    reset,
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
-
-  const resetForm = () => {
-    reset({
-      code: "",
-      name: "",
-      inTime: "",
-      outTime: "",
-      graceBeforeIn: null,
-      graceAfterIn: null,
-      graceBeforeOut: null,
-      graceAfterOut: null,
-    });
-    setSelectedShift(null);
-    const modal = document.getElementById("modal_shift");
-    const closeButton = modal?.querySelector(
-      '[data-modal-dismiss="true"]'
-    ) as HTMLElement;
-    if (closeButton) {
-      closeButton.click();
-    }
+  const handleOpenCreateModal = () => {
+    setIsCreateModalOpen(true);
   };
 
-  const onSubmit = async (data) => {
-    setLoading(true);
-    try {
-      let response;
-
-      if (isEditing) {
-        response = await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/master/shift/${selectedShift.id}`,
-          {
-            code: data.code,
-            nama: data.name,
-            inTime: data.inTime,
-            outTime: data.outTime,
-            gtBeforeIn: data.graceBeforeIn,
-            gtAfterIn: data.graceAfterIn,
-            gtBeforeOut: data.graceBeforeOut,
-            gtAfterOut: data.graceAfterOut,
-          }
-        );
-      } else {
-        response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/master/shift`,
-          {
-            code: data.code,
-            nama: data.name,
-            inTime: data.inTime,
-            outTime: data.outTime,
-            gtBeforeIn: data.graceBeforeIn,
-            gtAfterIn: data.graceAfterIn,
-            gtBeforeOut: data.graceBeforeOut,
-            gtAfterOut: data.graceAfterOut,
-          }
-        );
-      }
-      setIsRefresh((prev) => prev + 1);
-      resetForm();
-    } catch (err) {
-      console.error(err);
-      setError("Gagal menyimpan shift. Silakan coba lagi.");
-    } finally {
-      setLoading(false);
-    }
+  const handleOpenUpdateModal = (data) => {
+    setSelectedData(data);
+    setIsUpdateModalOpen(true);
   };
 
-  const handleUpdate = (shift) => {
-    console.log("Full Shift object:", JSON.stringify(shift, null, 2));
+  const handleOpenDetailModal = (data) => {
+    setSelectedData(data);
+    setIsDetailModalOpen(true);
+  };
 
-    const toggleButton = document.querySelector(
-      '[data-modal-toggle="#modal_shift"]'
-    ) as HTMLElement;
-    if (toggleButton) {
-      toggleButton.click();
-    }
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
 
-    setSelectedShift(shift);
-    console.log("shift cuyyy", shift);
+  const handleCloseUpdateModal = () => {
+    setIsUpdateModalOpen(false);
+    setSelectedData(null);
+  };
 
-    reset({
-      code: shift.code,
-      name: shift.name,
-      inTime: shift.in_time,
-      outTime: shift.out_time,
-      graceBeforeIn: shift.gt_before_in,
-      graceAfterIn: shift.gt_after_in,
-      graceBeforeOut: shift.gt_before_out,
-      graceAfterOut: shift.gt_after_out,
-    });
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedData(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -183,25 +65,9 @@ export default function Home() {
       } catch (error) {
         Swal.fire("Error!", "Failed to delete the shift.", "error");
       }
-      setIsRefresh((prev) => prev + 1);
+      setIsRefetch(!isRefetch);
     }
   };
-
-  useEffect(() => {
-    const modalElement = document.getElementById("modal_shift");
-
-    const handleModalClose = (event) => {
-      if (event.target === modalElement) {
-        resetForm();
-      }
-    };
-
-    modalElement?.addEventListener("click", handleModalClose);
-
-    return () => {
-      modalElement?.removeEventListener("click", handleModalClose);
-    };
-  }, []);
 
   type IShift = {
     id: string;
@@ -254,6 +120,7 @@ export default function Home() {
                 "hover:scale-[105%]",
                 "active:scale-[100%]"
               )}
+              onClick={() => handleOpenDetailModal(data)}
             >
               <i className="ki-outline ki-eye text-white"></i>
             </button>
@@ -263,7 +130,7 @@ export default function Home() {
                 "hover:scale-[105%]",
                 "active:scale-[100%]"
               )}
-              onClick={() => handleUpdate(data)}
+              onClick={() => handleOpenUpdateModal(data)}
             >
               <i className="ki-outline ki-pencil text-white"></i>
             </button>
@@ -291,7 +158,7 @@ export default function Home() {
           {/* Button */}
           <button
             className="btn btn-filled btn-primary"
-            data-modal-toggle="#modal_shift"
+            onClick={() => handleOpenCreateModal()}
           >
             <i className="ki-outline ki-plus-squared"></i>
             Add Data
@@ -302,184 +169,29 @@ export default function Home() {
       <DataTable
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/shift`}
-        isRefresh={isRefresh}
+        isRefetch={isRefetch}
       />
 
-      {/* Modal */}
-      <div className="modal" data-modal="true" id="modal_shift">
-        <div className="modal-content max-w-[600px] top-[10%]">
-          <div className="modal-header">
-            <h3 className="modal-title">Data Shift</h3>
-            <button
-              className="btn btn-xs btn-icon btn-light"
-              data-modal-dismiss="true"
-              onClick={() => resetForm()}
-            >
-              <i className="ki-outline ki-cross"></i>
-            </button>
-          </div>
-          <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[300px] max-h-[95%]">
-            <form id="shiftForm" onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium">Code</label>
-                  <input
-                    {...register("code")}
-                    className={`input w-full ${
-                      errors.code ? "border-red-500" : ""
-                    }`}
-                    type="text"
-                    placeholder="Code"
-                  />
-                  {errors.code && (
-                    <p className="text-red-500 text-sm">
-                      {errors.code.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Name</label>
-                  <input
-                    {...register("name")}
-                    className={`input w-full ${
-                      errors.name ? "border-red-500" : ""
-                    }`}
-                    type="text"
-                    placeholder="Name"
-                  />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">In Time</label>
-                  <input
-                    {...register("inTime")}
-                    className={`input w-full ${
-                      errors.inTime ? "border-red-500" : ""
-                    }`}
-                    type="time"
-                  />
-                  {errors.inTime && (
-                    <p className="text-red-500 text-sm">
-                      {errors.inTime.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Out Time</label>
-                  <input
-                    {...register("outTime")}
-                    className={`input w-full ${
-                      errors.outTime ? "border-red-500" : ""
-                    }`}
-                    type="time"
-                  />
-                  {errors.outTime && (
-                    <p className="text-red-500 text-sm">
-                      {errors.outTime.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">
-                    Grace Time Before In
-                  </label>
-                  <input
-                    {...register("graceBeforeIn")}
-                    className="input w-full"
-                    type="number"
-                    placeholder="Grace Before In"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">
-                    Grace Time After In
-                  </label>
-                  <input
-                    {...register("graceAfterIn")}
-                    className="input w-full"
-                    type="number"
-                    placeholder="Grace After In"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">
-                    Grace Time Before Out
-                  </label>
-                  <input
-                    {...register("graceBeforeOut")}
-                    className="input w-full"
-                    type="number"
-                    placeholder="Grace Before Out"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">
-                    Grace Time After Out
-                  </label>
-                  <input
-                    {...register("graceAfterOut")}
-                    className="input w-full"
-                    type="number"
-                    placeholder="Grace After Out"
-                  />
-                </div>
-              </div>
-              {error && (
-                <p className="text-red-500 text-center mt-2">{error}</p>
-              )}
-            </form>
-          </div>
-          <div className="modal-footer justify-end">
-            <div className="flex gap-4">
-              <button
-                className="btn btn-light"
-                data-modal-dismiss="true"
-                onClick={() => resetForm()}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary flex justify-center grow"
-                disabled={loading}
-                form="shiftForm"
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 mr-3 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Loading...
-                  </>
-                ) : (
-                  "Submit"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CreateModal
+        isModalOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        setRefetch={setIsRefetch}
+        isRefetch={isRefetch}
+      />
+
+      <UpdateModal
+        isModalOpen={isUpdateModalOpen}
+        onClose={handleCloseUpdateModal}
+        selectedData={selectedData}
+        setRefetch={setIsRefetch}
+        isRefetch={isRefetch}
+      />
+
+      <DetailModal
+        isModalOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        selectedData={selectedData}
+      />
     </Main>
   );
 }

@@ -1,0 +1,4 @@
+role 10 : superior
+role 20 : supervisor
+role Admin : admin hc
+role null : employee

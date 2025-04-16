@@ -2,16 +2,13 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 const schema = yup.object().shape({
   email: yup.string().email("Email tidak valid").required("Email wajib diisi"),
-  password: yup
-    .string()
-    .min(6, "Password minimal 6 karakter")
-    .required("Password wajib diisi"),
+  password: yup.string().required("Password wajib diisi"),
 });
 
 export default function Login() {
@@ -20,7 +17,7 @@ export default function Login() {
   const router = useRouter();
 
   const {
-    control,
+    register,
     handleSubmit,
     formState: { errors },
   } = useForm({
@@ -37,10 +34,29 @@ export default function Login() {
           password: data.password,
         }
       );
-      const { access_token: token } = response.data.data;
+
+      const {
+        access_token: token,
+        user,
+        role,
+        departement,
+      } = response.data.data;
 
       Cookies.set("token", token, { expires: 1 });
-      router.push("/");
+      Cookies.set("role", role, { expires: 1 });
+      Cookies.set("nama", user.name, { expires: 1 });
+      Cookies.set("departement", departement, { expires: 1 });
+
+      // Navigasi berdasarkan role
+      if (role === "Admin") {
+        router.push("/dashboard/dashboardAdmin");
+      } else if (role === "DeptHead") {
+        router.push("/dashboard/dashboardDeptHead");
+      } else if (role === "Superior") {
+        router.push("/dashboard/dashboardSuperior");
+      } else if (role === "Partner") {
+        router.push("/dashboard/dashboardEmployee");
+      }
     } catch (err) {
       console.error(err);
       setError("Login gagal. Periksa kembali kredensial Anda.");
@@ -66,17 +82,11 @@ export default function Login() {
             <label className="form-label font-normal text-gray-900">
               Email
             </label>
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  className={`input ${errors.email ? "border-red-500" : ""}`}
-                  type="text"
-                  placeholder="Email"
-                />
-              )}
+            <input
+              {...register("email")}
+              className={`input ${errors.email ? "border-red-500" : ""}`}
+              type="text"
+              placeholder="Email"
             />
             {errors.email && (
               <p className="text-red-500 text-sm">{errors.email.message}</p>
@@ -87,17 +97,11 @@ export default function Login() {
             <label className="form-label font-normal text-gray-900">
               Password
             </label>
-            <Controller
-              name="password"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  className={`input ${errors.password ? "border-red-500" : ""}`}
-                  type="password"
-                  placeholder="Password"
-                />
-              )}
+            <input
+              {...register("password")}
+              className={`input ${errors.password ? "border-red-500" : ""}`}
+              type="password"
+              placeholder="Enter Password"
             />
             {errors.password && (
               <p className="text-red-500 text-sm">{errors.password.message}</p>
