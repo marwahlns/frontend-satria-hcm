@@ -8,76 +8,6 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 
-// Contoh penggunaan:
-// <DataTable columns={columns} url="/api/users" />
-// type IUser = {
-//   id: string;
-//   name: string;
-//   email: string;
-//   personal_number: string;
-// };
-
-// const columns: ColumnDef<IUser>[] = [
-//   {
-//     accessorKey: "number",
-//     header: "#",
-//     enableSorting: false,
-//   },
-//   {
-//     accessorKey: "id",
-//     header: "ID",
-//     enableSorting: false,
-//   },
-//   {
-//     accessorKey: "name",
-//     header: "Name",
-//     enableSorting: true,
-//   },
-//   {
-//     accessorKey: "email",
-//     header: "Email",
-//     enableSorting: true,
-//   },
-//   {
-//     accessorKey: "personal_number",
-//     header: "NRP",
-//     enableSorting: true,
-//   },
-//   {
-//     accessorKey: "",
-//     header: "Action",
-//     cell: ({ row }) => {
-//       const data = row.original;
-//       console.log(data);
-//       return (
-//         <div className="flex space-x-1 justify-center">
-//           <button className={clsx(
-//             "btn btn-icon bg-blue-500 btn-xs transition-transform",
-//             "hover:scale-[105%]",
-//             "active:scale-[100%]"
-//           )}>
-//             <i className="ki-outline ki-eye text-white"></i>
-//           </button>
-//           <button className={clsx(
-//             "btn btn-icon bg-orange-500 btn-xs transition-transform",
-//             "hover:scale-[105%]",
-//             "active:scale-[100%]"
-//           )}>
-//             <i className="ki-outline ki-pencil text-white"></i>
-//           </button>
-//           <button className={clsx(
-//             "btn btn-icon bg-red-500 btn-xs transition-transform",
-//             "hover:scale-[105%]",
-//             "active:scale-[100%]"
-//           )}>
-//             <i className="ki-outline ki-trash text-white"></i>
-//           </button>
-//         </div>
-//       )
-//     }
-//   },
-// ];
-
 const DataTable = ({ columns, url, isRefetch, title }) => {
   const [data, setData] = useState([]);
   const [page, setPage] = useState<number>(1);
@@ -171,7 +101,7 @@ const DataTable = ({ columns, url, isRefetch, title }) => {
             </div>
           </div>
           <div className="card-body">
-            {/* Tabel */}
+            {/* Table */}
             <div className="relative">
               {isLoading && (
                 <div className="absolute top-0 left-0 w-full h-full bg-white bg-opacity-70 z-10 flex items-center justify-center">
@@ -181,68 +111,73 @@ const DataTable = ({ columns, url, isRefetch, title }) => {
                   </div>
                 </div>
               )}
-              <table className="table table-border w-full border-collapse">
-                <thead>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <th
-                          key={header.id}
-                          className="border border-gray-300 p-2 cursor-pointer select-none"
-                          onClick={() => {
-                            if (!header.column.getCanSort()) return;
-                            setSort(header.column.id);
-                            setOrder(order === "asc" ? "desc" : "asc");
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1 text-center text-nowrap">
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
+              <div className="overflow-x-auto">
+                <table className="table table-border w-full border-collapse min-w-full">
+                  <thead>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="border border-gray-300 p-2 cursor-pointer select-none"
+                            onClick={() => {
+                              if (!header.column.getCanSort()) return;
+                              setSort(header.column.id);
+                              setOrder(order === "asc" ? "desc" : "asc");
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 text-center text-nowrap">
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                              </div>
+                              {header.column.getCanSort() && (
+                                <i
+                                  className={clsx(
+                                    "ki-outline text-xs",
+                                    header.column.getIsSorted() === "asc"
+                                      ? "ki-arrow-up"
+                                      : header.column.getIsSorted() === "desc"
+                                      ? "ki-arrow-down"
+                                      : "ki-arrow-up-down"
+                                  )}
+                                ></i>
                               )}
                             </div>
-                            {header.column.getCanSort() && (
-                              <i
-                                className={clsx(
-                                  "ki-outline text-xs",
-                                  header.column.getIsSorted() === "asc"
-                                    ? "ki-arrow-up"
-                                    : header.column.getIsSorted() === "desc"
-                                    ? "ki-arrow-down"
-                                    : "ki-arrow-up-down"
-                                )}
-                              ></i>
-                            )}
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody>
-                  {table.getRowModel().rows.length > 0 ? (
-                    table.getRowModel().rows.map((row) => (
-                      <tr key={row.id} className="font-normal">
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="border p-2">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </td>
+                          </th>
                         ))}
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={columns.length} className="text-center p-4">
-                        No results found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows.length > 0 ? (
+                      table.getRowModel().rows.map((row) => (
+                        <tr key={row.id} className="font-normal">
+                          {row.getVisibleCells().map((cell) => (
+                            <td key={cell.id} className="border p-2">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={columns.length}
+                          className="text-center p-4"
+                        >
+                          No results found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div className="card-footer justify-center md:justify-between flex-col md:flex-row gap-3 text-gray-600 text-2sm font-medium">

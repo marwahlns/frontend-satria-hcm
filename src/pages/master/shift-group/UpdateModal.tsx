@@ -62,13 +62,15 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     });
 
     useEffect(() => {
+        
         if (selectedData) {
             const mappedHari = selectedData.details.reduce((acc, detail) => {
+                console.log("Data : ",selectedData.details)
                 acc[detail.index_day.toLowerCase()] = {
                     value: detail.id_shift,
-                    label: detail.id_shift + " | " + detail.shift_name,
-                    in_time: detail.in_time || "",
-                    out_time: detail.out_time || "",
+                    label: detail.id_shift + " | " + detail.MsShift.name,
+                    in_time: detail.MsShift.in_time || "",
+                    out_time: detail.MsShift.out_time || "",
                 };
                 return acc;
             }, {});

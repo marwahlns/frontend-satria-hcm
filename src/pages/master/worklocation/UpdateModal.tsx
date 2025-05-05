@@ -131,7 +131,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                                 <p className="text-red-500 text-sm mt-1">{errors.location_name.message}</p>
                             )}
                         </div>
-                        <div className="form-group mb-2">
+                        <div className="form-group col-span-2">
                             <label className="form-label mb-1">Latitude, Longitude</label>
                             <Controller
                                 name="location_lat_long"

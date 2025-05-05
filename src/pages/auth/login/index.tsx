@@ -8,7 +8,9 @@ import * as yup from "yup";
 
 const schema = yup.object().shape({
   email: yup.string().email("Email tidak valid").required("Email wajib diisi"),
-  password: yup.string().required("Password wajib diisi"),
+  password: yup
+    .string()
+    .required("Password wajib diisi"),
 });
 
 export default function Login() {
@@ -34,29 +36,11 @@ export default function Login() {
           password: data.password,
         }
       );
-
-      const {
-        access_token: token,
-        user,
-        role,
-        departement,
-      } = response.data.data;
+      const { access_token: token, user } = response.data.data;
 
       Cookies.set("token", token, { expires: 1 });
-      Cookies.set("role", role, { expires: 1 });
-      Cookies.set("nama", user.name, { expires: 1 });
-      Cookies.set("departement", departement, { expires: 1 });
-
-      // Navigasi berdasarkan role
-      if (role === "Admin") {
-        router.push("/dashboard/dashboardAdmin");
-      } else if (role === "DeptHead") {
-        router.push("/dashboard/dashboardDeptHead");
-      } else if (role === "Superior") {
-        router.push("/dashboard/dashboardSuperior");
-      } else if (role === "Partner") {
-        router.push("/dashboard/dashboardEmployee");
-      }
+      Cookies.set("role", user.role_id, { expires: 1 });
+      router.push("/master/shift");
     } catch (err) {
       console.error(err);
       setError("Login gagal. Periksa kembali kredensial Anda.");

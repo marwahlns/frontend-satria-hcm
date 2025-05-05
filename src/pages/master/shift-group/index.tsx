@@ -101,35 +101,35 @@ export default function Home() {
         return (
           <div className="flex space-x-1 justify-center">
             <button
-              className={clsx(
-                "btn btn-icon bg-blue-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#detail_tooltip"
+              className="btn btn-sm btn-outline btn-primary"
               onClick={() => handleOpenDetailModal(data)}
             >
               <i className="ki-outline ki-eye text-white"></i>
             </button>
+            <div className="tooltip" id="detail_tooltip">
+              Detail
+            </div>
             <button
-              className={clsx(
-                "btn btn-icon bg-orange-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#update_tooltip"
+              className="btn btn-sm btn-outline btn-warning"
               onClick={() => handleOpenUpdateModal(data)}
             >
               <i className="ki-outline ki-pencil text-white"></i>
             </button>
+            <div className="tooltip" id="update_tooltip">
+              Update
+            </div>
             <button
-              className={clsx(
-                "btn btn-icon bg-red-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#delete_tooltip"
+              className="btn btn-sm btn-outline btn-danger"
               onClick={() => handleDelete(data.id)}
             >
               <i className="ki-outline ki-trash text-white"></i>
             </button>
+            <div className="tooltip" id="delete_tooltip">
+              Delete
+            </div>
           </div>
         );
       },
@@ -140,7 +140,7 @@ export default function Home() {
     <Main>
       <div className="mb-6">
         <div className="flex items-center justify-between mt-4">
-          <h1 className="text-3xl font-bold text-gray-800">Shift Group List</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Master Shift Group</h1>
           {/* Button */}
           <button
             className="btn btn-filled btn-primary"
@@ -153,6 +153,7 @@ export default function Home() {
       </div>
 
       <DataTable
+        title={"Shift Group List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/shift-group`}
         isRefetch={isRefetch}

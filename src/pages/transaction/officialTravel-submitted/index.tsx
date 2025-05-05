@@ -39,30 +39,6 @@ export default function Home() {
     },
   });
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const token = Cookies.get("token");
-
-  //       const res = await axios.get(
-  //         `${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter}`,
-  //         {
-  //           headers: {
-  //             Authorization: `Bearer ${token}`,
-  //           },
-  //         }
-  //       );
-
-  //       const data = res.data.data;
-  //       setAllowedStatuses(data.allowedStatuses || []);
-  //     } catch (error) {
-  //       console.error("Error fetching modalType and allowedStatuses:", error);
-  //     }
-  //   };
-
-  //   fetchData();
-  // }, [filter]);
-
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
     setSelectedActionType(actionType);
@@ -85,7 +61,7 @@ export default function Home() {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this leave request?`,
+        text: `Do you want to ${selectedActionType} this official travel request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -104,7 +80,7 @@ export default function Home() {
         {
           remark: data.remark,
           actionType: selectedActionType,
-          trxType: "leave",
+          trxType: "officialTravel",
         },
         {
           headers: {
@@ -116,7 +92,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Leave has been successfully ${selectedActionType}.`,
+          text: `Official travel has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -130,52 +106,27 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} leave. Please try again.`,
+        text: `Failed to ${selectedActionType} overtime. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
     }
   };
 
-  const handleExportExcel = async () => {
-    const token = localStorage.getItem("authToken");
-    try {
-      const response = await fetch(`${api}/api/trx/trxLeave/export`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch data from the API");
-      }
-
-      const blob = await response.blob();
-      const link = document.createElement("a");
-      const url = window.URL.createObjectURL(blob);
-
-      link.href = url;
-      link.download = "Data_Peminjaman_Buku.xlsx";
-      link.click();
-
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error exporting Excel:", error);
-      alert("Failed to export data.");
-    }
-  };
-
-  type ITrLeave = {
-    user_name: string;
-    user_departement: string;
+  type ITrOfficialTravel = {
+    user_name: number;
+    user_departement: number;
+    purpose: string;
+    destination_city: string;
+    start_date: string;
+    end_date: string;
     status_id: number;
     actionType: string;
     modalType: string;
     status_submittion: string;
   };
 
-  const columns: ColumnDef<ITrLeave>[] = [
+  const columns: ColumnDef<ITrOfficialTravel>[] = [
     {
       accessorKey: "number",
       header: "#",
@@ -192,8 +143,13 @@ export default function Home() {
       enableSorting: true,
     },
     {
-      accessorKey: "leave_type_name",
-      header: "Leave Type",
+      accessorKey: "purpose",
+      header: "Purpose",
+      enableSorting: true,
+    },
+    {
+      accessorKey: "destination_city",
+      header: "Destination City",
       enableSorting: true,
     },
     {
@@ -204,11 +160,6 @@ export default function Home() {
     {
       accessorKey: "end_date",
       header: "End Date",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "leave_reason",
-      header: "Reason",
       enableSorting: true,
     },
     {
@@ -295,7 +246,7 @@ export default function Home() {
       <div className="mb-6">
         <div className="flex flex-col gap-4 mt-4">
           <h1 className="text-3xl font-bold text-gray-800">
-            Leave submission data list
+            Official travel submission data list
           </h1>
 
           <div className="flex justify-between items-center">
@@ -318,7 +269,7 @@ export default function Home() {
               )}{" "}
               <button
                 className="btn btn-filled btn-primary"
-                onClick={handleExportExcel}
+                // onClick={handleExportExcel}
               >
                 Export Data
               </button>
@@ -328,13 +279,14 @@ export default function Home() {
           <ActionModal
             isModalOpen={isActionModalOpen}
             onClose={onClose}
-            title={`${selectedActionType} Leave Request`}
+            title={`${selectedActionType} Official Travel Request`}
             onSubmit={handleSubmit(onSubmit)}
             loading={loading}
             submitText={selectedActionType}
           >
-            <form id="leaveForm" onSubmit={handleSubmit(onSubmit)}>
+            <form id="officialTravelForm" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Data Umum */}
                 <div>
                   <label className="form-label">Employee Name</label>
                   <input
@@ -345,7 +297,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Employee Department</label>
+                  <label className="form-label">Employee Departement</label>
                   <input
                     className="input w-full"
                     type="text"
@@ -354,7 +306,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Start Date Leave</label>
+                  <label className="form-label">Start Date Travel</label>
                   <input
                     className="input w-full"
                     type="text"
@@ -363,7 +315,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">End Date Leave</label>
+                  <label className="form-label">End Date Travel</label>
                   <input
                     className="input w-full"
                     type="text"
@@ -372,21 +324,21 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Leave Type Name</label>
+                  <label className="form-label">Destination City Travel</label>
                   <input
                     className="input w-full"
                     type="text"
                     readOnly
-                    value={selectedData?.leave_type_name ?? ""}
+                    value={selectedData?.destination_city ?? ""}
                   />
                 </div>
                 <div>
-                  <label className="form-label">Leave Reason</label>
+                  <label className="form-label">Purpose Travel</label>
                   <input
                     className="input w-full"
                     type="text"
                     readOnly
-                    value={selectedData?.leave_reason ?? ""}
+                    value={selectedData?.purpose ?? ""}
                   />
                 </div>
               </div>
@@ -448,62 +400,6 @@ export default function Home() {
             onClose={onClose}
             title="Leave Request Detail"
           >
-            <div className="flex items-center justify-between gap-2 mt-4 mb-6">
-              {[
-                { id: 1, label: "Submitted" },
-                { id: 2, label: "Accepted" },
-                { id: 3, label: "Approved" },
-                { id: 6, label: "Rejected" },
-              ].map((step, index, arr) => {
-                const isActive =
-                  selectedData?.status_id >= step.id &&
-                  selectedData?.status_id !== 6;
-                const isRejected =
-                  selectedData?.status_id === 6 && step.id === 6;
-
-                return (
-                  <div key={step.id} className="flex-1 flex items-center gap-2">
-                    <div
-                      className={`w-8 h-8 rounded-full text-sm flex items-center justify-center font-semibold
-              ${
-                isRejected
-                  ? "bg-red-500 text-white"
-                  : isActive
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-300 text-gray-600"
-              }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <span
-                      className={`text-sm ${
-                        isRejected
-                          ? "text-red-500"
-                          : isActive
-                          ? "text-blue-700"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                    {index < arr.length - 1 && (
-                      <div className="flex-1 h-1 bg-gray-300 mx-2 relative">
-                        <div
-                          className={`h-1 absolute top-0 left-0 ${
-                            isRejected
-                              ? "bg-red-500 w-full"
-                              : selectedData?.status_id > step.id &&
-                                selectedData?.status_id !== 6
-                              ? "bg-blue-600 w-full"
-                              : "w-0"
-                          }`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Employee Name</label>
@@ -524,7 +420,7 @@ export default function Home() {
                 />
               </div>
               <div>
-                <label className="form-label">Start Date Leave</label>
+                <label className="form-label">Start Date Travel</label>
                 <input
                   className="input w-full"
                   type="text"
@@ -533,7 +429,7 @@ export default function Home() {
                 />
               </div>
               <div>
-                <label className="form-label">End Date Leave</label>
+                <label className="form-label">End Date Travel</label>
                 <input
                   className="input w-full"
                   type="text"
@@ -542,12 +438,12 @@ export default function Home() {
                 />
               </div>
               <div>
-                <label className="form-label">Leave Type Name</label>
+                <label className="form-label">Destination City Travel</label>
                 <input
                   className="input w-full"
                   type="text"
                   readOnly
-                  value={selectedData?.leave_type_name ?? ""}
+                  value={selectedData?.destination_city ?? ""}
                 />
               </div>
               <div>
@@ -610,9 +506,9 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Leave Submission"
+        title="Official Travel Submission"
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=officialTravel&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
       />
     </Main>

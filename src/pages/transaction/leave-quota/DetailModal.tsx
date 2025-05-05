@@ -24,6 +24,12 @@ const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
 
         leave_quota: yup
             .string(),
+
+        used_leave: yup
+            .string(),
+
+        leave_balance: yup
+            .string(),
     });
 
     const {
@@ -42,11 +48,13 @@ const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     useEffect(() => {
         if (selectedData) {
             reset({
-                name: selectedData.user_name,
+                name: selectedData.MsUser.name,
                 valid_from: selectedData.valid_from,
                 valid_to: selectedData.valid_to,
-                leave_type_id: selectedData.leaves_type,
+                leave_type_id: selectedData.MsLeaveType.title,
                 leave_quota: selectedData.leaves_quota,
+                used_leave: selectedData.used_leave,
+                leave_balance: selectedData.leave_balance,
             });
         }
     }, [selectedData, reset]);
@@ -141,6 +149,36 @@ const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             <label className="form-label mb-1">Leave Quota</label>
                             <Controller
                                 name="leave_quota"
+                                control={control}
+                                render={({ field }) => (
+                                    <input
+                                        {...field}
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly
+                                    />
+                                )}
+                            />
+                        </div>
+                        <div className="form-group mb-2">
+                            <label className="form-label mb-1">Used Leave</label>
+                            <Controller
+                                name="used_leave"
+                                control={control}
+                                render={({ field }) => (
+                                    <input
+                                        {...field}
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly
+                                    />
+                                )}
+                            />
+                        </div>
+                        <div className="form-group mb-2">
+                            <label className="form-label mb-1">Leave Balance</label>
+                            <Controller
+                                name="leave_balance"
                                 control={control}
                                 render={({ field }) => (
                                     <input

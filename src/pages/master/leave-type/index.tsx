@@ -75,11 +75,6 @@ export default function Home() {
       enableSorting: true,
     },
     {
-      accessorKey: "days",
-      header: "Days",
-      enableSorting: true,
-    },
-    {
       accessorKey: "",
       header: "Action",
       cell: ({ row }) => {
@@ -87,25 +82,25 @@ export default function Home() {
         return (
           <div className="flex space-x-1 justify-center">
             <button
-              className={clsx(
-                "btn btn-icon bg-orange-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#update_tooltip"
+              className="btn btn-sm btn-outline btn-warning"
               onClick={() => handleOpenUpdateModal(data)}
             >
               <i className="ki-outline ki-pencil text-white"></i>
             </button>
+            <div className="tooltip" id="update_tooltip">
+              Update
+            </div>
             <button
-              className={clsx(
-                "btn btn-icon bg-red-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#delete_tooltip"
+              className="btn btn-sm btn-outline btn-danger"
               onClick={() => handleDelete(data.id)}
             >
               <i className="ki-outline ki-trash text-white"></i>
             </button>
+            <div className="tooltip" id="delete_tooltip">
+              Delete
+            </div>
           </div>
         );
       },
@@ -116,7 +111,7 @@ export default function Home() {
     <Main>
       <div className="mb-6">
         <div className="flex items-center justify-between mt-4">
-          <h1 className="text-3xl font-bold text-gray-800">Leave Type List</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Master Leave Type</h1>
           {/* Button */}
           <button
             className="btn btn-filled btn-primary"
@@ -128,6 +123,7 @@ export default function Home() {
       </div>
 
       <DataTable
+        title={"Leave Type List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type`}
         isRefetch={isRefetch}

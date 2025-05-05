@@ -87,48 +87,25 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
             </div>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="form-group mb-2">
-                            <label className="form-label mb-1">Title</label>
-                            <Controller
-                                name="title"
-                                control={control}
-                                render={({ field }) => (
-                                    <input
-                                        {...field}
-                                        type="text"
-                                        className={clsx(
-                                            "input",
-                                            errors.title ? "border-red-500 hover:border-red-500" : ""
-                                        )}
-                                    />
-                                )}
-                            />
-                            {errors.title && (
-                                <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+                    <div className="form-group mb-2">
+                        <label className="form-label mb-1">Title</label>
+                        <Controller
+                            name="title"
+                            control={control}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    type="text"
+                                    className={clsx(
+                                        "input",
+                                        errors.title ? "border-red-500 hover:border-red-500" : ""
+                                    )}
+                                />
                             )}
-                        </div>
-                        <div className="form-group mb-2">
-                            <label className="form-label mb-1">Days</label>
-                            <Controller
-                                name="days"
-                                control={control}
-                                render={({ field }) => (
-                                    <input
-                                        {...field}
-                                        type="number"
-                                        className={clsx(
-                                            "input",
-                                            errors.days ? "border-red-500 hover:border-red-500" : ""
-                                        )}
-                                        onChange={(e) => field.onChange(Number(e.target.value))}
-                                    />
-                                )}
-                            />
-                            {errors.days && (
-                                <p className="text-red-500 text-sm mt-1">{errors.days.message}</p>
-                            )}
-                        </div>
+                        />
+                        {errors.title && (
+                            <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+                        )}
                     </div>
                 </div>
                 <div className="modal-footer justify-end flex-shrink-0">

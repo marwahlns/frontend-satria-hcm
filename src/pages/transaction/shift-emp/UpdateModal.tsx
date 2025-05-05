@@ -65,14 +65,14 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         if (selectedData) {
             reset({
                 code: selectedData.code,
-                name: selectedData.user_name,
+                name: selectedData.MsUser.name,
                 id_user: selectedData.id_user,
                 valid_from: formatDate(selectedData.valid_from),
                 valid_to: formatDate(selectedData.valid_to),
                 id_shift_group: selectedData.id_shift_group
                     ? {
                         value: selectedData.id_shift_group,
-                        label: selectedData.id_shift_group + " | " + selectedData.shift_group_name
+                        label: selectedData.id_shift_group + " | " + selectedData.MsShiftGroup.nama
                     }
                     : null,
             });

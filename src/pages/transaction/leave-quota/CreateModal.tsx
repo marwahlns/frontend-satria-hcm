@@ -17,6 +17,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     const [inputMethod, setInputMethod] = useState<"excel" | "table">("excel");
 
     const schema = yup.object().shape({
+        inputMethod: yup.string().required(),
+
         id_user: yup
             .array()
             .min(1, "Employee selection is required")
@@ -38,14 +40,16 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             .required("Valid to is required"),
 
         leave_quota: yup
+            .array()
+            .required("Leave quota is required"),
+
+        leave_quota_1: yup
             .number()
-            .typeError("Leave quota must be a number")
-            .min(0, "Cannot be negative")
             .required("Leave quota is required"),
 
         file: yup
             .mixed()
-            .when("inputMethod", {
+            .when(inputMethod, {
                 is: "excel",
                 then: (schema) => schema.required("File is required"),
                 otherwise: (schema) => schema.notRequired(),
@@ -63,9 +67,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
+            inputMethod: "excel",
             id_user: [],
             leave_type_id: null,
-            leave_quota: 0,
+            leave_quota: [],
             valid_from: "",
             valid_to: "",
             file: null,
@@ -75,9 +80,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     type IEmployee = {
         email: string;
         name: string;
-        user_detail?: {
-            nrp: string;
-        };
+        personal_number: string;
     };
 
     const columns: ColumnDef<IEmployee>[] = [
@@ -86,7 +89,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             header: ({ table }) => {
                 const selectedIds = watch("id_user") || [];
 
-                const allIds = table.getRowModel().rows.map((row) => row.original.user_detail?.nrp).filter(Boolean);
+                const allIds = table.getRowModel().rows.map((row) => row.original.personal_number).filter(Boolean);
                 const isAllSelected = allIds.every((nrp) => selectedIds.includes(nrp));
 
                 const handleSelectAll = (checked: boolean) => {
@@ -104,7 +107,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             },
             cell: ({ row }) => {
                 const selectedIds = watch("id_user") || [];
-                const nrp = row.original.user_detail?.nrp;
+                const nrp = row.original.personal_number;
 
                 if (!nrp) return "NRP Tidak Ada";
 
@@ -134,7 +137,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             enableColumnFilter: false,
         },
         {
-            accessorKey: "user_detail.nrp",
+            accessorKey: "personal_number",
             header: "NRP",
             enableSorting: true,
         },
@@ -151,11 +154,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             reset();
         }
         if (inputMethod === "excel") {
+            setValue("leave_quota", []);
             setValue("id_user", []);
         } else {
             setValue("file", null);
             setFile(null);
         }
+        setValue("inputMethod", "excel");
+
     }, [isModalOpen, reset, inputMethod]);
 
     const onSubmit = async (data) => {
@@ -178,10 +184,16 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 return;
             }
 
+            const selectedUsers = watch("id_user") || [];
+
+            const finalQuota = inputMethod === "excel"
+                ? data.leave_quota
+                : selectedUsers.map(() => Number(data.leave_quota_1));
+
             const payload = {
                 id_user: watch("id_user") || [],
                 id_leave_type: data.leave_type_id?.value,
-                leave_quota: data.leave_quota,
+                leave_quota: finalQuota,
                 valid_from: data.valid_from,
                 valid_to: data.valid_to,
             };
@@ -250,7 +262,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
 
     const handleDownloadTemplate = () => {
         const link = document.createElement("a");
-        link.href = "/template_shift.xlsx";
+        link.href = "/template_leave_quota.xlsx";
         link.download = "template_leave_quota.xlsx";
         document.body.appendChild(link);
         link.click();
@@ -269,12 +281,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
 
-            const jsonData: { NRP: string; Nama: string }[] = XLSX.utils.sheet_to_json(sheet);
+            const jsonData: { NRP: string; Nama: string; Quota?: number }[] = XLSX.utils.sheet_to_json(sheet);
 
             // Ambil NRP
             const nrpList = jsonData.map((row) => row.NRP).filter((nrp) => !!nrp);
+            const quotaList = jsonData.map((row) => row.Quota).filter((quota) => typeof quota === "number");
 
             setValue("id_user", nrpList);
+            setValue("leave_quota", quotaList);
         };
         reader.readAsBinaryString(file);
     };
@@ -360,28 +374,30 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                 <p className="text-red-500 text-sm mt-1">{errors.leave_type_id.message}</p>
                             )}
                         </div>
-                        <div className="form-group mb-2">
-                            <label className="form-label mb-1">Leave Quota</label>
-                            <Controller
-                                name="leave_quota"
-                                control={control}
-                                render={({ field }) => (
-                                    <input
-                                        {...field}
-                                        type="text"
-                                        className={clsx(
-                                            "input",
-                                            errors.leave_quota ? "border-red-500 hover:border-red-500" : ""
-                                        )}
-                                        placeholder="Leave Quota"
-                                    />
+                        {inputMethod === "table" && (
+                            <div className="form-group mb-2">
+                                <label className="form-label mb-1">Leave Quota</label>
+                                <Controller
+                                    name="leave_quota_1"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            {...field}
+                                            type="number"
+                                            className={clsx(
+                                                "input",
+                                                errors.leave_quota_1 ? "border-red-500 hover:border-red-500" : ""
+                                            )}
+                                            placeholder="Leave Quota"
+                                        />
+                                    )}
+                                />
+                                {errors.leave_quota_1 && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.leave_quota_1.message}</p>
                                 )}
-                            />
-                            {errors.leave_quota && (
-                                <p className="text-red-500 text-sm mt-1">{errors.leave_quota.message}</p>
-                            )}
-                        </div>
-                        <div className="flex gap-12">
+                            </div>
+                        )}
+                        <div className="form-group col-span-2 flex items-center gap-12 mb-2">
                             <label className="form-label flex items-center gap-2.5 text-nowrap">
                                 <input
                                     className="radio"
@@ -389,9 +405,12 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     type="radio"
                                     value="excel"
                                     checked={inputMethod === "excel"}
-                                    onChange={() => setInputMethod("excel")}
+                                    onChange={() => {
+                                        setInputMethod("excel");
+                                        setValue("inputMethod", "excel");
+                                    }}
                                 />
-                                Import Excel
+                                Upload Excel
                             </label>
                             <label className="form-label flex items-center gap-2.5 text-nowrap">
                                 <input
@@ -400,7 +419,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     type="radio"
                                     value="table"
                                     checked={inputMethod === "table"}
-                                    onChange={() => setInputMethod("table")}
+                                    onChange={() => {
+                                        setInputMethod("table");
+                                        setValue("inputMethod", "table")
+                                    }}
                                 />
                                 Checklist Table
                             </label>
@@ -408,9 +430,9 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         {inputMethod === "excel" ? (
                             <div className="form-group col-span-2">
                                 <label className="form-label mb-1">Upload Excel</label>
-                                <p className="text-blue-500 text-sm mt-1" onClick={handleDownloadTemplate}>
+                                <button className="btn btn-link mb-2" onClick={handleDownloadTemplate}>
                                     Download Template Excel
-                                </p>
+                                </button>
                                 <Controller
                                     name="file"
                                     control={control}
@@ -444,8 +466,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             </div>
                         ) : (
                             <div className="form-group col-span-2">
-                                <label className="form-label mb-1">Select User</label>
                                 <DataTable
+                                    title={"User List"}
                                     columns={columns}
                                     url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
                                     isRefetch={isRefetch}

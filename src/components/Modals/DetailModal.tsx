@@ -1,21 +1,11 @@
 import Modal from "@/components/Modal";
 
-const DetailModal = ({
-  isModalOpen,
-  onClose,
-  title = "Modal",
-  children,
-  onSubmit,
-  submitText = "Submit",
-  loading = false,
-  showSubmit = true,
-  showCancel = true,
-}) => {
+const DetailModal = ({ isModalOpen, onClose, title = "Modal", children }) => {
   return (
     <Modal isModalOpen={isModalOpen}>
-      <div className="flex justify-between items-center border-b pb-4">
-        <h3 className="text-xl font-semibold">{title}</h3>
-        <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
+      <div className="modal-header">
+        <h3 className="modal-title">{title}</h3>
+        <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
           <i className="ki-outline ki-cross"></i>
         </button>
       </div>

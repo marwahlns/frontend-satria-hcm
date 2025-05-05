@@ -64,13 +64,13 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         if (selectedData) {
             reset({
                 id_user: selectedData.id_user,
-                name: selectedData.user_name,
+                name: selectedData.MsUser.name,
                 valid_from: formatDate(selectedData.valid_from),
                 valid_to: formatDate(selectedData.valid_to),
                 id_leave_type: selectedData.leaves_type_id
                     ? {
                         value: selectedData.leaves_type_id,
-                        label: selectedData.leaves_type
+                        label: selectedData.MsLeaveType.title
                     }
                     : null,
                 leaves_quota: selectedData.leaves_quota,

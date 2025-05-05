@@ -22,9 +22,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
             const mappedShifts = selectedData.details.reduce((acc, item) => {
                 acc[item.index_day.toLowerCase()] = {
                     value: item.id_shift,
-                    label: item.id_shift + " | " + item.shift_name,
-                    in_time: item.in_time || "",
-                    out_time: item.out_time || "",
+                    label: item.id_shift + " | " + item.MsShift.name,
+                    in_time: item.MsShift.in_time || "",
+                    out_time: item.MsShift.out_time || "",
                 };
                 return acc;
             }, {});

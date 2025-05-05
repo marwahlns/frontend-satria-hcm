@@ -68,9 +68,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     type IEmployee = {
         email: string;
         name: string;
-        user_detail?: {
-            nrp: string;
-        };
+        personal_number: string;
     };
 
     const columns: ColumnDef<IEmployee>[] = [
@@ -79,7 +77,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             header: ({ table }) => {
                 const selectedIds = watch("id_user") || [];
 
-                const allIds = table.getRowModel().rows.map((row) => row.original.user_detail?.nrp).filter(Boolean);
+                const allIds = table.getRowModel().rows.map((row) => row.original.personal_number).filter(Boolean);
                 const isAllSelected = allIds.every((nrp) => selectedIds.includes(nrp));
 
                 const handleSelectAll = (checked: boolean) => {
@@ -97,7 +95,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             },
             cell: ({ row }) => {
                 const selectedIds = watch("id_user") || [];
-                const nrp = row.original.user_detail?.nrp;
+                const nrp = row.original.personal_number;
 
                 if (!nrp) return "NRP Tidak Ada";
 
@@ -127,7 +125,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             enableColumnFilter: false,
         },
         {
-            accessorKey: "user_detail.nrp",
+            accessorKey: "personal_number",
             header: "NRP",
             enableSorting: true,
         },
@@ -362,7 +360,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     checked={inputMethod === "excel"}
                                     onChange={() => setInputMethod("excel")}
                                 />
-                                Import Excel
+                                Upload Excel
                             </label>
                             <label className="form-label flex items-center gap-2.5 text-nowrap">
                                 <input
@@ -379,9 +377,9 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         {inputMethod === "excel" ? (
                             <div className="form-group col-span-2">
                                 <label className="form-label mb-1">Upload Excel</label>
-                                <p className="text-blue-500 text-sm mt-1" onClick={handleDownloadTemplate}>
+                                <button className="btn btn-link mb-2" onClick={handleDownloadTemplate}>
                                     Download Template Excel
-                                </p>
+                                </button>
                                 <Controller
                                     name="file"
                                     control={control}
@@ -415,8 +413,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             </div>
                         ) : (
                             <div className="form-group col-span-2">
-                                <label className="form-label mb-1">Select User</label>
                                 <DataTable
+                                    title={"User List"}
                                     columns={columns}
                                     url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
                                     isRefetch={isRefetch}

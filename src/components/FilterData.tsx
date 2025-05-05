@@ -1,59 +1,87 @@
+import React, { useState } from "react";
+
 interface RoleFilterProps {
-  role: string | number;
-  onSelect: (filter: number) => void;
+  onSelect: (filter: { month: string; year: string; status: number }) => void;
 }
 
-const FilterData: React.FC<RoleFilterProps> = ({ role, onSelect }) => {
-  const statusOptions = [
-    { label: "All", filter: 0 },
-    ...(role === "Superior"
-      ? [
-          { label: "Pending", filter: 1 },
-          { label: "Accepted", filter: 2 },
-          { label: "Reject Accepted", filter: 4 },
-        ]
-      : role === "DeptHead"
-      ? [
-          { label: "Approved", filter: 3 },
-          { label: "Accept Accepted", filter: 2 },
-          { label: "Reject Approved", filter: 5 },
-        ]
-      : role === "Admin"
-      ? [
-          { label: "Pending", filter: 1 },
-          { label: "Accepted", filter: 2 },
-          { label: "Approved", filter: 3 },
-          { label: "Reject Accepted", filter: 4 },
-          { label: "Reject Approved", filter: 5 },
-        ]
-      : [
-          { label: "Pending", filter: 1 },
-          { label: "Accepted", filter: 2 },
-          { label: "Approved", filter: 3 },
-          { label: "Reject Accepted", filter: 4 },
-          { label: "Reject   Approved", filter: 5 },
-        ]),
-  ];
+const FilterData: React.FC<RoleFilterProps> = ({ onSelect }) => {
+  const statusMap: Record<number, string> = {
+    0: "All",
+    1: "Opened",
+    2: "Partial Approved",
+    3: "Fully Approved",
+    6: "Rejected",
+    7: "Canceled",
+  };
+
+  const statusOptions = Object.entries(statusMap).map(([status, label]) => ({
+    label,
+    value: parseInt(status),
+  }));
+
+  const [selectedMonthYear, setSelectedMonthYear] = useState(""); // Format YYYY-MM
+  const [selectedStatus, setSelectedStatus] = useState(0);
+
+  const handleApply = () => {
+    if (selectedMonthYear) {
+      const [year, month] = selectedMonthYear.split("-");
+
+      onSelect({
+        month,
+        year,
+        status: selectedStatus,
+      });
+    } else {
+      onSelect({
+        month: "",
+        year: "",
+        status: selectedStatus,
+      });
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedMonthYear("");
+    setSelectedStatus(0);
+    onSelect({ month: "", year: "", status: 0 });
+  };
 
   return (
-    <div
-      className="dropdown"
-      data-dropdown="true"
-      data-dropdown-trigger="click"
-    >
-      <button className="dropdown-toggle btn btn-light">
-        <i className="ki-filled ki-filter-tablet"></i> Filter Data
-      </button>
-      <div className="dropdown-content w-full max-w-56 py-2">
-        <div className="menu menu-default flex flex-col w-full">
+    <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg p-4 w-80 z-50">
+      <h3 className="text-lg font-semibold mb-4">Filter Options</h3>
+
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Month:</label>
+        <input
+          type="month"
+          value={selectedMonthYear}
+          onChange={(e) => setSelectedMonthYear(e.target.value)}
+          className="w-full border px-3 py-2 rounded"
+        />
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Status:</label>
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(parseInt(e.target.value))}
+          className="w-full border px-3 py-2 rounded"
+        >
           {statusOptions.map((option) => (
-            <div className="menu-item" key={option.filter}>
-              <a className="menu-link" onClick={() => onSelect(option.filter)}>
-                <span className="menu-title">{option.label}</span>
-              </a>
-            </div>
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
           ))}
-        </div>
+        </select>
+      </div>
+
+      <div className="flex justify-between">
+        <button onClick={handleReset} className="btn btn-filled btn-secondary">
+          Reset
+        </button>
+        <button onClick={handleApply} className="btn btn-filled btn-primary">
+          Apply
+        </button>
       </div>
     </div>
   );

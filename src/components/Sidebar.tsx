@@ -27,25 +27,25 @@ function Sidebar() {
         <a className="dark:hidden" href="html/demo1.html">
           <img
             alt=""
-            className="default-logo min-h-[22px] max-w-none"
-            src="/media/app/default-logo.svg"
+            className="default-logo min-h-[22px] max-w-150px"
+            src="/media/app/logo_image.png"
           />
           <img
             alt=""
-            className="small-logo min-h-[22px] max-w-none"
-            src="/media/app/mini-logo.svg"
+            className="small-logo min-h-[22px] max-w-150px"
+            src="/media/app/logo_image.png"
           />
         </a>
         <a className="hidden dark:block" href="html/demo1.html">
           <img
             alt=""
-            className="default-logo min-h-[22px] max-w-none"
-            src="/media/app/default-logo-dark.svg"
+            className="default-logo min-h-[22px] max-w-150px"
+            src="/media/app/logo_image.png"
           />
           <img
             alt=""
-            className="small-logo min-h-[22px] max-w-none"
-            src="/media/app/mini-logo.svg"
+            className="small-logo min-h-[22px] max-w-150px"
+            src="/media/app/logo_image.png"
           />
         </a>
         <button
@@ -95,7 +95,7 @@ function Sidebar() {
                 </div>
               </Link>
             </div>
-            {role === "Admin" && (
+            {role === "10" && (
               <div
                 className="menu-item"
                 data-menu-item-toggle="accordion"
@@ -117,14 +117,12 @@ function Sidebar() {
                   </span>
                 </div>
                 <div
-                  className={`menu-accordion ${
-                    pathname.includes("/master") ? "show" : ""
-                  } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+                  className={`menu-accordion ${pathname.includes("/master") ? "show" : ""
+                    } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
                 >
                   <div
-                    className={`menu-item ${
-                      pathname === "/master/employee" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/master/employee" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -138,9 +136,8 @@ function Sidebar() {
                     </Link>
                   </div>
                   <div
-                    className={`menu-item ${
-                      pathname === "/master/worklocation" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/master/worklocation" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -154,9 +151,8 @@ function Sidebar() {
                     </Link>
                   </div>
                   <div
-                    className={`menu-item ${
-                      pathname === "/master/shift" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/master/shift" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -170,9 +166,8 @@ function Sidebar() {
                     </Link>
                   </div>
                   <div
-                    className={`menu-item ${
-                      pathname === "/master/shift-group" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/master/shift-group" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -186,9 +181,8 @@ function Sidebar() {
                     </Link>
                   </div>
                   <div
-                    className={`menu-item ${
-                      pathname === "/master/leave-type" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/master/leave-type" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -205,7 +199,7 @@ function Sidebar() {
               </div>
             )}
 
-            {role === "Admin" && (
+            {role === "10" && (
               <div
                 className="menu-item"
                 data-menu-item-toggle="accordion"
@@ -227,14 +221,12 @@ function Sidebar() {
                   </span>
                 </div>
                 <div
-                  className={`menu-accordion ${
-                    pathname.includes("/transaction") ? "show" : ""
-                  } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+                  className={`menu-accordion ${pathname.includes("/transaction") ? "show" : ""
+                    } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
                 >
                   <div
-                    className={`menu-item ${
-                      pathname === "/transaction/shift-emp" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/transaction/shift-emp" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -248,9 +240,8 @@ function Sidebar() {
                     </Link>
                   </div>
                   <div
-                    className={`menu-item ${
-                      pathname === "/transaction/leave-quota" ? "active" : ""
-                    }`}
+                    className={`menu-item ${pathname === "/transaction/leave-quota" ? "active" : ""
+                      }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
@@ -263,321 +254,115 @@ function Sidebar() {
                       </span>
                     </Link>
                   </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/leave-submitted"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/leave-submitted"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Leave Report
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-ovt" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-ovt"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Overtime Report
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-work-travel"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-work-travel"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Work Travel Report
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-mutation" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-mutation"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Mutation Report
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-resign" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-resign"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Resign Report
-                      </span>
-                    </Link>
-                  </div>
                 </div>
               </div>
             )}
 
-            {role === "DeptHead" && (
+            <div
+              className="menu-item"
+              data-menu-item-toggle="accordion"
+              data-menu-item-trigger="click"
+            >
               <div
-                className="menu-item"
-                data-menu-item-toggle="accordion"
-                data-menu-item-trigger="click"
+                className="menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px]"
+                tabIndex={0}
+              >
+                <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
+                  <i className="ki-filled ki-night-day text-lg"></i>
+                </span>
+                <span className="menu-title text-sm font-semibold text-gray-700 menu-item-active:text-primary menu-link-hover:!text-primary">
+                  Report
+                </span>
+                <span className="menu-arrow text-gray-400 w-[20px] shrink-0 justify-end ml-1 mr-[-10px]">
+                  <i className="ki-filled ki-plus text-2xs menu-item-show:hidden"></i>
+                  <i className="ki-filled ki-minus text-2xs hidden menu-item-show:inline-flex"></i>
+                </span>
+              </div>
+              <div
+                className={`menu-accordion ${pathname.includes("/transaction") ? "show" : ""
+                  } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
               >
                 <div
-                  className="menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px]"
-                  tabIndex={0}
+                  className={`menu-item ${pathname === "/transaction/leave-submitted"
+                    ? "active"
+                    : ""
+                    }`}
                 >
-                  <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
-                    <i className="ki-filled ki-night-day text-lg"></i>
-                  </span>
-                  <span className="menu-title text-sm font-semibold text-gray-700 menu-item-active:text-primary menu-link-hover:!text-primary">
-                    Transaction
-                  </span>
-                  <span className="menu-arrow text-gray-400 w-[20px] shrink-0 justify-end ml-1 mr-[-10px]">
-                    <i className="ki-filled ki-plus text-2xs menu-item-show:hidden"></i>
-                    <i className="ki-filled ki-minus text-2xs hidden menu-item-show:inline-flex"></i>
-                  </span>
+                  <Link
+                    className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+                    href="/transaction/leave-submitted"
+                    tabIndex={0}
+                  >
+                    <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+                    <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                      Report Leave Submission
+                    </span>
+                  </Link>
                 </div>
                 <div
-                  className={`menu-accordion ${
-                    pathname.includes("/transaction") ? "show" : ""
-                  } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+                  className={`menu-item ${pathname === "/transaction/overtime-submitted" ? "active" : ""
+                    }`}
                 >
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/leave-submitted"
-                        ? "active"
-                        : ""
-                    }`}
+                  <Link
+                    className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+                    href="/transaction/overtime-submitted"
+                    tabIndex={0}
                   >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/leave-submitted"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Leave Approval
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-ovt" ? "active" : ""
+                    <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+                    <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                      Report Overtime Submission
+                    </span>
+                  </Link>
+                </div>
+                <div
+                  className={`menu-item ${pathname === "/transaction/officialTravel-submitted"
+                    ? "active"
+                    : ""
                     }`}
+                >
+                  <Link
+                    className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+                    href="/transaction/officialTravel-submitted"
+                    tabIndex={0}
                   >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-ovt"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Overtime Approval
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-work-travel"
-                        ? "active"
-                        : ""
+                    <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+                    <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                      Report Work Travel Submission
+                    </span>
+                  </Link>
+                </div>
+                <div
+                  className={`menu-item ${pathname === "/transaction/mutation-submitted" ? "active" : ""
                     }`}
+                >
+                  <Link
+                    className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+                    href="/transaction/mutation-submitted"
+                    tabIndex={0}
                   >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-work-travel"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Work Travel Approval
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-mutation" ? "active" : ""
+                    <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+                    <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                      Report Mutation Submission
+                    </span>
+                  </Link>
+                </div>
+                <div
+                  className={`menu-item ${pathname === "/transaction/resign-submitted" ? "active" : ""
                     }`}
+                >
+                  <Link
+                    className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+                    href="/transaction/resign-submitted"
+                    tabIndex={0}
                   >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-mutation"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Mutation Approval
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-resign" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-resign"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Resign Approval
-                      </span>
-                    </Link>
-                  </div>
+                    <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+                    <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                      Report Resign Submission
+                    </span>
+                  </Link>
                 </div>
               </div>
-            )}
-
-            {role === "Superior" && (
-              <div
-                className="menu-item"
-                data-menu-item-toggle="accordion"
-                data-menu-item-trigger="click"
-              >
-                <div
-                  className="menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px]"
-                  tabIndex={0}
-                >
-                  <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
-                    <i className="ki-filled ki-night-day text-lg"></i>
-                  </span>
-                  <span className="menu-title text-sm font-semibold text-gray-700 menu-item-active:text-primary menu-link-hover:!text-primary">
-                    Transaction
-                  </span>
-                  <span className="menu-arrow text-gray-400 w-[20px] shrink-0 justify-end ml-1 mr-[-10px]">
-                    <i className="ki-filled ki-plus text-2xs menu-item-show:hidden"></i>
-                    <i className="ki-filled ki-minus text-2xs hidden menu-item-show:inline-flex"></i>
-                  </span>
-                </div>
-                <div
-                  className={`menu-accordion ${
-                    pathname.includes("/transaction") ? "show" : ""
-                  } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
-                >
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/leave-submitted"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/leave-submitted"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Accepted Leave
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/acc-mutation" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/acc-mutation"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Accepted Mutation
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/acc-ovt" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/acc-ovt"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Accepted Overtime
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/app-resign" ? "active" : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/app-resign"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Accepted Resign
-                      </span>
-                    </Link>
-                  </div>
-                  <div
-                    className={`menu-item ${
-                      pathname === "/transaction/acc-work-travel"
-                        ? "active"
-                        : ""
-                    }`}
-                  >
-                    <Link
-                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
-                      href="/transaction/acc-work-travel"
-                      tabIndex={0}
-                    >
-                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
-                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
-                        Transaction Accepted Work Travel
-                      </span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

@@ -4,7 +4,6 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import clsx from "clsx";
 import axios from "axios";
-import AsyncSelect from "react-select/async";
 import Cookies from "js-cookie";
 import { useEffect } from "react";
 import Swal from "sweetalert2";
@@ -52,10 +51,10 @@ const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
             reset({
                 code: selectedData.code,
                 id_user: selectedData.id_user,
-                name: selectedData.user_name,
+                name: selectedData.MsUser.name,
                 valid_from: selectedData.valid_from,
                 valid_to: selectedData.valid_to,
-                id_shift_group: selectedData.id_shift_group + " | " + selectedData.shift_group_name,    
+                id_shift_group: selectedData.id_shift_group + " | " + selectedData.MsShiftGroup.nama,    
             });
         }
     }, [selectedData, reset]);

@@ -75,11 +75,17 @@ export default function Home() {
   type ITrxShift = {
     id: number;
     code: number;
-    user_name: string;
-    leaves_type: string;
     valid_from: string;
     valid_to: string;
     leaves_quota: number;
+    MsUser: {
+      personal_number: string;
+      name: string;
+    };
+    MsLeaveType: {
+      id: number;
+      title: string;
+    };
   };
 
   const columns: ColumnDef<ITrxShift>[] = [
@@ -92,13 +98,13 @@ export default function Home() {
       accessorKey: "id_user",
       header: "Name",
       enableSorting: true,
-      cell: ({ row }) => row.original.user_name || "Unknown",
+      cell: ({ row }) => row.original.MsUser.name || "Unknown",
     },
     {
       accessorKey: "leave_type_id",
       header: "Leave Type",
       enableSorting: true,
-      cell: ({ row }) => row.original.leaves_type || "Unknown",
+      cell: ({ row }) => row.original.MsLeaveType.title || "Unknown",
     },
     {
       accessorKey: "valid_from",
@@ -123,22 +129,35 @@ export default function Home() {
         return (
           <div className="flex space-x-1 justify-center">
             <button
-              className="btn btn-icon bg-blue-500 btn-xs transition-transform hover:scale-[105%] active:scale-[100%]"
-              onClick={() => handleOpenDetailModal(data)}>
+              data-tooltip="#detail_tooltip"
+              className="btn btn-sm btn-outline btn-primary"
+              onClick={() => handleOpenDetailModal(data)}
+            >
               <i className="ki-outline ki-eye text-white"></i>
             </button>
+            <div className="tooltip" id="detail_tooltip">
+              Detail
+            </div>
             <button
-              className="btn btn-icon bg-orange-500 btn-xs transition-transform hover:scale-[105%] active:scale-[100%]"
+              data-tooltip="#update_tooltip"
+              className="btn btn-sm btn-outline btn-warning"
               onClick={() => handleOpenUpdateModal(data)}
             >
               <i className="ki-outline ki-pencil text-white"></i>
             </button>
+            <div className="tooltip" id="update_tooltip">
+              Update
+            </div>
             <button
-              className="btn btn-icon bg-red-500 btn-xs transition-transform hover:scale-[105%] active:scale-[100%]"
+              data-tooltip="#delete_tooltip"
+              className="btn btn-sm btn-outline btn-danger"
               onClick={() => handleDelete(data.id)}
             >
               <i className="ki-outline ki-trash text-white"></i>
             </button>
+            <div className="tooltip" id="delete_tooltip">
+              Delete
+            </div>
           </div>
         );
       },
@@ -167,6 +186,7 @@ export default function Home() {
       </div>
 
       <DataTable
+        title={"Transaction Leave Quota List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota`}
         isRefetch={isRefetch}

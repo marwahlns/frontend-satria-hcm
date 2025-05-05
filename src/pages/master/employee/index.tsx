@@ -10,7 +10,6 @@ import UpdateModal from "./UpdateModal";
 import DetailModal from "./DetailModal";
 
 export default function Home() {
-  const [isRefresh, setIsRefresh] = useState<number>(0);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -48,7 +47,7 @@ export default function Home() {
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Confirmation",
-      text: "Are you sure you want to delete this employee?",
+      text: "Are you sure you want to delete this user?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -66,7 +65,7 @@ export default function Home() {
       } catch (error) {
         Swal.fire("Error!", "Failed to delete the employee.", "error");
       }
-      setIsRefresh((prev) => prev + 1);
+      setIsRefetch(!isRefetch);
     }
   };
 
@@ -83,7 +82,7 @@ export default function Home() {
       enableSorting: false,
     },
     {
-      accessorKey: "user_detail.nrp",
+      accessorKey: "personal_number",
       header: "NRP",
       enableSorting: true,
     },
@@ -110,35 +109,35 @@ export default function Home() {
         return (
           <div className="flex space-x-1 justify-center">
             <button
-              className={clsx(
-                "btn btn-icon bg-blue-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#detail_tooltip"
+              className="btn btn-sm btn-outline btn-primary"
               onClick={() => handleOpenDetailModal(data)}
             >
               <i className="ki-outline ki-eye text-white"></i>
             </button>
+            <div className="tooltip" id="detail_tooltip">
+              Detail
+            </div>
             <button
-              className={clsx(
-                "btn btn-icon bg-orange-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#update_tooltip"
+              className="btn btn-sm btn-outline btn-warning"
               onClick={() => handleOpenUpdateModal(data)}
             >
               <i className="ki-outline ki-pencil text-white"></i>
             </button>
+            <div className="tooltip" id="update_tooltip">
+              Update
+            </div>
             <button
-              className={clsx(
-                "btn btn-icon bg-red-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
+              data-tooltip="#delete_tooltip"
+              className="btn btn-sm btn-outline btn-danger"
               onClick={() => handleDelete(data.id)}
             >
               <i className="ki-outline ki-trash text-white"></i>
             </button>
+            <div className="tooltip" id="delete_tooltip">
+              Delete
+            </div>
           </div>
         );
       },
@@ -149,7 +148,7 @@ export default function Home() {
     <Main>
       <div className="mb-6">
         <div className="flex items-center justify-between mt-4">
-          <h1 className="text-3xl font-bold text-gray-800">User List</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Master User</h1>
           {/* Button */}
           <button
             className="btn btn-filled btn-primary"
@@ -163,6 +162,7 @@ export default function Home() {
       </div>
 
       <DataTable
+        title={"User List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
         isRefetch={isRefetch}

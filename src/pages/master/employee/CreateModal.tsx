@@ -9,6 +9,7 @@ import Select from "react-select";
 import Cookies from "js-cookie";
 import { useEffect } from "react";
 import Swal from "sweetalert2";
+import { title } from "process";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     const schema = yup.object().shape({
@@ -29,7 +30,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             .string()
             .required("Birth date is required."),
         gender: yup
-            .string()
+            .object({
+                value: yup.string().required("Gender is required."),
+                label: yup.string().required("Gender is required."),
+            })
             .required("Gender is required."),
         marital_status: yup
             .object({
@@ -74,19 +78,25 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             .object({
                 value: yup.string().required("Superior is required."),
                 label: yup.string().required("Superior is required."),
+                section_code: yup.string().nullable(),
+                section: yup.string().nullable(),
+                divid: yup.string().nullable(),
+                companyid: yup.string().nullable(),
+                company_name: yup.string().nullable(),
+                dept: yup.string().nullable(),
+                department: yup.string().nullable(),
+                division: yup.string().nullable(),
             })
             .required("Superior is required."),
-        department: yup
-            .object({
-                value: yup.string().required("Department is required."),
-                label: yup.string().required("Department is required."),
-            })
-            .required("Department is required."),
         section: yup
             .string(),
+        department: yup
+            .string(),
         division: yup
+            .string(),
+        title: yup
             .string()
-            .required("Division is required."),
+            .required("Title is required."),
     });
 
     const {
@@ -94,6 +104,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         handleSubmit,
         formState: { errors },
         reset,
+        setValue,
     } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
@@ -131,10 +142,15 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                     worklocation_lat_long: data.worklocation.lat_long,
                     klasifikasi: data.klasifikasi.value,
                     superior: data.superior.value,
-                    section: data.section,
-                    dept: data.department.value,
-                    department: data.department.label,
-                    division: data.division,
+                    section_code: data.superior.section_code,
+                    section: data.superior.section,
+                    dept: data.superior.dept,
+                    department: data.superior.department,
+                    divid: data.superior.divid,
+                    division: data.superior.division,
+                    companyid: data.superior.companyid,
+                    company_name: data.superior.company_name,
+                    title: data.title,
                 },
                 {
                     headers: {
@@ -281,6 +297,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 return response.data.data.data.map((superior) => ({
                     value: superior.personal_number,
                     label: superior.name,
+                    section_code: superior.section_code,
+                    section: superior.section,
+                    dept: superior.dept,
+                    department: superior.department,
+                    divid: superior.divid,
+                    division: superior.division,
+                    companyid: superior.companyid,
+                    company_name: superior.company_name,
                 }));
             } else {
                 return [];
@@ -427,8 +451,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                                 "&:hover": { borderColor: state.isFocused ? "#DBDFE9" : "#EF4444" },
                                             }),
                                         }}
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
-                                        value={genderOptions.find((option) => option.value === field.value)}
+                                        onChange={(selectedOption) => field.onChange(selectedOption)}
+                                        value={field.value}
                                     />
                                 )}
                             />
@@ -603,7 +627,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.klasifikasi && <p className="text-red-500 text-sm mt-1">{errors.klasifikasi.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">superior</label>
+                            <label className="form-label mb-1">Superior</label>
                             <Controller
                                 name="superior"
                                 control={control}
@@ -622,6 +646,12 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                                 "&:hover": { borderColor: state.isFocused ? "#DBDFE9" : "#EF4444" },
                                             }),
                                         }}
+                                        onChange={(selected) => {
+                                            field.onChange(selected);
+                                            setValue("department", selected?.department || "");
+                                            setValue("section", selected?.section || "");
+                                            setValue("division", selected?.division || "");
+                                        }}
                                     />
                                 )}
                             />
@@ -633,21 +663,11 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                 name="department"
                                 control={control}
                                 render={({ field }) => (
-                                    <AsyncSelect
-                                        {...field}
-                                        cacheOptions
-                                        defaultOptions
-                                        loadOptions={departmentOptions}
-                                        placeholder="Select.."
-                                        className={clsx("w-full text-sm")}
-                                        styles={{
-                                            control: (base, state) => ({
-                                                ...base,
-                                                borderColor: errors.department ? "#EF4444" : "#DBDFE9",
-                                                "&:hover": { borderColor: state.isFocused ? "#DBDFE9" : "#EF4444" },
-                                            }),
-                                        }}
-                                    />
+                                    <input {...field}
+                                        type="text"
+                                        className={clsx("input", errors.department && "border-red-500")}
+                                        placeholder="Department"
+                                        readOnly />
                                 )}
                             />
                             {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department.message}</p>}
@@ -661,7 +681,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     <input {...field}
                                         type="text"
                                         className={clsx("input", errors.section && "border-red-500")}
-                                        placeholder="Section" />
+                                        placeholder="Section"
+                                        readOnly />
                                 )}
                             />
                             {errors.section && <p className="text-red-500 text-sm mt-1">{errors.section.message}</p>}
@@ -675,10 +696,25 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     <input {...field}
                                         type="text"
                                         className={clsx("input", errors.division && "border-red-500")}
-                                        placeholder="Division" />
+                                        placeholder="Division"
+                                        readOnly />
                                 )}
                             />
                             {errors.division && <p className="text-red-500 text-sm mt-1">{errors.division.message}</p>}
+                        </div>
+                        <div className="form-group col-span-2">
+                            <label className="form-label mb-1">Title</label>
+                            <Controller
+                                name="title"
+                                control={control}
+                                render={({ field }) => (
+                                    <input {...field}
+                                        type="text"
+                                        className={clsx("input", errors.title && "border-red-500")}
+                                        placeholder="Title" />
+                                )}
+                            />
+                            {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
                         </div>
                     </div>
                 </div>
