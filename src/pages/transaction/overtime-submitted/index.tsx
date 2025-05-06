@@ -113,34 +113,50 @@ export default function Home() {
     }
   };
 
-  // const handleExportExcel = async () => {
-  //   const token = localStorage.getItem("authToken");
-  //   try {
-  //     const response = await fetch(`${api}/api/trx/trxLeave/export`, {
-  //       method: "GET",
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
+  const handleExportExcel = async () => {
+    const token = Cookies.get("token");
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/export`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            typeTrx: "overtime",
+          },
+          responseType: "blob",
+        }
+      );
 
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch data from the API");
-  //     }
+      if (response.status !== 200) {
+        throw new Error("Failed to export Excel file");
+      }
 
-  //     const blob = await response.blob();
-  //     const link = document.createElement("a");
-  //     const url = window.URL.createObjectURL(blob);
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Data_Overtime_${yyyy}-${mm}-${dd}.xlsx`;
 
-  //     link.href = url;
-  //     link.download = "Data_Peminjaman_Buku.xlsx";
-  //     link.click();
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
 
-  //     window.URL.revokeObjectURL(url);
-  //   } catch (error) {
-  //     console.error("Error exporting Excel:", error);
-  //     alert("Failed to export data.");
-  //   }
-  // };
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting EXCEL:", error);
+      alert("Failed to export Excel.");
+    }
+  };
 
   type ITrOvertime = {
     user_name: number;
@@ -291,10 +307,11 @@ export default function Home() {
                 />
               )}{" "}
               <button
-                className="btn btn-filled btn-primary"
-                // onClick={handleExportExcel}
+                className="btn btn-filled btn-success"
+                onClick={() => handleExportExcel()}
               >
-                Export Data
+                <i className="ki-filled ki-file-down"></i>
+                Export to Excel
               </button>
             </div>
           </div>

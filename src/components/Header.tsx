@@ -8,15 +8,12 @@ type HeaderProps = {
 function Header({ onLogout }: HeaderProps) {
   const [name, setName] = useState("");
   const [departement, setDepartement] = useState("");
-  const [role, setRole] = useState("");
 
   useEffect(() => {
-    const nama = Cookies.get("nama") || "";
-    const departement = Cookies.get("departemen") || "";
-    const role = Cookies.get("role") || "";
+    const nama = Cookies.get("user_name") || "";
+    const departement = Cookies.get("user_department") || "";
     setName(nama);
     setDepartement(departement);
-    setRole(role);
   }, []);
   return (
     <header
@@ -2242,9 +2239,6 @@ function Header({ onLogout }: HeaderProps) {
                     <div className="flex flex-col gap-1.5">
                       <span className="text-sm text-gray-800 font-semibold leading-none">
                         {name}
-                      </span>
-                      <span className="text-sm text-gray-800 font-semibold leading-none">
-                        {role}
                       </span>
                       <a
                         className="text-xs text-gray-600 hover:text-primary font-medium leading-none"

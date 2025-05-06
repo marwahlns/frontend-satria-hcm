@@ -113,6 +113,51 @@ export default function Home() {
     }
   };
 
+  const handleExportExcel = async () => {
+    const token = Cookies.get("token");
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/export`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            typeTrx: "mutation",
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to export Excel file");
+      }
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Data_Mutation_${yyyy}-${mm}-${dd}.xlsx`;
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting EXCEL:", error);
+      alert("Failed to export Excel.");
+    }
+  };
+
   type ITrMutation = {
     user_name: number;
     user_departement: number;
@@ -261,10 +306,11 @@ export default function Home() {
                 />
               )}{" "}
               <button
-                className="btn btn-filled btn-primary"
-                // onClick={handleExportExcel}
+                className="btn btn-filled btn-success"
+                onClick={() => handleExportExcel()}
               >
-                Export Data
+                <i className="ki-filled ki-file-down"></i>
+                Export to Excel
               </button>
             </div>
           </div>
