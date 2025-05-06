@@ -12,6 +12,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import Cookies from "js-cookie";
+import StatusStepper from "@/components/StatusStepper";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -257,7 +258,7 @@ export default function Home() {
               )}{" "}
               <button
                 className="btn btn-filled btn-primary"
-                // onClick={handleExportExcel}
+              // onClick={handleExportExcel}
               >
                 Export Data
               </button>
@@ -334,7 +335,7 @@ export default function Home() {
                   <div>
                     <label className="form-label">
                       {selectedActionType === "Approved" &&
-                      selectedData?.status_id === 1
+                        selectedData?.status_id === 1
                         ? "Approved Remark"
                         : `${selectedActionType} Remark`}
                     </label>
@@ -368,91 +369,62 @@ export default function Home() {
           <DetailModal
             isModalOpen={isDetailModalOpen}
             onClose={onClose}
-            title="Leave Request Detail"
+            title="Resign Request Detail"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">Employee Name</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.user_name ?? ""}
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-60">
+                <StatusStepper
+                  statusId={selectedData?.status_id ?? 1}
+                  createdDate={selectedData?.created_at}
+                  acceptedDate={selectedData?.accepted_date}
+                  approvedDate={selectedData?.approved_date}
+                  rejectedDate={selectedData?.rejected_date}
+                  acceptedRemark={selectedData?.accepted_remark}
+                  approvedRemark={selectedData?.approved_remark}
+                  rejectedRemark={selectedData?.rejected_remark}
+                  acceptTo={selectedData?.accept_to}
+                  approveTo={selectedData?.approve_to}
                 />
               </div>
-              <div>
-                <label className="form-label">Employee Department</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.user_departement ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Effective Date</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.effective_date ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Reason</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.reason ?? ""}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">Employee Name</label>
+                  <input
+                    className="input w-full"
+                    type="text"
+                    readOnly
+                    value={selectedData?.user_name ?? ""}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Employee Department</label>
+                  <input
+                    className="input w-full"
+                    type="text"
+                    readOnly
+                    value={selectedData?.user_departement ?? ""}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Effective Date</label>
+                  <input
+                    className="input w-full"
+                    type="text"
+                    readOnly
+                    value={selectedData?.effective_date ?? ""}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Reason</label>
+                  <input
+                    className="input w-full"
+                    type="text"
+                    readOnly
+                    value={selectedData?.reason ?? ""}
+                  />
+                </div>
               </div>
             </div>
-
-            {(selectedData?.status_id === 3 ||
-              selectedData?.status_id === 6) && (
-              <div className="grid grid-cols-1 gap-5 mt-6">
-                <div>
-                  <label className="form-label">Accepted Remark</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.accepted_remark ?? ""}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!(selectedData?.status_id === 1) && (
-              <div className="grid grid-cols-1 gap-5 mt-6">
-                <div>
-                  <label className="form-label">
-                    {selectedData?.status_id === 2
-                      ? "Accepted Remark"
-                      : selectedData?.status_id === 3
-                      ? "Approved Remark"
-                      : selectedData?.status_id === 6
-                      ? "Rejected Remark"
-                      : "Remark"}
-                  </label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={
-                      selectedData?.status_id === 2
-                        ? selectedData?.accepted_remark
-                        : selectedData?.status_id === 3
-                        ? selectedData?.approved_remark
-                        : selectedData?.status_id === 6
-                        ? selectedData?.rejected_remark
-                        : ""
-                    }
-                  />
-                </div>
-              </div>
-            )}
           </DetailModal>
         </div>
       </div>

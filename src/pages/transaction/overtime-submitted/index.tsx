@@ -12,6 +12,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import Cookies from "js-cookie";
+import StatusStepper from "@/components/StatusStepper";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -269,7 +270,7 @@ export default function Home() {
       <div className="mb-6">
         <div className="flex flex-col gap-4 mt-4">
           <h1 className="text-3xl font-bold text-gray-800">
-            Overtime submission data list
+            Overtime Submission
           </h1>
 
           <div className="flex justify-between items-center">
@@ -292,7 +293,7 @@ export default function Home() {
               )}{" "}
               <button
                 className="btn btn-filled btn-primary"
-                // onClick={handleExportExcel}
+              // onClick={handleExportExcel}
               >
                 Export Data
               </button>
@@ -378,7 +379,7 @@ export default function Home() {
                   <div>
                     <label className="form-label">
                       {selectedActionType === "Approved" &&
-                      selectedData?.status_id === 1
+                        selectedData?.status_id === 1
                         ? "Approved Remark"
                         : `${selectedActionType} Remark`}
                     </label>
@@ -412,100 +413,55 @@ export default function Home() {
           <DetailModal
             isModalOpen={isDetailModalOpen}
             onClose={onClose}
-            title="Leave Request Detail"
+            title="Overtime Request Detail"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">Employee Name</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.user_name ?? ""}
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-60">
+                <StatusStepper
+                  statusId={selectedData?.status_id ?? 1}
+                  createdDate={selectedData?.created_at}
+                  acceptedDate={selectedData?.accepted_date}
+                  approvedDate={selectedData?.approved_date}
+                  rejectedDate={selectedData?.rejected_date}
+                  acceptedRemark={selectedData?.accepted_remark}
+                  approvedRemark={selectedData?.approved_remark}
+                  rejectedRemark={selectedData?.rejected_remark}
+                  acceptTo={selectedData?.accept_to}
+                  approveTo={selectedData?.approve_to}
                 />
               </div>
-              <div>
-                <label className="form-label">Employee Department</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.user_departement ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Check In</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.check_in ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Check Out</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.check_out ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Note Overtime</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.note_ovt ?? ""}
-                />
+
+              <div className="flex-1">
+                <form>
+                  <div className="flex flex-col gap-4 text-sm text-gray-700">
+                    <div>
+                      <div className="font-semibold text-gray-800">Employee Name</div>
+                      <p>{selectedData?.user_name ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-800">Department</div>
+                      <p>{selectedData?.user_departement ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-800">Check In</div>
+                      <p>{selectedData?.check_in ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-800">Check Out</div>
+                      <p>{selectedData?.check_out ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-800">Note</div>
+                      <p>{selectedData?.note_ovt ?? "-"}</p>
+                    </div>
+                  </div>
+                </form>
               </div>
             </div>
-
-            {(selectedData?.status_id === 3 ||
-              selectedData?.status_id === 6) && (
-              <div className="grid grid-cols-1 gap-5 mt-6">
-                <div>
-                  <label className="form-label">Accepted Remark</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.accepted_remark ?? ""}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!(selectedData?.status_id === 1) && (
-              <div className="grid grid-cols-1 gap-5 mt-6">
-                <div>
-                  <label className="form-label">
-                    {selectedData?.status_id === 2
-                      ? "Accepted Remark"
-                      : selectedData?.status_id === 3
-                      ? "Approved Remark"
-                      : selectedData?.status_id === 6
-                      ? "Rejected Remark"
-                      : "Remark"}
-                  </label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={
-                      selectedData?.status_id === 2
-                        ? selectedData?.accepted_remark
-                        : selectedData?.status_id === 3
-                        ? selectedData?.approved_remark
-                        : selectedData?.status_id === 6
-                        ? selectedData?.rejected_remark
-                        : ""
-                    }
-                  />
-                </div>
-              </div>
-            )}
           </DetailModal>
         </div>
       </div>
