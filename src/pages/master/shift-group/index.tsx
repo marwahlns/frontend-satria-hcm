@@ -80,7 +80,7 @@ export default function Home() {
   const columns: ColumnDef<IShiftGroup>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

@@ -78,7 +78,7 @@ export default function Home() {
   const columns: ColumnDef<IEmployee>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

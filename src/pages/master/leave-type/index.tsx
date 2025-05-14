@@ -66,7 +66,7 @@ export default function Home() {
   const columns: ColumnDef<ILeaveType>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

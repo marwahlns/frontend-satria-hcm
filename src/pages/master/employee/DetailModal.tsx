@@ -23,7 +23,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
             end_date: "",
             plant: "",
             klasifikasi: "",
-            manager: "",
+            superior: "",
             department: "",
             section: "",
             division: "",
@@ -52,7 +52,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                     : "",
                 plant: selectedData.user_detail?.plant,
                 klasifikasi: selectedData.user_detail?.klasifikasi,
-                manager: selectedData.user_detail?.manager,
+                superior: selectedData.user_detail?.superior,
                 department: selectedData.department,
                 section: selectedData.section,
                 division: selectedData.division,
@@ -82,7 +82,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="name"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -92,7 +92,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="nrp"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -102,7 +102,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="email"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -112,7 +112,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="phone"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -122,7 +122,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="bdate"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="date" className={clsx("input")} />
+                                    <input {...field} type="date" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -137,7 +137,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         options={genderOptions}
                                         className="w-full text-sm"
                                         placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption)}
+                                        isDisabled
                                         value={field.value}
                                         getOptionLabel={(e) => e.label}
                                         getOptionValue={(e) => e.value}
@@ -156,7 +156,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         options={genderOptions}
                                         className="w-full text-sm"
                                         placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
+                                        isDisabled
                                         value={genderOptions.find((option) => option.value === field.value)}
                                     />
                                 )}
@@ -168,18 +168,14 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="address"
                                 control={control}
                                 render={({ field }) => (
-                                    <textarea
-                                        {...field}
-                                        rows={6}
-                                        className={clsx("textarea")}
-                                    />
+                                    <textarea {...field} rows={6} className="textarea" readOnly />
                                 )}
                             />
                         </div>
                         <div className="form-group col-span-2">
                             <label className="form-label mb-1">Vendor</label>
                             <Controller
-                                name="marital_status"
+                                name="vendor"
                                 control={control}
                                 render={({ field }) => (
                                     <Select
@@ -187,7 +183,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         options={genderOptions}
                                         className="w-full text-sm"
                                         placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
+                                        isDisabled
                                         value={genderOptions.find((option) => option.value === field.value)}
                                     />
                                 )}
@@ -199,7 +195,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="join_date"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="date" className={clsx("input")} />
+                                    <input {...field} type="date" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -209,9 +205,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="end_date"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field}
-                                        type="date"
-                                        className={clsx("input")} />
+                                    <input {...field} type="date" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -226,7 +220,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         options={genderOptions}
                                         className="w-full text-sm"
                                         placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
+                                        isDisabled
                                         value={genderOptions.find((option) => option.value === field.value)}
                                     />
                                 )}
@@ -238,21 +232,17 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="klasifikasi"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field}
-                                        type="text"
-                                        className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Supervisor</label>
+                            <label className="form-label mb-1">Superior</label>
                             <Controller
-                                name="klasifikasi"
+                                name="superior"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field}
-                                        type="text"
-                                        className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -262,9 +252,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="department"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field}
-                                        type="text"
-                                        className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -274,9 +262,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="section"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field}
-                                        type="text"
-                                        className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>
@@ -286,9 +272,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="division"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field}
-                                        type="text"
-                                        className={clsx("input")} />
+                                    <input {...field} type="text" className="input" readOnly />
                                 )}
                             />
                         </div>

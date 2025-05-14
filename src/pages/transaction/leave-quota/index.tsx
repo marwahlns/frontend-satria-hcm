@@ -91,7 +91,7 @@ export default function Home() {
   const columns: ColumnDef<ITrxShift>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

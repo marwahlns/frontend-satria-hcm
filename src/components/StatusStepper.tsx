@@ -1,6 +1,8 @@
 import * as React from 'react';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import DoNotDisturbIcon from '@mui/icons-material/DoNotDisturbOn';
+import ErrorIcon from '@mui/icons-material/Error';
 import { StepIconProps } from '@mui/material/StepIcon';
 import {
     Box,
@@ -17,22 +19,30 @@ interface StatusStepperProps {
     acceptedDate?: string;
     approvedDate?: string;
     rejectedDate?: string;
+    canceledDate?: string;
     acceptedRemark?: string;
     approvedRemark?: string;
     rejectedRemark?: string;
+    canceledRemark?: string;
     acceptTo?: string;
     approveTo?: string;
 }
 
 interface CustomStepIconProps extends StepIconProps {
     rejected?: string;
+    canceled?: boolean;
+    label?: string;
 }
 
-const CustomStepIcon: React.FC<CustomStepIconProps> = ({ active, completed, className, icon, rejected }) => {
+const CustomStepIcon: React.FC<CustomStepIconProps> = ({ active, completed, className, icon, rejected, canceled, label }) => {
     return (
         <div className={className}>
-            {rejected ? (
+            {canceled ? (
+                <DoNotDisturbIcon color="warning" />
+            ) : rejected ? (
                 <CancelIcon color="error" />
+            ) : label === "Approval Bypassed" ? (
+                <ErrorIcon color="disabled" />
             ) : (active || completed) ? (
                 <CheckCircleIcon color="primary" />
             ) : (
@@ -62,9 +72,11 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
     acceptedDate,
     approvedDate,
     rejectedDate,
+    canceledDate,
     acceptedRemark,
     approvedRemark,
     rejectedRemark,
+    canceledRemark,
     acceptTo,
     approveTo
 }) => {
@@ -82,44 +94,51 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
     };
 
     const skipAcceptStep = acceptTo === approveTo;
-    const steps = skipAcceptStep ? ['Submitted', 'Approved'] : ['Submitted', 'Accepted', 'Approved'];
-
+    const steps = statusId === 7 ? ['Submitted', 'Cancelled'] : (skipAcceptStep ? ['Submitted', 'Approved'] : ['Submitted', 'Accepted', 'Approved']);
 
     const getActiveStep = () => {
+        if (statusId === 7) return 1;
         if (statusId === 6) {
             if (!acceptedDate && rejectedDate) return skipAcceptStep ? 1 : 1;
             if (acceptedDate && rejectedDate) return skipAcceptStep ? 1 : 2;
         }
-    
+
         if (skipAcceptStep) {
             if (statusId === 1) return 0;
             if (statusId === 2 || statusId === 3) return 1;
         }
-    
+
         return statusId - 1;
-    };    
+    };
 
     const activeStep = getActiveStep();
 
     const getLabel = (index: number) => {
+        if (statusId === 7) {
+            if (index === 1) return 'Canceled';
+            return steps[index];
+        }
+
         if (statusId === 6) {
             if (!acceptedDate && rejectedDate && index === (skipAcceptStep ? 1 : 1)) return 'Rejected';
             if (acceptedDate && rejectedDate && index === (skipAcceptStep ? 1 : 2)) return 'Rejected';
         }
-    
+
         if (!skipAcceptStep) {
             if (index === 1 && !acceptedDate) return 'Waiting Accepted';
+            if (index === 2 && !approvedDate && rejectedDate) return 'Approval Bypassed';
             if (index === 2 && !approvedDate) return 'Waiting Approval';
         } else {
             if (index === 1 && !approvedDate) return 'Waiting Approval';
         }
-    
+
         return steps[index];
-    };    
+    };
 
     const getDateText = (index: number) => {
+        if (statusId === 7 && canceledDate) return formattedDateTime(canceledDate);
         if (index === 0 && createdDate) return formattedDateTime(createdDate);
-    
+
         if (!skipAcceptStep) {
             if (index === 1) {
                 if (statusId === 6 && !acceptedDate && rejectedDate) return formattedDateTime(rejectedDate);
@@ -135,11 +154,15 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
                 if (approvedDate) return formattedDateTime(approvedDate);
             }
         }
-    
+
         return '';
-    };    
+    };
 
     const getRemarkText = (index: number) => {
+        if (statusId === 7 && index === 1) {
+            return canceledRemark ?? "";
+        }
+
         if (index === 1) {
             if (statusId === 6 && !acceptedDate && rejectedDate) {
                 return rejectedRemark ?? "";
@@ -163,6 +186,10 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
         );
     };
 
+    const isCanceledStep = (index: number) => {
+        return statusId === 7 && index === 1;
+    };
+
     return (
         <Box sx={{ maxWidth: 400 }}>
             <Stepper activeStep={activeStep} orientation="vertical" >
@@ -170,12 +197,17 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
                     const label = getLabel(index);
                     const dateText = getDateText(index);
                     const rejected = isRejectedStep(index);
+                    const canceled = isCanceledStep(index);
 
                     return (
                         <Step key={index} expanded>
                             <StepLabel
                                 StepIconComponent={(iconProps) => (
-                                    <CustomStepIcon {...iconProps} rejected={rejected} />
+                                    <CustomStepIcon
+                                        {...iconProps}
+                                        rejected={rejected}
+                                        canceled={canceled}
+                                        label={label} />
                                 )}
                             >
                                 <Typography>{label}</Typography>
@@ -184,7 +216,7 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
                                 {dateText && (
                                     <Typography
                                         variant="caption"
-                                        color={rejected ? 'error' : 'text.secondary'}
+                                        color={rejected ? 'error' : canceled ? 'warning' : 'text.secondary'}
                                     >
                                         {dateText}
                                     </Typography>

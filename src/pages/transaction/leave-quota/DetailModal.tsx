@@ -7,6 +7,9 @@ import { useEffect } from "react";
 
 const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch }) => {
     const schema = yup.object().shape({
+        nrp: yup
+            .string(),
+
         name: yup
             .string(),
 
@@ -48,6 +51,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     useEffect(() => {
         if (selectedData) {
             reset({
+                nrp: selectedData.id_user,
                 name: selectedData.MsUser.name,
                 valid_from: selectedData.valid_from,
                 valid_to: selectedData.valid_to,
@@ -73,7 +77,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                         <div className="form-group mb-2">
                             <label className="form-label mb-1">NRP</label>
                             <Controller
-                                name="valid_to"
+                                name="nrp"
                                 control={control}
                                 render={({ field }) => (
                                     <input

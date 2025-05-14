@@ -130,7 +130,7 @@ export default function Home() {
   const columns: ColumnDef<ITrOfficialTravel>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

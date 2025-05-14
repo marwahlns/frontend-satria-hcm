@@ -81,8 +81,29 @@ const DataTable = ({ columns, url, isRefetch, title }) => {
       <div className="grid">
         <div className="card card-grid min-w-full">
           <div className="card-header py-5 flex-wrap">
-            {/* Title */}
-            <h3 className="card-title">{title}</h3>
+            {/* Limit */}
+            <div className="flex items-center gap-2 text-gray-700 text-2sm font-medium">
+              Show
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setSort("");
+                  setOrder("");
+                  setPage(1);
+                }}
+                className={clsx("select select-sm w-16")}
+              >
+                {[10, 25, 50, 100, 200].map((item) => {
+                  return (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  );
+                })}
+              </select>
+              per page
+            </div>
             {/* Search */}
             <div className="flex gap-6">
               <div className="relative">
@@ -140,8 +161,8 @@ const DataTable = ({ columns, url, isRefetch, title }) => {
                                     header.column.getIsSorted() === "asc"
                                       ? "ki-arrow-up"
                                       : header.column.getIsSorted() === "desc"
-                                      ? "ki-arrow-down"
-                                      : "ki-arrow-up-down"
+                                        ? "ki-arrow-down"
+                                        : "ki-arrow-up-down"
                                   )}
                                 ></i>
                               )}
@@ -180,38 +201,15 @@ const DataTable = ({ columns, url, isRefetch, title }) => {
               </div>
             </div>
           </div>
-          <div className="card-footer justify-center md:justify-between flex-col md:flex-row gap-3 text-gray-600 text-2sm font-medium">
-            {/* Limit */}
-            <div className="flex items-center gap-2">
-              <label>Show:</label>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setSort("");
-                  setOrder("");
-                  setPage(1);
-                }}
-                className={clsx("select select-sm w-16")}
-              >
-                {[10, 25, 50, 100, 200].map((item) => {
-                  return (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  );
-                })}
-              </select>
-              <span>entries</span>
+          <div className="card-footer justify-center md:justify-end flex-col md:flex-row gap-3 text-gray-600 text-2sm font-medium">
+            <div>
+              <span>
+                {(page - 1) * limit + 1} -{" "}
+                {Math.min(page * limit, totalItems)} of {totalItems} entries
+              </span>
             </div>
             {/* Pagination */}
-            <div className="my-3 flex justify-between items-center">
-              <div>
-                <span>
-                  Showing {(page - 1) * limit + 1} to{" "}
-                  {Math.min(page * limit, totalItems)} of {totalItems} entries
-                </span>
-              </div>
+            <div className="my-3 flex justify-end items-center">
               <div className="flex items-center text-sm font-normal">
                 <button
                   disabled={isLoading || page === 1}

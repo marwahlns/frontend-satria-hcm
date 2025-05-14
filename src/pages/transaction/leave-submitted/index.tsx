@@ -13,6 +13,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import Cookies from "js-cookie";
 import StatusStepper from '@/components/StatusStepper';
+import { url } from "inspector";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -179,7 +180,7 @@ export default function Home() {
   const columns: ColumnDef<ITrLeave>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {
@@ -215,7 +216,7 @@ export default function Home() {
     {
       accessorKey: "status_submittion",
       header: "Status",
-      enableSorting: true,
+      enableSorting: false,
       cell: ({ row }) => {
         const statusId = row.original.status_id;
         const statusSubmittion = row.original.status_submittion;
@@ -457,9 +458,11 @@ export default function Home() {
                   acceptedDate={selectedData?.accepted_date}
                   approvedDate={selectedData?.approved_date}
                   rejectedDate={selectedData?.rejected_date}
+                  canceledDate={selectedData?.canceled_date}
                   acceptedRemark={selectedData?.accepted_remark}
                   approvedRemark={selectedData?.approved_remark}
                   rejectedRemark={selectedData?.rejected_remark}
+                  canceledRemark={selectedData?.canceled_remark}
                   acceptTo={selectedData?.accept_to}
                   approveTo={selectedData?.approve_to}
                 />
@@ -508,7 +511,7 @@ export default function Home() {
       <DataTable
         title="Leave Submission List"
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}`}
         isRefetch={isRefetch}
       />
     </Main>

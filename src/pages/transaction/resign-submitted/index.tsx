@@ -128,7 +128,7 @@ export default function Home() {
   const columns: ColumnDef<ITrResign>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

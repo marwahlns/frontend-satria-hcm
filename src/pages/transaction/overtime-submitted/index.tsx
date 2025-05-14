@@ -158,7 +158,7 @@ export default function Home() {
   const columns: ColumnDef<ITrOvertime>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {

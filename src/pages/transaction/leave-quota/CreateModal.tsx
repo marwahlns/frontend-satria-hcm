@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
+import { headers } from "next/headers";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     const [inputMethod, setInputMethod] = useState<"excel" | "table">("excel");
@@ -197,10 +198,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 valid_from: data.valid_from,
                 valid_to: data.valid_to,
             };
-
+            
+            const token = Cookies.get("token");
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota`,
-                payload
+                payload,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
             );
 
             if (response.status == 201) {
@@ -218,8 +223,15 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 reset();
             }
         } catch (error) {
-            console.error("Error:", error);
-            alert("Terjadi kesalahan, silakan coba lagi.");
+            // console.error("Error:", error);
+            // alert("Terjadi kesalahan, silakan coba lagi.");
+            const errorMessage =
+                error.response?.data?.message || "Terjadi kesalahan, silakan coba lagi.";
+            Swal.fire({
+                icon: "error",
+                title: "Something went wrong",
+                text: errorMessage,
+            });
         }
     };
 

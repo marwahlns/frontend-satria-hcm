@@ -84,7 +84,7 @@ export default function Home() {
   const columns: ColumnDef<IShift>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {
