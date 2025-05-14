@@ -1,7 +1,5 @@
 import Footer from "../components/Footer";
-import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
-import SearchModal from "../components/SearchModal";
 import React, { ReactNode } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
@@ -20,17 +18,17 @@ const LayoutEmployee: React.FC<CardProps> = ({ children }) => {
 
   return (
     <>
-      <div className="flex grow">
-        <div className="wrapper flex grow flex-col">
-          <Header onLogout={handleLogout} />
-          <main className="grow content pt-5" id="content" role="content">
-            <div className="container-fixed" id="content_container"></div>
-            <div className="container-fixed">{children}</div>
-          </main>
-          <Footer />
-        </div>
+      <div className="flex flex-col min-h-screen w-full">
+        <Header onLogout={handleLogout} />
+
+        <main
+          className="flex-grow w-full max-w-screen-lg mx-auto px-4"
+          role="content"
+        >
+          {children}
+        </main>
+        <Footer />
       </div>
-      <SearchModal />
     </>
   );
 };

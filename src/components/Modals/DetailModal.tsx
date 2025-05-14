@@ -14,4 +14,4 @@ const DetailModal = ({ isModalOpen, onClose, title = "Modal", children }) => {
   );
 };
 
-export default DetailModal;
+export default DetailModal;

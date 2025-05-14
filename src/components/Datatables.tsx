@@ -8,7 +8,7 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 
-const DataTable = ({ columns, url, isRefetch, title }) => {
+const DataTable = ({ columns, url, isRefetch, title, onSearchChange }) => {
   const [data, setData] = useState([]);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -93,8 +93,10 @@ const DataTable = ({ columns, url, isRefetch, title }) => {
                   type="text"
                   defaultValue={search}
                   onChange={(e) => {
+                    const value = e.target.value;
                     setPage(1);
                     setSearch(e.target.value);
+                    onSearchChange?.(value); // Kirim ke parent (index.jsx)
                   }}
                 />
               </div>
