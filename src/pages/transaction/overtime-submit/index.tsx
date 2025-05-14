@@ -12,13 +12,11 @@ import FilterData from "@/components/FilterData";
 import Cookies from "js-cookie";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { enGB } from "date-fns/locale";
 import Modal from "@/components/Modal";
 import ActionModal from "@/components/Modals/ActionModal";
 import DetailModal from "@/components/Modals/DetailModal";
 import StatusStepper from "@/components/StatusStepper";
-import AsyncSelect from "react-select/async";
-import { useLeaveStore } from "../../../stores/submitStore";
+import { format, parse, addHours } from "date-fns";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -31,22 +29,13 @@ export default function Home() {
   const [showFilter, setShowFilter] = useState(false);
   const [isRefetch, setIsRefetch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const setTotalLeaves = useLeaveStore((state) => state.setTotalLeaves);
 
   const submitSchema = yup.object({
-    leave_type_id: yup
-      .object({
-        value: yup.string().required("Leave type is required."),
-        label: yup.string().required("Leave type is required."),
-      })
-      .required("Leave type is required."),
-    start_date: yup.string().required("Start date is required"),
-    end_date: yup.string().required("End date is required"),
-    leave_reason: yup.string().required("Leave reason is required"),
+    check_in_ovt: yup.string().required("Start date is required"),
+    check_out_ovt: yup.string().required("End date is required"),
+    note_ovt: yup.string().required("Overtime note is required"),
     canceled_remark: yup.string().nullable(),
   });
-
-  // Schema saat CANCEL leave
   const cancelSchema = yup.object({
     canceled_remark: yup
       .string()
@@ -54,16 +43,11 @@ export default function Home() {
       .required("Canceled remark is required."),
   });
 
-  interface LeaveFormValues {
-    leave_type_id?: {
-      value?: string;
-      label?: string;
-    };
-    start_date?: string;
-    end_date?: string;
-    leave_reason?: string;
+  interface OvertimeFormValues {
+    check_in_ovt?: string;
+    check_out_ovt?: string;
+    note_ovt?: string;
     canceled_remark?: string;
-    date_range?: [Date | null, Date | null];
   }
 
   const {
@@ -71,24 +55,26 @@ export default function Home() {
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
     setValue,
-  } = useForm<LeaveFormValues>({
+  } = useForm<OvertimeFormValues>({
     resolver: yupResolver(
       selectedActionType === "Canceled" ? cancelSchema : submitSchema
     ),
     defaultValues: {
-      leave_type_id: null,
-      start_date: "",
-      end_date: "",
-      leave_reason: "",
+      check_in_ovt: "",
+      check_out_ovt: "",
+      note_ovt: "",
       canceled_remark: "",
-      date_range: [null, null],
     },
   });
 
-  const handleSearchChange = (value) => {
-    setSearchValue(value);
-  };
+  const checkInValue = watch("check_in_ovt");
+  const checkInDate = checkInValue
+    ? parse(checkInValue, "dd-MMM-yyyy HH:mm", new Date())
+    : null;
+  const checkOutMin = checkInDate;
+  const checkOutMax = checkInDate ? addHours(checkInDate, 24) : null;
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -105,6 +91,10 @@ export default function Home() {
     setIsAddModalOpen(true);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
+
   const onClose = () => {
     setIsActionModalOpen(false);
     setIsDetailModalOpen(false);
@@ -112,39 +102,12 @@ export default function Home() {
     setSelectedData(null);
     reset();
   };
-  const leaveTypeOptions = async (inputValue) => {
-    try {
-      const token = Cookies.get("token");
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            search: inputValue,
-          },
-        }
-      );
-      if (response.data.success) {
-        return response.data.data.data.map((leave_quota) => ({
-          value: leave_quota.leaves_type_id,
-          label: `${leave_quota.MsLeaveType.title} - Quota: ${leave_quota.leave_balance}`,
-        }));
-      } else {
-        return [];
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      return [];
-    }
-  };
 
   const onCancel = async (data) => {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this leave request?`,
+        text: `Do you want to ${selectedActionType} this overtime request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -163,7 +126,7 @@ export default function Home() {
         {
           remark: data.canceled_remark,
           actionType: selectedActionType,
-          trxType: "leave",
+          trxType: "overtime",
         },
         {
           headers: {
@@ -175,7 +138,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Leave has been successfully ${selectedActionType}.`,
+          text: `Overtime has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -189,7 +152,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} leave. Please try again.`,
+        text: `Failed to ${selectedActionType} overtime. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -200,13 +163,12 @@ export default function Home() {
     try {
       const token = Cookies.get("token");
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=leave`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=overtime`,
         {
           ...data,
-          leave_type_id: parseInt(data.leave_type_id.value, 10),
-          start_date: data.start_date,
-          end_date: data.end_date,
-          leave_reason: data.leave_reason,
+          check_in_ovt: data.check_in_ovt,
+          check_out_ovt: data.check_out_ovt,
+          note_ovt: data.note_ovt,
         },
         {
           headers: {
@@ -215,26 +177,9 @@ export default function Home() {
         }
       );
 
-      if (response.status === 201) {
-        const total = response.data?.data?.totalItems;
-
-        if (total !== undefined) {
-          setTotalLeaves(total);
-        } else {
-          const token = Cookies.get("token");
-          const res = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          if (res.data.success) {
-            setTotalLeaves(res.data.data.totalItems);
-          }
-        }
-
+      if (response.status == 201) {
         Swal.fire({
-          text: "Leave added successfully",
+          text: "Overtime added successfully",
           icon: "success",
           timer: 1500,
         });
@@ -246,21 +191,7 @@ export default function Home() {
         reset();
       }
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        const message = error.response.data?.message;
-        Swal.fire({
-          title: "Error",
-          text: message,
-          icon: "error",
-        });
-      } else {
-        console.error(error);
-        Swal.fire({
-          title: "Error",
-          text: "An unexpected error occurred",
-          icon: "error",
-        });
-      }
+      console.error(error);
     }
   };
 
@@ -274,7 +205,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "leave",
+            type: "overtime",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -293,7 +224,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Leave_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Overtime_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -314,40 +245,30 @@ export default function Home() {
     }
   };
 
-  type ITrLeave = {
+  type ITrOvertime = {
     status_id: number;
     status_submittion: string;
   };
 
-  const columns: ColumnDef<ITrLeave>[] = [
+  const columns: ColumnDef<ITrOvertime>[] = [
     {
       accessorKey: "number",
       header: "#",
       enableSorting: false,
     },
     {
-      accessorKey: "leave_type_name",
-      header: "Leave Type",
+      accessorKey: "check_in",
+      header: "Check In",
       enableSorting: true,
     },
     {
-      accessorKey: "start_date",
-      header: "Start Date",
+      accessorKey: "check_out",
+      header: "Check Out",
       enableSorting: true,
     },
     {
-      accessorKey: "end_date",
-      header: "End Date",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "total_leave_days",
-      header: "Total Days",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "leave_reason",
-      header: "Reason",
+      accessorKey: "note_ovt",
+      header: "Note",
       enableSorting: true,
     },
     {
@@ -425,8 +346,8 @@ export default function Home() {
     <Main>
       <div className="mb-6 flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Leave</h1>
-          <p className="text-gray-500 text-sm">Your Leave Record</p>
+          <h1 className="text-3xl font-bold text-gray-800">Overtime</h1>
+          <p className="text-gray-500 text-sm">Your Overtime Record</p>
         </div>
         <div className="flex gap-3 items-center">
           <button
@@ -465,16 +386,16 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"Leave Submittion List"}
+        title={"Overtime Submittion List"}
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=overtime&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />
 
       <Modal isModalOpen={isAddModalOpen}>
         <div className="modal-header">
-          <h3 className="modal-title">Add Leave Submittion</h3>
+          <h3 className="modal-title">Add Overtime Submittion</h3>
           <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
             <i className="ki-outline ki-cross"></i>
           </button>
@@ -484,108 +405,95 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">
-                  Leave Type
+                  Check In Overtime
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
-                  name="leave_type_id"
                   control={control}
+                  name="check_in_ovt"
                   render={({ field }) => (
-                    <AsyncSelect
-                      {...field}
-                      cacheOptions
-                      defaultOptions
-                      loadOptions={leaveTypeOptions}
-                      placeholder="Select..."
-                      classNamePrefix="react-select"
-                      className={clsx(
-                        "w-full text-sm",
-                        errors.leave_type_id &&
-                          "border border-red-500 rounded-md"
-                      )}
-                      styles={{
-                        control: (base, state) => ({
-                          ...base,
-                          borderColor: errors.leave_type_id
-                            ? "#EF4444"
-                            : "#DBDFE9",
-                          boxShadow: "none",
-                          "&:hover": {
-                            borderColor: state.isFocused
-                              ? "#A1A9B8"
-                              : errors.leave_type_id
-                              ? "#EF4444"
-                              : "#DBDFE9",
-                          },
-                        }),
+                    <DatePicker
+                      selected={field.value ? new Date(field.value) : null}
+                      onChange={(date: Date | null) => {
+                        const formatted = date
+                          ? format(date, "dd-MMM-yyyy HH:mm")
+                          : "";
+                        field.onChange(formatted); // ini string
+                        setValue("check_in_ovt", formatted); // juga string
                       }}
-                      onChange={(selectedOption) =>
-                        field.onChange(selectedOption)
-                      }
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      dateFormat="dd-MMM-yyyy HH:mm"
+                      className={clsx(
+                        "input w-full text-sm py-2 px-3 rounded-md border",
+                        errors.check_in_ovt
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      )}
+                      placeholderText="Pick a date and time"
+                      minDate={new Date()}
                     />
                   )}
                 />
-                {errors.leave_type_id && (
+                {errors.check_in_ovt && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.leave_type_id.message}
+                    {errors.check_in_ovt?.message}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="form-label">
-                  Leave Date
+                  Check Out Overtime
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
                   control={control}
-                  name="date_range"
+                  name="check_out_ovt"
                   render={({ field }) => (
                     <DatePicker
-                      selectsRange
-                      startDate={field.value?.[0] || null}
-                      endDate={field.value?.[1] || null}
-                      onChange={(dates: [Date | null, Date | null]) => {
-                        const [start, end] = dates;
-                        field.onChange(dates);
-                        setValue(
-                          "start_date",
-                          start
-                            ? new Date(start).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""
-                        );
-                        setValue(
-                          "end_date",
-                          end
-                            ? new Date(end).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""
-                        );
+                      selected={field.value ? new Date(field.value) : null}
+                      onChange={(date: Date | null) => {
+                        const formatted = date
+                          ? format(date, "dd-MMM-yyyy HH:mm")
+                          : "";
+                        field.onChange(formatted);
+                        setValue("check_out_ovt", formatted);
                       }}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      dateFormat="dd-MMM-yyyy HH:mm"
                       className={clsx(
-                        "input w-full max-w-md text-sm py-2 px-3 rounded-md border",
-                        errors.start_date || errors.end_date
+                        "input w-full text-sm py-2 px-3 rounded-md border",
+                        errors.check_out_ovt
                           ? "border-red-500"
                           : "border-gray-300"
                       )}
-                      placeholderText="Pick a date"
-                      dateFormat="dd-MMM-yyyy"
-                      isClearable={true}
-                      locale={enGB}
-                      minDate={new Date()}
+                      placeholderText="Pick a date and time"
+                      minDate={checkOutMin}
+                      maxDate={checkOutMax}
+                      minTime={
+                        field.value &&
+                        new Date(field.value).toDateString() ===
+                          checkOutMin?.toDateString()
+                          ? checkOutMin
+                          : new Date(0, 0, 0, 0, 0)
+                      }
+                      maxTime={
+                        field.value &&
+                        new Date(field.value).toDateString() ===
+                          checkOutMax?.toDateString()
+                          ? checkOutMax
+                          : new Date(0, 0, 0, 23, 45)
+                      }
                     />
                   )}
                 />
-                {(errors.start_date || errors.end_date) && (
+                {errors.check_out_ovt && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.start_date?.message || errors.end_date?.message}
+                    {errors.check_out_ovt?.message}
                   </p>
                 )}
               </div>
@@ -593,12 +501,12 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-5 mt-6">
               <div>
-                <label className="form-label">
-                  Leave Reason
+                <label className="form-label mb-1">
+                  Overtime Note
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
-                  name="leave_reason"
+                  name="note_ovt"
                   control={control}
                   render={({ field }) => (
                     <textarea
@@ -607,23 +515,22 @@ export default function Home() {
                         "w-full text-sm text-gray-700 p-3 rounded-md bg-white border border-gray-300",
                         "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
-                        errors.leave_reason &&
+                        errors.note_ovt &&
                           "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
-                      placeholder="Your reason"
+                      placeholder="Your note"
                       rows={4}
                     />
                   )}
                 />
-                {errors.leave_reason && (
+                {errors.note_ovt && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.leave_reason.message}
+                    {errors.note_ovt.message}
                   </p>
                 )}
               </div>
             </div>
           </div>
-
           <div className="modal-footer justify-end flex-shrink-0">
             <div className="flex gap-2">
               <button type="button" className="btn btn-light" onClick={onClose}>
@@ -640,7 +547,7 @@ export default function Home() {
       <DetailModal
         isModalOpen={isDetailModalOpen}
         onClose={onClose}
-        title="Leave Request Detail"
+        title="Overtime Request Detail"
       >
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-60">
@@ -663,29 +570,22 @@ export default function Home() {
             <form>
               <div className="flex flex-col gap-4 text-sm text-gray-700">
                 <div>
-                  <div className="font-semibold text-gray-600">Start Date</div>
-                  <p>{selectedData?.start_date ?? "-"}</p>
+                  <div className="font-semibold text-gray-600">
+                    Check In Overtime
+                  </div>
+                  <p>{selectedData?.check_in_ovt ?? "-"}</p>
                 </div>
 
-                <div>
-                  <div className="font-semibold text-gray-600">End Date</div>
-                  <p>{selectedData?.end_date ?? "-"}</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">Leave Type</div>
-                  <p>{selectedData?.leave_type_name ?? "-"}</p>
-                </div>
                 <div>
                   <div className="font-semibold text-gray-600">
-                    Total Leave Days
+                    Check Out Overtime
                   </div>
-                  <p>{selectedData?.total_leave_days ?? "-"} days</p>
+                  <p>{selectedData?.check_out_ovt ?? "-"}</p>
                 </div>
 
                 <div>
                   <div className="font-semibold text-gray-600">Note</div>
-                  <p>{selectedData?.leave_reason ?? "-"}</p>
+                  <p>{selectedData?.note_ovt ?? "-"}</p>
                 </div>
               </div>
             </form>
@@ -696,7 +596,7 @@ export default function Home() {
       <ActionModal
         isModalOpen={isActionModalOpen}
         onClose={onClose}
-        title={`${selectedActionType} Leave Request`}
+        title={`${selectedActionType} Overtime Request`}
         onSubmit={handleSubmit(onCancel)}
         loading={loading}
         submitText={selectedActionType}
@@ -704,57 +604,36 @@ export default function Home() {
         <form onSubmit={handleSubmit(onCancel)}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Start Date Leave</label>
+              <label className="form-label">Check In Overtime</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.start_date ?? ""}
+                value={selectedData?.check_in_ovt ?? ""}
               />
             </div>
             <div>
-              <label className="form-label">End Date Leave</label>
+              <label className="form-label">Check Out Overtime</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.end_date ?? ""}
+                value={selectedData?.check_out_ovt ?? ""}
               />
             </div>
             <div>
-              <label className="form-label">Leave Type Name</label>
+              <label className="form-label">Note</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.leave_type_name ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Leave Reason</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.leave_reason ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Total Leave Days</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.total_leave_days ?? ""}
+                value={selectedData?.note_ovt ?? ""}
               />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-5 mt-6">
             <div>
-              <label className="form-label">
-                Canceled Remark{" "}
-                <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-              </label>
+              <label className="form-label">Canceled Remark</label>
               <Controller
                 name="canceled_remark"
                 control={control}

@@ -12,6 +12,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import Cookies from "js-cookie";
+import StatusStepper from "@/components/StatusStepper";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ export default function Home() {
   const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
   const [showFilter, setShowFilter] = useState(false);
   const api = `${process.env.NEXT_PUBLIC_API_URL}`;
+  const [searchValue, setSearchValue] = useState("");
   const schema = yup.object().shape({
     remark: yup.string().required("Please fill out remark"),
   });
@@ -38,6 +40,10 @@ export default function Home() {
       remark: "",
     },
   });
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -117,13 +123,18 @@ export default function Home() {
     const token = Cookies.get("token");
     try {
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/export`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            typeTrx: "leave",
+            type: "leave",
+            exportData: true,
+            status: filter.status,
+            month: filter.month,
+            year: filter.year,
+            search: searchValue,
           },
           responseType: "blob",
         }
@@ -441,163 +452,61 @@ export default function Home() {
             onClose={onClose}
             title="Leave Request Detail"
           >
-            <div className="flex items-center justify-between gap-2 mt-4 mb-6">
-              {[
-                { id: 1, label: "Submitted" },
-                { id: 2, label: "Accepted" },
-                { id: 3, label: "Approved" },
-                { id: 6, label: "Rejected" },
-              ].map((step, index, arr) => {
-                const isActive =
-                  selectedData?.status_id >= step.id &&
-                  selectedData?.status_id !== 6;
-                const isRejected =
-                  selectedData?.status_id === 6 && step.id === 6;
-
-                return (
-                  <div key={step.id} className="flex-1 flex items-center gap-2">
-                    <div
-                      className={`w-8 h-8 rounded-full text-sm flex items-center justify-center font-semibold
-              ${
-                isRejected
-                  ? "bg-red-500 text-white"
-                  : isActive
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-300 text-gray-600"
-              }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <span
-                      className={`text-sm ${
-                        isRejected
-                          ? "text-red-500"
-                          : isActive
-                          ? "text-blue-700"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                    {index < arr.length - 1 && (
-                      <div className="flex-1 h-1 bg-gray-300 mx-2 relative">
-                        <div
-                          className={`h-1 absolute top-0 left-0 ${
-                            isRejected
-                              ? "bg-red-500 w-full"
-                              : selectedData?.status_id > step.id &&
-                                selectedData?.status_id !== 6
-                              ? "bg-blue-600 w-full"
-                              : "w-0"
-                          }`}
-                        />
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-60">
+                <StatusStepper
+                  statusId={selectedData?.status_id ?? 1}
+                  createdDate={selectedData?.created_at}
+                  acceptedDate={selectedData?.accepted_date}
+                  approvedDate={selectedData?.approved_date}
+                  rejectedDate={selectedData?.rejected_date}
+                  canceledDate={selectedData?.canceled_date}
+                  acceptedRemark={selectedData?.accepted_remark}
+                  approvedRemark={selectedData?.approved_remark}
+                  rejectedRemark={selectedData?.rejected_remark}
+                  canceledRemark={selectedData?.canceled_remark}
+                  acceptTo={selectedData?.accept_to}
+                  approveTo={selectedData?.approve_to}
+                />
+              </div>
+              <div className="flex-1">
+                <form>
+                  <div className="flex flex-col gap-4 text-sm text-gray-700">
+                    <div>
+                      <div className="font-semibold text-gray-600">
+                        Start Date
                       </div>
-                    )}
+                      <p>{selectedData?.start_date ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-600">
+                        End Date
+                      </div>
+                      <p>{selectedData?.end_date ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-600">
+                        Leave Type
+                      </div>
+                      <p>{selectedData?.leave_type_name ?? "-"}</p>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-600">
+                        Total Leave Days
+                      </div>
+                      <p>{selectedData?.total_leave_days ?? "-"} days</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-600">Note</div>
+                      <p>{selectedData?.leave_reason ?? "-"}</p>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">Employee Name</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.user_name ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Employee Department</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.user_departement ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Start Date Leave</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.start_date ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">End Date Leave</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.end_date ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Leave Type Name</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.leave_type_name ?? ""}
-                />
-              </div>
-              <div>
-                <label className="form-label">Leave Reason</label>
-                <input
-                  className="input w-full"
-                  type="text"
-                  readOnly
-                  value={selectedData?.leave_reason ?? ""}
-                />
+                </form>
               </div>
             </div>
-
-            {(selectedData?.status_id === 3 ||
-              selectedData?.status_id === 6) && (
-              <div className="grid grid-cols-1 gap-5 mt-6">
-                <div>
-                  <label className="form-label">Accepted Remark</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.accepted_remark ?? ""}
-                  />
-                </div>
-              </div>
-            )}
-
-            {!(selectedData?.status_id === 1) && (
-              <div className="grid grid-cols-1 gap-5 mt-6">
-                <div>
-                  <label className="form-label">
-                    {selectedData?.status_id === 2
-                      ? "Accepted Remark"
-                      : selectedData?.status_id === 3
-                      ? "Approved Remark"
-                      : selectedData?.status_id === 6
-                      ? "Rejected Remark"
-                      : "Remark"}
-                  </label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={
-                      selectedData?.status_id === 2
-                        ? selectedData?.accepted_remark
-                        : selectedData?.status_id === 3
-                        ? selectedData?.approved_remark
-                        : selectedData?.status_id === 6
-                        ? selectedData?.rejected_remark
-                        : ""
-                    }
-                  />
-                </div>
-              </div>
-            )}
           </DetailModal>
         </div>
       </div>
@@ -607,6 +516,7 @@ export default function Home() {
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
     </Main>
   );

@@ -41,14 +41,14 @@ export default function Login() {
       Cookies.set("role", user.role_id, { expires: 1 });
       Cookies.set("user_name", user.name, { expires: 1 });
       Cookies.set("user_department", user.department, { expires: 1 });
+      Cookies.set("user_division", user.division, { expires: 1 });
+      Cookies.set("dept_head", user.dept_head, { expires: 1 });
+      Cookies.set("nrp", user.personal_number, { expires: 1 });
 
       const role = Cookies.get("role");
+      const nrp = Cookies.get("nrp");
       if (role === "10") {
         router.push("/dashboard/dashboardEmployee");
-      } else if (role === null || role === "null") {
-        router.push("/dashboard/dashboardAdmin");
-      } else if (role === "admin" || role === "Admin") {
-        router.push("/dashboard/dashboardAdmin");
       } else {
         router.push("/dashboard");
       }

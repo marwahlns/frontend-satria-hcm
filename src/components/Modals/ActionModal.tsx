@@ -34,7 +34,7 @@ const ActionModal = ({
               type="button"
               className={clsx(
                 "btn flex items-center text-white",
-                submitText === "Rejected"
+                submitText === "Rejected" || submitText === "Canceled"
                   ? "bg-red-500 hover:bg-red-600"
                   : "bg-green-500 hover:bg-green-600"
               )}
@@ -73,8 +73,6 @@ const ActionModal = ({
         </div>
       </div>
     </Modal>
-
-    
   );
 };
 

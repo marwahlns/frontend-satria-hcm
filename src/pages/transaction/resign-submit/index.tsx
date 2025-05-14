@@ -18,7 +18,6 @@ import ActionModal from "@/components/Modals/ActionModal";
 import DetailModal from "@/components/Modals/DetailModal";
 import StatusStepper from "@/components/StatusStepper";
 import AsyncSelect from "react-select/async";
-import { useLeaveStore } from "../../../stores/submitStore";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -31,22 +30,13 @@ export default function Home() {
   const [showFilter, setShowFilter] = useState(false);
   const [isRefetch, setIsRefetch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const setTotalLeaves = useLeaveStore((state) => state.setTotalLeaves);
 
   const submitSchema = yup.object({
-    leave_type_id: yup
-      .object({
-        value: yup.string().required("Leave type is required."),
-        label: yup.string().required("Leave type is required."),
-      })
-      .required("Leave type is required."),
-    start_date: yup.string().required("Start date is required"),
-    end_date: yup.string().required("End date is required"),
-    leave_reason: yup.string().required("Leave reason is required"),
+    effective_date: yup.string().required("Effective date is required"),
+    reason: yup.string().required("Resign reason is required"),
     canceled_remark: yup.string().nullable(),
   });
 
-  // Schema saat CANCEL leave
   const cancelSchema = yup.object({
     canceled_remark: yup
       .string()
@@ -54,16 +44,10 @@ export default function Home() {
       .required("Canceled remark is required."),
   });
 
-  interface LeaveFormValues {
-    leave_type_id?: {
-      value?: string;
-      label?: string;
-    };
-    start_date?: string;
-    end_date?: string;
-    leave_reason?: string;
+  interface ResignFormValues {
+    effective_date?: string;
+    reason?: string;
     canceled_remark?: string;
-    date_range?: [Date | null, Date | null];
   }
 
   const {
@@ -72,23 +56,16 @@ export default function Home() {
     formState: { errors },
     reset,
     setValue,
-  } = useForm<LeaveFormValues>({
+  } = useForm<ResignFormValues>({
     resolver: yupResolver(
       selectedActionType === "Canceled" ? cancelSchema : submitSchema
     ),
     defaultValues: {
-      leave_type_id: null,
-      start_date: "",
-      end_date: "",
-      leave_reason: "",
+      effective_date: "",
+      reason: "",
       canceled_remark: "",
-      date_range: [null, null],
     },
   });
-
-  const handleSearchChange = (value) => {
-    setSearchValue(value);
-  };
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -105,6 +82,10 @@ export default function Home() {
     setIsAddModalOpen(true);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
+
   const onClose = () => {
     setIsActionModalOpen(false);
     setIsDetailModalOpen(false);
@@ -112,39 +93,12 @@ export default function Home() {
     setSelectedData(null);
     reset();
   };
-  const leaveTypeOptions = async (inputValue) => {
-    try {
-      const token = Cookies.get("token");
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            search: inputValue,
-          },
-        }
-      );
-      if (response.data.success) {
-        return response.data.data.data.map((leave_quota) => ({
-          value: leave_quota.leaves_type_id,
-          label: `${leave_quota.MsLeaveType.title} - Quota: ${leave_quota.leave_balance}`,
-        }));
-      } else {
-        return [];
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      return [];
-    }
-  };
 
   const onCancel = async (data) => {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this leave request?`,
+        text: `Do you want to ${selectedActionType} this resign request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -163,7 +117,7 @@ export default function Home() {
         {
           remark: data.canceled_remark,
           actionType: selectedActionType,
-          trxType: "leave",
+          trxType: "resign",
         },
         {
           headers: {
@@ -175,7 +129,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Leave has been successfully ${selectedActionType}.`,
+          text: `Resign has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -189,7 +143,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} leave. Please try again.`,
+        text: `Failed to ${selectedActionType} resign. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -200,13 +154,11 @@ export default function Home() {
     try {
       const token = Cookies.get("token");
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=leave`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=resign`,
         {
           ...data,
-          leave_type_id: parseInt(data.leave_type_id.value, 10),
-          start_date: data.start_date,
-          end_date: data.end_date,
-          leave_reason: data.leave_reason,
+          effective_date: data.effective_date,
+          reason: data.reason,
         },
         {
           headers: {
@@ -215,26 +167,9 @@ export default function Home() {
         }
       );
 
-      if (response.status === 201) {
-        const total = response.data?.data?.totalItems;
-
-        if (total !== undefined) {
-          setTotalLeaves(total);
-        } else {
-          const token = Cookies.get("token");
-          const res = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          if (res.data.success) {
-            setTotalLeaves(res.data.data.totalItems);
-          }
-        }
-
+      if (response.status == 201) {
         Swal.fire({
-          text: "Leave added successfully",
+          text: "Resign added successfully",
           icon: "success",
           timer: 1500,
         });
@@ -246,21 +181,7 @@ export default function Home() {
         reset();
       }
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        const message = error.response.data?.message;
-        Swal.fire({
-          title: "Error",
-          text: message,
-          icon: "error",
-        });
-      } else {
-        console.error(error);
-        Swal.fire({
-          title: "Error",
-          text: "An unexpected error occurred",
-          icon: "error",
-        });
-      }
+      console.error(error);
     }
   };
 
@@ -274,7 +195,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "leave",
+            type: "resign",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -293,7 +214,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Leave_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Resign_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -326,27 +247,12 @@ export default function Home() {
       enableSorting: false,
     },
     {
-      accessorKey: "leave_type_name",
-      header: "Leave Type",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "start_date",
+      accessorKey: "effective_date",
       header: "Start Date",
       enableSorting: true,
     },
     {
-      accessorKey: "end_date",
-      header: "End Date",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "total_leave_days",
-      header: "Total Days",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "leave_reason",
+      accessorKey: "reason",
       header: "Reason",
       enableSorting: true,
     },
@@ -425,8 +331,8 @@ export default function Home() {
     <Main>
       <div className="mb-6 flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Leave</h1>
-          <p className="text-gray-500 text-sm">Your Leave Record</p>
+          <h1 className="text-3xl font-bold text-gray-800">Resign</h1>
+          <p className="text-gray-500 text-sm">Your Resign Record</p>
         </div>
         <div className="flex gap-3 items-center">
           <button
@@ -465,16 +371,16 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"Leave Submittion List"}
+        title={"Resign Submittion List"}
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=resign&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />
 
       <Modal isModalOpen={isAddModalOpen}>
         <div className="modal-header">
-          <h3 className="modal-title">Add Leave Submittion</h3>
+          <h3 className="modal-title">Add Resign Submittion</h3>
           <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
             <i className="ki-outline ki-cross"></i>
           </button>
@@ -484,84 +390,21 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">
-                  Leave Type
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="leave_type_id"
-                  control={control}
-                  render={({ field }) => (
-                    <AsyncSelect
-                      {...field}
-                      cacheOptions
-                      defaultOptions
-                      loadOptions={leaveTypeOptions}
-                      placeholder="Select..."
-                      classNamePrefix="react-select"
-                      className={clsx(
-                        "w-full text-sm",
-                        errors.leave_type_id &&
-                          "border border-red-500 rounded-md"
-                      )}
-                      styles={{
-                        control: (base, state) => ({
-                          ...base,
-                          borderColor: errors.leave_type_id
-                            ? "#EF4444"
-                            : "#DBDFE9",
-                          boxShadow: "none",
-                          "&:hover": {
-                            borderColor: state.isFocused
-                              ? "#A1A9B8"
-                              : errors.leave_type_id
-                              ? "#EF4444"
-                              : "#DBDFE9",
-                          },
-                        }),
-                      }}
-                      onChange={(selectedOption) =>
-                        field.onChange(selectedOption)
-                      }
-                    />
-                  )}
-                />
-                {errors.leave_type_id && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.leave_type_id.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="form-label">
-                  Leave Date
+                  Effective Date
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
                   control={control}
-                  name="date_range"
+                  name="effective_date"
                   render={({ field }) => (
                     <DatePicker
-                      selectsRange
-                      startDate={field.value?.[0] || null}
-                      endDate={field.value?.[1] || null}
-                      onChange={(dates: [Date | null, Date | null]) => {
-                        const [start, end] = dates;
-                        field.onChange(dates);
+                      selected={field.value ? new Date(field.value) : null} // Menggunakan single date
+                      onChange={(date: Date | null) => {
+                        field.onChange(date);
                         setValue(
-                          "start_date",
-                          start
-                            ? new Date(start).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""
-                        );
-                        setValue(
-                          "end_date",
-                          end
-                            ? new Date(end).toLocaleDateString("en-GB", {
+                          "effective_date",
+                          date
+                            ? new Date(date).toLocaleDateString("en-GB", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
@@ -570,44 +413,43 @@ export default function Home() {
                         );
                       }}
                       className={clsx(
-                        "input w-full max-w-md text-sm py-2 px-3 rounded-md border",
-                        errors.start_date || errors.end_date
+                        "input w-full text-sm py-2 px-3 rounded-md border",
+                        errors.effective_date
                           ? "border-red-500"
                           : "border-gray-300"
                       )}
                       placeholderText="Pick a date"
-                      dateFormat="dd-MMM-yyyy"
+                      dateFormat="dd-MMM-yyyy" // Menentukan format yang diinginkan
                       isClearable={true}
                       locale={enGB}
-                      minDate={new Date()}
+                      minDate={
+                        new Date(new Date().setMonth(new Date().getMonth() + 1))
+                      }
                     />
                   )}
                 />
-                {(errors.start_date || errors.end_date) && (
+                {errors.effective_date && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.start_date?.message || errors.end_date?.message}
+                    {errors.effective_date?.message}
                   </p>
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 mt-6">
               <div>
                 <label className="form-label">
-                  Leave Reason
+                  Resign Reason
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
-                  name="leave_reason"
+                  name="reason"
                   control={control}
                   render={({ field }) => (
                     <textarea
                       {...field}
                       className={clsx(
                         "w-full text-sm text-gray-700 p-3 rounded-md bg-white border border-gray-300",
-                        "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
+                        "focus:border-blue-200 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
-                        errors.leave_reason &&
+                        errors.reason &&
                           "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
                       placeholder="Your reason"
@@ -615,9 +457,9 @@ export default function Home() {
                     />
                   )}
                 />
-                {errors.leave_reason && (
+                {errors.reason && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.leave_reason.message}
+                    {errors.reason.message}
                   </p>
                 )}
               </div>
@@ -663,29 +505,16 @@ export default function Home() {
             <form>
               <div className="flex flex-col gap-4 text-sm text-gray-700">
                 <div>
-                  <div className="font-semibold text-gray-600">Start Date</div>
-                  <p>{selectedData?.start_date ?? "-"}</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">End Date</div>
-                  <p>{selectedData?.end_date ?? "-"}</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">Leave Type</div>
-                  <p>{selectedData?.leave_type_name ?? "-"}</p>
+                  <div className="font-semibold text-gray-600">
+                    Effective Date
+                  </div>
+                  <p>{selectedData?.effective_date ?? "-"}</p>
                 </div>
                 <div>
                   <div className="font-semibold text-gray-600">
-                    Total Leave Days
+                    Resign Reason
                   </div>
-                  <p>{selectedData?.total_leave_days ?? "-"} days</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">Note</div>
-                  <p>{selectedData?.leave_reason ?? "-"}</p>
+                  <p>{selectedData?.reason ?? "-"}</p>
                 </div>
               </div>
             </form>
@@ -696,7 +525,7 @@ export default function Home() {
       <ActionModal
         isModalOpen={isActionModalOpen}
         onClose={onClose}
-        title={`${selectedActionType} Leave Request`}
+        title={`${selectedActionType} Resign Request`}
         onSubmit={handleSubmit(onCancel)}
         loading={loading}
         submitText={selectedActionType}
@@ -704,57 +533,27 @@ export default function Home() {
         <form onSubmit={handleSubmit(onCancel)}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Start Date Leave</label>
+              <label className="form-label">Effective Date Resign</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.start_date ?? ""}
+                value={selectedData?.effective_date ?? ""}
               />
             </div>
             <div>
-              <label className="form-label">End Date Leave</label>
+              <label className="form-label">Resign Reason</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.end_date ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Leave Type Name</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.leave_type_name ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Leave Reason</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.leave_reason ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Total Leave Days</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.total_leave_days ?? ""}
+                value={selectedData?.reason ?? ""}
               />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-5 mt-6">
             <div>
-              <label className="form-label">
-                Canceled Remark{" "}
-                <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-              </label>
+              <label className="form-label">Canceled Remark</label>
               <Controller
                 name="canceled_remark"
                 control={control}
