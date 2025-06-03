@@ -24,6 +24,7 @@
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "framer-motion": "^12.5.0",
+    "fslightbox-react": "^1.8.0",
     "js-cookie": "^3.0.5",
     "next": "^15.1.7",
     "next-fonts": "^1.5.1",
@@ -39,10 +40,12 @@
     "react-toastify": "^11.0.5",
     "sweetalert2": "^11.17.2",
     "xlsx": "^0.18.5",
+    "yet-another-react-lightbox": "^3.23.2",
     "yup": "^1.6.1",
     "zustand": "^5.0.4"
   },
   "devDependencies": {
+    "@types/fslightbox-react": "^1.8.0",
     "@types/jquery": "^3.5.32",
     "@types/node": "^20",
     "@types/react": "^18",

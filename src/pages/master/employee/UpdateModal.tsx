@@ -107,6 +107,25 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
+            name: "",
+            nrp: "",
+            email: "",
+            phone: "",
+            bdate: "",
+            gender: null,
+            marital_status: null,
+            address: "",
+            vendor: null,
+            join_date: "",
+            end_date: "",
+            worklocation: null,
+            plant: null,
+            klasifikasi: null,
+            superior: null,
+            section: "",
+            department: "",
+            division: "",
+            title: "",
         },
     });
 
@@ -211,16 +230,13 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 }
             );
 
-            if (response.status == 201) {
+            if (response.status == 200) {
                 Swal.fire({
                     text: "User updated successfully",
                     icon: "success",
                     timer: 1500,
                 });
                 setRefetch(!isRefetch);
-                onClose();
-                reset();
-            } else {
                 onClose();
                 reset();
             }

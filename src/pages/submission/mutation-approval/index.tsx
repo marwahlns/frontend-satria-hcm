@@ -21,11 +21,14 @@ export default function Home() {
   const [selectedData, setSelectedData] = useState(null);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
   const [showFilter, setShowFilter] = useState(false);
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [searchValue, setSearchValue] = useState("");
 
-  const api = `${process.env.NEXT_PUBLIC_API_URL}`;
   const schema = yup.object().shape({
     remark: yup.string().required("Please fill out remark"),
   });
@@ -48,13 +51,13 @@ export default function Home() {
     setIsActionModalOpen(true);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
+
   const handleOpenDetailModal = (data) => {
     setSelectedData(data);
     setIsDetailModalOpen(true);
-  };
-
-  const handleSearchChange = (value) => {
-    setSearchValue(value);
   };
 
   const onClose = () => {
@@ -68,7 +71,7 @@ export default function Home() {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this official travel request?`,
+        text: `Do you want to ${selectedActionType} this mutation request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -87,7 +90,7 @@ export default function Home() {
         {
           remark: data.remark,
           actionType: selectedActionType,
-          trxType: "officialTravel",
+          trxType: "mutation",
         },
         {
           headers: {
@@ -99,7 +102,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Official travel has been successfully ${selectedActionType}.`,
+          text: `Mutation has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -113,7 +116,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} official travel. Please try again.`,
+        text: `Failed to ${selectedActionType} mutation. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -130,7 +133,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "officialTravel",
+            type: "mutation",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -149,7 +152,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_OfficialTrave,_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Mutation_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -170,20 +173,18 @@ export default function Home() {
     }
   };
 
-  type ITrOfficialTravel = {
+  type ITrMutation = {
     user_name: number;
     user_departement: number;
-    purpose: string;
-    destination_city: string;
-    start_date: string;
-    end_date: string;
+    effective_date: string;
+    reason: string;
     status_id: number;
     actionType: string;
     modalType: string;
     status_submittion: string;
   };
 
-  const columns: ColumnDef<ITrOfficialTravel>[] = [
+  const columns: ColumnDef<ITrMutation>[] = [
     {
       accessorKey: "number",
       header: "#",
@@ -200,23 +201,33 @@ export default function Home() {
       enableSorting: true,
     },
     {
-      accessorKey: "purpose",
-      header: "Purpose",
+      accessorKey: "division_from",
+      header: "From Division",
       enableSorting: true,
     },
     {
-      accessorKey: "destination_city",
-      header: "Destination City",
+      accessorKey: "division_to",
+      header: "To Division",
       enableSorting: true,
     },
     {
-      accessorKey: "start_date",
-      header: "Start Date",
+      accessorKey: "dept_from",
+      header: "From Department",
       enableSorting: true,
     },
     {
-      accessorKey: "end_date",
-      header: "End Date",
+      accessorKey: "dept_to",
+      header: "To Department",
+      enableSorting: true,
+    },
+    {
+      accessorKey: "effective_date",
+      header: "Effective Date",
+      enableSorting: true,
+    },
+    {
+      accessorKey: "reason",
+      header: "Reason Mutation",
       enableSorting: true,
     },
     {
@@ -303,7 +314,7 @@ export default function Home() {
       <div className="mb-6">
         <div className="flex flex-col gap-4 mt-4">
           <h1 className="text-3xl font-bold text-gray-800">
-            Official travel submission data list
+            Mutation submission data list
           </h1>
 
           <div className="flex justify-between items-center">
@@ -337,12 +348,12 @@ export default function Home() {
           <ActionModal
             isModalOpen={isActionModalOpen}
             onClose={onClose}
-            title={`${selectedActionType} Official Travel Request`}
+            title={`${selectedActionType} Mutation Request`}
             onSubmit={handleSubmit(onSubmit)}
             loading={loading}
             submitText={selectedActionType}
           >
-            <form id="officialTravelForm" onSubmit={handleSubmit(onSubmit)}>
+            <form id="mutationForm" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Data Umum */}
                 <div>
@@ -355,7 +366,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Employee Departement</label>
+                  <label className="form-label">Employee Department</label>
                   <input
                     className="input w-full"
                     type="text"
@@ -364,39 +375,21 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Start Date Travel</label>
+                  <label className="form-label">Effective Date</label>
                   <input
                     className="input w-full"
                     type="text"
                     readOnly
-                    value={selectedData?.start_date ?? ""}
+                    value={selectedData?.effective_date ?? ""}
                   />
                 </div>
                 <div>
-                  <label className="form-label">End Date Travel</label>
+                  <label className="form-label">Reaseon Mutation</label>
                   <input
                     className="input w-full"
                     type="text"
                     readOnly
-                    value={selectedData?.end_date ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Destination City Travel</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.destination_city ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Purpose Travel</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.purpose ?? ""}
+                    value={selectedData?.reason ?? ""}
                   />
                 </div>
               </div>
@@ -456,7 +449,7 @@ export default function Home() {
           <DetailModal
             isModalOpen={isDetailModalOpen}
             onClose={onClose}
-            title="Leave Request Detail"
+            title="Mutation Request Detail"
           >
             <div className="flex flex-col md:flex-row gap-6">
               <div className="w-full md:w-60">
@@ -480,34 +473,15 @@ export default function Home() {
                   <div className="flex flex-col gap-4 text-sm text-gray-700">
                     <div>
                       <div className="font-semibold text-gray-600">
-                        Start Date
+                        Effective Date
                       </div>
-                      <p>{selectedData?.start_date ?? "-"}</p>
-                    </div>
-
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        End Date
-                      </div>
-                      <p>{selectedData?.end_date ?? "-"}</p>
-                    </div>
-
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        Destination City
-                      </div>
-                      <p>{selectedData?.destination_city ?? "-"}</p>
+                      <p>{selectedData?.effective_date ?? "-"}</p>
                     </div>
                     <div>
                       <div className="font-semibold text-gray-600">
-                        Total Leave Days
+                        Mutation Reason
                       </div>
-                      <p>{selectedData?.total_leave_days ?? "-"} days</p>
-                    </div>
-
-                    <div>
-                      <div className="font-semibold text-gray-600">Purpose</div>
-                      <p>{selectedData?.purpose ?? "-"}</p>
+                      <p>{selectedData?.reason ?? "-"}</p>
                     </div>
                   </div>
                 </form>
@@ -518,9 +492,8 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Official Travel Submission"
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=officialTravel&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=mutation&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />

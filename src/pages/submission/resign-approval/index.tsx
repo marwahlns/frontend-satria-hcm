@@ -22,8 +22,11 @@ export default function Home() {
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
-  const api = `${process.env.NEXT_PUBLIC_API_URL}`;
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [searchValue, setSearchValue] = useState("");
 
   const schema = yup.object().shape({
@@ -48,15 +51,13 @@ export default function Home() {
     setIsActionModalOpen(true);
   };
 
-  const handleSearchChange = (value) => {
-    setSearchValue(value);
-  };
-
   const handleOpenDetailModal = (data) => {
     setSelectedData(data);
     setIsDetailModalOpen(true);
   };
-
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
   const onClose = () => {
     setIsActionModalOpen(false);
     setIsDetailModalOpen(false);
@@ -68,7 +69,7 @@ export default function Home() {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this mutation request?`,
+        text: `Do you want to ${selectedActionType} this resign request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -87,7 +88,7 @@ export default function Home() {
         {
           remark: data.remark,
           actionType: selectedActionType,
-          trxType: "mutation",
+          trxType: "resign",
         },
         {
           headers: {
@@ -99,7 +100,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Mutation has been successfully ${selectedActionType}.`,
+          text: `Resign has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -113,7 +114,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} mutation. Please try again.`,
+        text: `Failed to ${selectedActionType} resign. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -130,7 +131,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "mutation",
+            type: "resign",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -149,7 +150,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Mutation_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Resign_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -170,7 +171,7 @@ export default function Home() {
     }
   };
 
-  type ITrMutation = {
+  type ITrResign = {
     user_name: number;
     user_departement: number;
     effective_date: string;
@@ -181,7 +182,7 @@ export default function Home() {
     status_submittion: string;
   };
 
-  const columns: ColumnDef<ITrMutation>[] = [
+  const columns: ColumnDef<ITrResign>[] = [
     {
       accessorKey: "number",
       header: "#",
@@ -198,33 +199,13 @@ export default function Home() {
       enableSorting: true,
     },
     {
-      accessorKey: "division_from",
-      header: "From Division",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "division_to",
-      header: "To Division",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "dept_from",
-      header: "From Department",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "dept_to",
-      header: "To Department",
-      enableSorting: true,
-    },
-    {
       accessorKey: "effective_date",
-      header: "Effective Date",
+      header: "Effective Date Resign",
       enableSorting: true,
     },
     {
       accessorKey: "reason",
-      header: "Reason Mutation",
+      header: "Reason",
       enableSorting: true,
     },
     {
@@ -311,7 +292,7 @@ export default function Home() {
       <div className="mb-6">
         <div className="flex flex-col gap-4 mt-4">
           <h1 className="text-3xl font-bold text-gray-800">
-            Mutation submission data list
+            Resign submission data list
           </h1>
 
           <div className="flex justify-between items-center">
@@ -345,12 +326,12 @@ export default function Home() {
           <ActionModal
             isModalOpen={isActionModalOpen}
             onClose={onClose}
-            title={`${selectedActionType} Mutation Request`}
+            title={`${selectedActionType} Resign Request`}
             onSubmit={handleSubmit(onSubmit)}
             loading={loading}
             submitText={selectedActionType}
           >
-            <form id="mutationForm" onSubmit={handleSubmit(onSubmit)}>
+            <form id="resignForm" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Data Umum */}
                 <div>
@@ -381,7 +362,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Reaseon Mutation</label>
+                  <label className="form-label">Reason</label>
                   <input
                     className="input w-full"
                     type="text"
@@ -446,7 +427,7 @@ export default function Home() {
           <DetailModal
             isModalOpen={isDetailModalOpen}
             onClose={onClose}
-            title="Mutation Request Detail"
+            title="Leave Request Detail"
           >
             <div className="flex flex-col md:flex-row gap-6">
               <div className="w-full md:w-60">
@@ -476,7 +457,7 @@ export default function Home() {
                     </div>
                     <div>
                       <div className="font-semibold text-gray-600">
-                        Mutation Reason
+                        Resign Reason
                       </div>
                       <p>{selectedData?.reason ?? "-"}</p>
                     </div>
@@ -489,9 +470,8 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Mutation Submission"
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=mutation&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=resign&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />

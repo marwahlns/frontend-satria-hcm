@@ -1,4 +1,4 @@
-import Main from "../../../main-layouts/layout-employee";
+import Main from "../../../main-layouts/main";
 import DataTable from "../../../components/Datatables";
 import clsx from "clsx";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -7,7 +7,7 @@ import * as yup from "yup";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FilterData from "@/components/FilterData";
 import Cookies from "js-cookie";
 import DatePicker from "react-datepicker";
@@ -26,14 +26,29 @@ export default function Home() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [selectedData, setSelectedData] = useState(null);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedSuperior, setSelectedSuperior] = useState(null);
   const [searchValue, setSearchValue] = useState("");
+  const [selectedDivisionLabel, setSelectedDivisionLabel] = useState("");
+  const [selectedDepartmentLabel, setSelectedDepartmentLabel] = useState("");
 
   const submitSchema = yup.object({
     effective_date: yup.string().required("Effective date is required"),
     reason: yup.string().required("Resign reason is required"),
+    superior_from: yup.string().required("Superior is required"),
+    division_from: yup.string().required("Division is required"),
+    department_from: yup.string().required("Department is required"),
+    superior_to: yup.string().required("Superior is required"),
+    division_to: yup.string().required("Division is required"),
+    department_to: yup.string().required("Department is required"),
+    user: yup.string().required("Employee is required"),
     canceled_remark: yup.string().nullable(),
   });
 
@@ -44,19 +59,28 @@ export default function Home() {
       .required("Canceled remark is required."),
   });
 
-  interface ResignFormValues {
+  interface MutationFormValues {
     effective_date?: string;
     reason?: string;
     canceled_remark?: string;
+    superior_from?: string;
+    division_from?: string;
+    department_from?: string;
+    superior_to?: string;
+    division_to?: string;
+    department_to?: string;
+    user?: string;
   }
 
   const {
     control,
+    register,
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
     setValue,
-  } = useForm<ResignFormValues>({
+  } = useForm<MutationFormValues>({
     resolver: yupResolver(
       selectedActionType === "Canceled" ? cancelSchema : submitSchema
     ),
@@ -64,8 +88,96 @@ export default function Home() {
       effective_date: "",
       reason: "",
       canceled_remark: "",
+      superior_from: "",
+      division_from: "",
+      department_from: "",
+      superior_to: "",
+      division_to: "",
+      department_to: "",
+      user: "",
     },
   });
+
+  useEffect(() => {
+    if (!watch("division_from")) {
+      setValue("division_from", "-");
+    }
+    if (!watch("department_from")) {
+      setValue("department_from", "-");
+    }
+  }, []);
+
+  const loadUserOptions = async (inputValue) => {
+    try {
+      const token = Cookies.get("token");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/master/user`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            search: inputValue,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return response.data.data.data.map((user) => ({
+          value: user.personal_number,
+          label: user.name,
+          division: {
+            value: user.divid,
+            label: user.division,
+          },
+          department: {
+            value: user.dept,
+            label: user.department,
+          },
+          superior: user.superior,
+          isDisabled: user.isDisable === true, // ⬅️ tambahkan ini
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Error loading users:", error);
+      return [];
+    }
+  };
+
+  const superiorOptions = async (inputValue) => {
+    try {
+      const token = Cookies.get("token");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/master/user/getSuperior`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            search: inputValue,
+          },
+        }
+      );
+      if (response.data.success) {
+        return response.data.data.data.map((superior) => ({
+          value: superior.personal_number,
+          label: superior.name,
+          section_code: superior.section_code,
+          section: superior.section,
+          dept: superior.dept,
+          department: superior.department,
+          divid: superior.divid,
+          division: superior.division,
+          companyid: superior.companyid,
+          company_name: superior.company_name,
+        }));
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      return [];
+    }
+  };
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -98,7 +210,7 @@ export default function Home() {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this resign request?`,
+        text: `Do you want to ${selectedActionType} this mutation request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -117,7 +229,7 @@ export default function Home() {
         {
           remark: data.canceled_remark,
           actionType: selectedActionType,
-          trxType: "resign",
+          trxType: "mutation",
         },
         {
           headers: {
@@ -129,7 +241,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Resign has been successfully ${selectedActionType}.`,
+          text: `Mutation has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -143,7 +255,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} resign. Please try again.`,
+        text: `Failed to ${selectedActionType} mutation. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -154,9 +266,15 @@ export default function Home() {
     try {
       const token = Cookies.get("token");
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=resign`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=mutation`,
         {
           ...data,
+          superior_from: data.superior_from,
+          division_from: data.division_from,
+          department_from: data.department_from,
+          superior_to: data.superior_to,
+          division_to: data.division_to,
+          department_to: data.department_to,
           effective_date: data.effective_date,
           reason: data.reason,
         },
@@ -169,7 +287,7 @@ export default function Home() {
 
       if (response.status == 201) {
         Swal.fire({
-          text: "Resign added successfully",
+          text: "Mutation added successfully",
           icon: "success",
           timer: 1500,
         });
@@ -185,6 +303,13 @@ export default function Home() {
     }
   };
 
+  const optionBackgroundColor = (state) => {
+    if (state.isDisabled) return "#ffe5e5"; // merah muda untuk disabled
+    if (state.isSelected) return "#2684ff"; // default react-select blue
+    if (state.isFocused) return "#f0f0f0"; // default hover
+    return "white";
+  };
+
   const handleExportExcel = async () => {
     const token = Cookies.get("token");
     try {
@@ -195,7 +320,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "resign",
+            type: "mutation",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -214,7 +339,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Resign_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Mutation_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -235,12 +360,12 @@ export default function Home() {
     }
   };
 
-  type ITrLeave = {
+  type ITrMutation = {
     status_id: number;
     status_submittion: string;
   };
 
-  const columns: ColumnDef<ITrLeave>[] = [
+  const columns: ColumnDef<ITrMutation>[] = [
     {
       accessorKey: "number",
       header: "#",
@@ -328,29 +453,28 @@ export default function Home() {
   ];
 
   return (
-    <Main>
-      <div className="mb-6 flex justify-between items-start">
+    <div>
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Resign</h1>
-          <p className="text-gray-500 text-sm">Your Resign Record</p>
+          <h1 className="text-3xl font-bold text-gray-800">Mutation</h1>
+          <p className="text-gray-500 text-sm">Your Mutation Record</p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
           <button
-            className="btn btn-filled btn-primary"
-            onClick={() => handleOpenAddModal()}
+            className="btn btn-outline btn-primary"
+            onClick={() => handleExportExcel()}
           >
-            <i className="ki-outline ki-plus-squared"></i>
-            Add Data
+            <i className="ki-filled ki-file-down"></i>
+            Export
           </button>
 
           <button
             onClick={() => setShowFilter((prev) => !prev)}
-            className="btn btn-filled btn-primary"
+            className="btn btn-outline btn-primary"
           >
             <i className="ki-filled ki-filter-tablet mr-1" />
             Filter
           </button>
-
           {showFilter && (
             <FilterData
               onSelect={(selectedFilter) => {
@@ -361,54 +485,130 @@ export default function Home() {
           )}
 
           <button
-            className="btn btn-filled btn-success"
-            onClick={() => handleExportExcel()}
+            className="btn btn-filled btn-primary"
+            onClick={() => handleOpenAddModal()}
           >
-            <i className="ki-filled ki-file-down"></i>
-            Export to Excel
+            <i className="ki-outline ki-plus-squared"></i>
+            Add Data
           </button>
         </div>
       </div>
 
       <DataTable
-        title={"Resign Submittion List"}
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=resign&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=mutation&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />
 
       <Modal isModalOpen={isAddModalOpen}>
         <div className="modal-header">
-          <h3 className="modal-title">Add Resign Submittion</h3>
-          <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
+          <h3 className="modal-title">Add Mutation Submission</h3>
+          <button
+            className="btn btn-xs btn-icon btn-light"
+            onClick={onClose}
+          >
             <i className="ki-outline ki-cross"></i>
           </button>
         </div>
+
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="modal-body max-h-[65vh] overflow-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Employee Mutation */}
               <div>
                 <label className="form-label">
-                  Effective Date
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
+                  Employee Mutation
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <Controller
+                  name="user"
+                  control={control}
+                  render={({ field }) => (
+                    <AsyncSelect
+                      {...field}
+                      cacheOptions
+                      defaultOptions
+                      loadOptions={loadUserOptions}
+                      placeholder="Select User"
+                      value={
+                        field.value
+                          ? {
+                            value: selectedUser?.value,
+                            label: selectedUser?.label || "",
+                          }
+                          : null
+                      }
+                      getOptionLabel={(e) => e.label}
+                      getOptionValue={(e) => e.value}
+                      isOptionDisabled={(option) =>
+                        (option as any).isDisabled === true
+                      }
+                      styles={{
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: optionBackgroundColor(state),
+                          color: state.isDisabled ? "#999" : base.color,
+                          cursor: state.isDisabled
+                            ? "not-allowed"
+                            : "default",
+                        }),
+                      }}
+                      onChange={(selectedOption) => {
+                        const option = selectedOption as any;
+                        field.onChange(option?.value || "");
+                        setSelectedUser(option);
+
+                        setValue(
+                          "department_from",
+                          option?.department?.value || "-"
+                        );
+                        setValue(
+                          "division_from",
+                          option?.division?.value || "-"
+                        );
+                        setValue("superior_from", option?.superior || "-");
+
+                        setSelectedDivisionLabel(
+                          option?.division?.label || "-"
+                        );
+                        setSelectedDepartmentLabel(
+                          option?.department?.label || "-"
+                        );
+                      }}
+                      classNamePrefix="react-select"
+                      className="w-full text-sm"
+                    />
+                  )}
+                />
+                {errors.user && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.user.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Effective Date */}
+              <div>
+                <label className="form-label">
+                  Effective Date<span className="text-red-500 ml-1">*</span>
                 </label>
                 <Controller
                   control={control}
                   name="effective_date"
                   render={({ field }) => (
                     <DatePicker
-                      selected={field.value ? new Date(field.value) : null} // Menggunakan single date
+                      selected={field.value ? new Date(field.value) : null}
                       onChange={(date: Date | null) => {
                         field.onChange(date);
                         setValue(
                           "effective_date",
                           date
                             ? new Date(date).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
                             : ""
                         );
                       }}
@@ -419,12 +619,10 @@ export default function Home() {
                           : "border-gray-300"
                       )}
                       placeholderText="Pick a date"
-                      dateFormat="dd-MMM-yyyy" // Menentukan format yang diinginkan
-                      isClearable={true}
+                      dateFormat="dd-MMM-yyyy"
+                      isClearable
                       locale={enGB}
-                      minDate={
-                        new Date(new Date().setMonth(new Date().getMonth() + 1))
-                      }
+                      minDate={new Date()}
                     />
                   )}
                 />
@@ -434,10 +632,169 @@ export default function Home() {
                   </p>
                 )}
               </div>
+
+              {/* Mutation From Header */}
+              <div className="md:col-span-2">
+                <label className="form-label block w-full break-words mb-1">
+                  Mutation From:
+                </label>
+              </div>
+
+              {/* Superior Now */}
+              <div>
+                <label className="form-label block mb-1">
+                  Superior Now
+                </label>
+                <div
+                  className={clsx(
+                    "w-full text-sm",
+                    errors.superior_from && "text-red-500"
+                  )}
+                >
+                  {watch("superior_from") || "-"}
+                </div>
+                {errors.superior_from && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.superior_from.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="form-label block mb-1">
+                  Division Now
+                </label>
+                <div
+                  className={clsx(
+                    "w-full text-sm",
+                    errors.division_from && "text-red-500"
+                  )}
+                >
+                  {selectedDivisionLabel || "-"}
+                </div>
+                {errors.division_from && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.division_from.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Department Now */}
+              <div>
+                <label className="form-label block mb-1">
+                  Department Now
+                </label>
+                <div
+                  className={clsx(
+                    "w-full text-sm",
+                    errors.department_from && "text-red-500"
+                  )}
+                >
+                  {selectedDepartmentLabel || "-"}
+                </div>
+                {errors.department_from && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.department_from.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Mutation To Header */}
+              <div className="md:col-span-2">
+                <label className="form-label block w-full break-words mb-1">
+                  Mutation To:
+                </label>
+              </div>
+
+              {/* Superior To */}
               <div>
                 <label className="form-label">
-                  Resign Reason
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
+                  Superior Employee
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <Controller
+                  name="superior_to"
+                  control={control}
+                  render={({ field }) => (
+                    <AsyncSelect
+                      {...field}
+                      cacheOptions
+                      defaultOptions
+                      loadOptions={superiorOptions}
+                      placeholder="Select Superior"
+                      value={
+                        field.value
+                          ? {
+                            value: selectedSuperior?.value,
+                            label: selectedSuperior?.label || "",
+                          }
+                          : null
+                      }
+                      onChange={(selectedOption) => {
+                        const option = selectedOption as any;
+                        field.onChange(option?.value || "");
+                        setSelectedSuperior(option);
+
+                        setValue(
+                          "department_to",
+                          option?.department || "-"
+                        );
+                        setValue("division_to", option?.division || "-");
+                      }}
+                      classNamePrefix="react-select"
+                      className="w-full text-sm"
+                    />
+                  )}
+                />
+                {errors.superior_to && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.superior_to.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Division To */}
+              <div>
+                <label className="form-label block mb-1">Division To</label>
+                <div
+                  className={clsx(
+                    "w-full text-sm",
+                    errors.division_to && "text-red-500"
+                  )}
+                >
+                  {watch("division_to") || "-"}
+                </div>
+                {errors.division_to && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.division_to.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Department To */}
+              <div>
+                <label className="form-label block mb-1">
+                  Department To
+                </label>
+                <div
+                  className={clsx(
+                    "w-full text-sm",
+                    errors.department_to && "text-red-500"
+                  )}
+                >
+                  {watch("department_to") || "-"}
+                </div>
+                {errors.department_to && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.department_to.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Reason */}
+              <div className="md:col-span-2">
+                <label className="form-label">
+                  Resign Reason<span className="text-red-500 ml-1">*</span>
                 </label>
                 <Controller
                   name="reason"
@@ -447,10 +804,10 @@ export default function Home() {
                       {...field}
                       className={clsx(
                         "w-full text-sm text-gray-700 p-3 rounded-md bg-white border border-gray-300",
-                        "focus:border-blue-200 focus:ring-1 focus:ring-blue-500 focus:outline-none",
+                        "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
                         errors.reason &&
-                          "border-red-500 focus:border-red-500 focus:ring-red-500"
+                        "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
                       placeholder="Your reason"
                       rows={4}
@@ -466,9 +823,14 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Footer */}
           <div className="modal-footer justify-end flex-shrink-0">
             <div className="flex gap-2">
-              <button type="button" className="btn btn-light" onClick={onClose}>
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={onClose}
+              >
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
@@ -482,7 +844,7 @@ export default function Home() {
       <DetailModal
         isModalOpen={isDetailModalOpen}
         onClose={onClose}
-        title="Leave Request Detail"
+        title="Mutation Request Detail"
       >
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-60">
@@ -512,7 +874,7 @@ export default function Home() {
                 </div>
                 <div>
                   <div className="font-semibold text-gray-600">
-                    Resign Reason
+                    Mutation Reason
                   </div>
                   <p>{selectedData?.reason ?? "-"}</p>
                 </div>
@@ -525,7 +887,7 @@ export default function Home() {
       <ActionModal
         isModalOpen={isActionModalOpen}
         onClose={onClose}
-        title={`${selectedActionType} Resign Request`}
+        title={`${selectedActionType} Mutation Request`}
         onSubmit={handleSubmit(onCancel)}
         loading={loading}
         submitText={selectedActionType}
@@ -533,7 +895,7 @@ export default function Home() {
         <form onSubmit={handleSubmit(onCancel)}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Effective Date Resign</label>
+              <label className="form-label">Effective Date Mutation</label>
               <input
                 className="input w-full"
                 type="text"
@@ -542,7 +904,7 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="form-label">Resign Reason</label>
+              <label className="form-label">Mutation Reason</label>
               <input
                 className="input w-full"
                 type="text"
@@ -579,6 +941,6 @@ export default function Home() {
           </div>
         </form>
       </ActionModal>
-    </Main>
+    </div>
   );
 }

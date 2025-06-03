@@ -1,4 +1,3 @@
-import Main from "../../../main-layouts/layout-employee";
 import DataTable from "../../../components/Datatables";
 import clsx from "clsx";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -7,7 +6,7 @@ import * as yup from "yup";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FilterData from "@/components/FilterData";
 import Cookies from "js-cookie";
 import DatePicker from "react-datepicker";
@@ -17,7 +16,7 @@ import Modal from "@/components/Modal";
 import ActionModal from "@/components/Modals/ActionModal";
 import DetailModal from "@/components/Modals/DetailModal";
 import StatusStepper from "@/components/StatusStepper";
-import { useOfficialTravelStore } from "../../../stores/submitStore";
+import { IoMdPaper } from "react-icons/io";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -26,21 +25,33 @@ export default function Home() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [selectedData, setSelectedData] = useState(null);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const [isRefetch, setIsRefetch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const setTotalOfficialTravel = useOfficialTravelStore(
-    (state) => state.setTotalOfficialTravels
-  );
-
+  const [alreadyResign, setAlreadyResign] = useState(false);
+  const [dataResponse, setDataResponse] = useState(null);
   const submitSchema = yup.object({
-    start_date: yup.string().required("Start date is required"),
-    end_date: yup.string().required("End date is required"),
-    destination_city: yup.string().required("Destination city is required"),
-    purpose: yup.string().required("Purpose official travel is required"),
+    effective_date: yup.string().required("Effective date is required"),
+    reason: yup.string().required("Resign reason is required"),
+    pdfFile: yup
+      .mixed()
+      .required("PDF document is required")
+      .test("fileSize", "Max file size is 2MB", (value) => {
+        return value && (value as File).size <= 2 * 1024 * 1024;
+      })
+      .test("fileType", "Only PDF files are allowed", (value) => {
+        if (!value) return false;
+        return (value as File).type === "application/pdf";
+      }),
+
     canceled_remark: yup.string().nullable(),
   });
+
   const cancelSchema = yup.object({
     canceled_remark: yup
       .string()
@@ -48,13 +59,11 @@ export default function Home() {
       .required("Canceled remark is required."),
   });
 
-  interface OfficialTravelFormValues {
-    start_date?: string;
-    end_date?: string;
-    destination_city?: string;
-    purpose?: string;
+  interface ResignFormValues {
+    effective_date?: string;
+    reason?: string;
     canceled_remark?: string;
-    date_range?: [Date | null, Date | null];
+    pdfFile?: File;
   }
 
   const {
@@ -63,19 +72,23 @@ export default function Home() {
     formState: { errors },
     reset,
     setValue,
-  } = useForm<OfficialTravelFormValues>({
+  } = useForm<ResignFormValues>({
     resolver: yupResolver(
       selectedActionType === "Canceled" ? cancelSchema : submitSchema
     ),
     defaultValues: {
-      start_date: "",
-      end_date: "",
-      destination_city: "",
-      purpose: "",
+      effective_date: "",
+      reason: "",
       canceled_remark: "",
-      date_range: [null, null],
+      pdfFile: undefined,
     },
   });
+
+  useEffect(() => {
+    if (dataResponse) {
+      handleDataFetched(dataResponse);
+    }
+  }, [dataResponse]);
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -83,6 +96,11 @@ export default function Home() {
     setIsActionModalOpen(true);
   };
 
+  const handleDataFetched = (response) => {
+    if (response?.alreadyResign !== undefined) {
+      setAlreadyResign(response.alreadyResign);
+    }
+  };
   const handleOpenDetailModal = (data) => {
     setSelectedData(data);
     setIsDetailModalOpen(true);
@@ -104,11 +122,15 @@ export default function Home() {
     reset();
   };
 
+  const handleShowFile = (fileUrl: string) => {
+    window.open(fileUrl, "_blank");
+  };
+
   const onCancel = async (data) => {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this official travel request?`,
+        text: `Do you want to ${selectedActionType} this resign request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -127,7 +149,7 @@ export default function Home() {
         {
           remark: data.canceled_remark,
           actionType: selectedActionType,
-          trxType: "officialTravel",
+          trxType: "resign",
         },
         {
           headers: {
@@ -139,7 +161,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Official travel has been successfully ${selectedActionType}.`,
+          text: `Resign has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -153,7 +175,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} official travel. Please try again.`,
+        text: `Failed to ${selectedActionType} resign. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -163,42 +185,25 @@ export default function Home() {
   const onSubmit = async (data) => {
     try {
       const token = Cookies.get("token");
+      const formData = new FormData();
+      formData.append("effective_date", data.effective_date || "");
+      formData.append("reason", data.reason || "");
+      formData.append("file", data.pdfFile || new Blob());
+
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=officialTravel`,
-        {
-          ...data,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          destination_city: data.destination_city,
-          purpose: data.purpose,
-        },
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=resign`,
+        formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
           },
         }
       );
 
       if (response.status === 201) {
-        const total = response.data?.data?.totalItems;
-
-        if (total !== undefined) {
-          setTotalOfficialTravel(total);
-        } else {
-          const token = Cookies.get("token");
-          const res = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=officialTravel`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          if (res.data.success) {
-            setTotalOfficialTravel(res.data.data.totalItems);
-          }
-        }
-
         Swal.fire({
-          text: "Official travel added successfully",
+          text: "Resign added successfully",
           icon: "success",
           timer: 1500,
         });
@@ -224,7 +229,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "officialTravel",
+            type: "resign",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -243,7 +248,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Leave_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Resign_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -267,6 +272,7 @@ export default function Home() {
   type ITrLeave = {
     status_id: number;
     status_submittion: string;
+    file_upload: string;
   };
 
   const columns: ColumnDef<ITrLeave>[] = [
@@ -276,29 +282,36 @@ export default function Home() {
       enableSorting: false,
     },
     {
-      accessorKey: "start_date",
+      accessorKey: "effective_date",
       header: "Start Date",
       enableSorting: true,
     },
     {
-      accessorKey: "end_date",
-      header: "End Date",
+      accessorKey: "reason",
+      header: "Reason",
       enableSorting: true,
     },
     {
-      accessorKey: "total_leave_days",
-      header: "Total Days",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "destination_city",
-      header: "Destination City",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "purpose",
-      header: "Purpose",
-      enableSorting: true,
+      accessorKey: "file_upload",
+      header: "File",
+      cell: ({ row }) => {
+        const file = row.original.file_upload;
+        if (file) {
+          const fileUrl = `http://localhost:3000/uploads/file_resign/${file}`;
+          return (
+            <div className="flex justify-center cursor-pointer">
+              <IoMdPaper
+                size={24}
+                color="#E53E3E"
+                onClick={() => handleShowFile(fileUrl)}
+                title="View PDF"
+              />
+            </div>
+          );
+        } else {
+          return <span>No File</span>;
+        }
+      },
     },
     {
       accessorKey: "status_submittion",
@@ -334,6 +347,7 @@ export default function Home() {
         );
       },
     },
+
     {
       accessorKey: "",
       header: "Action",
@@ -372,29 +386,28 @@ export default function Home() {
   ];
 
   return (
-    <Main>
-      <div className="mb-6 flex justify-between items-start">
+    <div>
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Official Travel</h1>
-          <p className="text-gray-500 text-sm">Your Official Travel Record</p>
+          <h1 className="text-3xl font-bold text-gray-800">Resign</h1>
+          <p className="text-gray-500 text-sm">Your Resign Record</p>
         </div>
         <div className="flex gap-3 items-center">
           <button
-            className="btn btn-filled btn-primary"
-            onClick={() => handleOpenAddModal()}
+            className="btn btn-outline btn-primary"
+            onClick={() => handleExportExcel()}
           >
-            <i className="ki-outline ki-plus-squared"></i>
-            Add Data
+            <i className="ki-filled ki-file-down"></i>
+            Export
           </button>
 
           <button
             onClick={() => setShowFilter((prev) => !prev)}
-            className="btn btn-filled btn-primary"
+            className="btn btn-outline btn-primary"
           >
             <i className="ki-filled ki-filter-tablet mr-1" />
             Filter
           </button>
-
           {showFilter && (
             <FilterData
               onSelect={(selectedFilter) => {
@@ -405,26 +418,25 @@ export default function Home() {
           )}
 
           <button
-            className="btn btn-filled btn-success"
-            onClick={() => handleExportExcel()}
+            className="btn btn-filled btn-primary"
+            onClick={() => handleOpenAddModal()}
           >
-            <i className="ki-filled ki-file-down"></i>
-            Export to Excel
+            <i className="ki-outline ki-plus-squared"></i>
+            Add Data
           </button>
         </div>
       </div>
 
       <DataTable
-        title={"Official Travel Submittion List"}
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=officialTravel&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=resign&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />
 
       <Modal isModalOpen={isAddModalOpen}>
         <div className="modal-header">
-          <h3 className="modal-title">Add Official Travel Submittion</h3>
+          <h3 className="modal-title">Add Resign Submittion</h3>
           <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
             <i className="ki-outline ki-cross"></i>
           </button>
@@ -434,34 +446,21 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">
-                  Leave Date
+                  Effective Date
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
                   control={control}
-                  name="date_range"
+                  name="effective_date"
                   render={({ field }) => (
                     <DatePicker
-                      selectsRange
-                      startDate={field.value?.[0] || null}
-                      endDate={field.value?.[1] || null}
-                      onChange={(dates: [Date | null, Date | null]) => {
-                        const [start, end] = dates;
-                        field.onChange(dates);
+                      selected={field.value ? new Date(field.value) : null}
+                      onChange={(date: Date | null) => {
+                        field.onChange(date);
                         setValue(
-                          "start_date",
-                          start
-                            ? new Date(start).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""
-                        );
-                        setValue(
-                          "end_date",
-                          end
-                            ? new Date(end).toLocaleDateString("en-GB", {
+                          "effective_date",
+                          date
+                            ? new Date(date).toLocaleDateString("en-GB", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
@@ -471,7 +470,7 @@ export default function Home() {
                       }}
                       className={clsx(
                         "input w-full text-sm py-2 px-3 rounded-md border",
-                        errors.start_date || errors.end_date
+                        errors.effective_date
                           ? "border-red-500"
                           : "border-gray-300"
                       )}
@@ -479,73 +478,71 @@ export default function Home() {
                       dateFormat="dd-MMM-yyyy"
                       isClearable={true}
                       locale={enGB}
-                      minDate={new Date()}
+                      minDate={
+                        new Date(new Date().setMonth(new Date().getMonth() + 1))
+                      }
                     />
                   )}
                 />
-                {(errors.start_date || errors.end_date) && (
+                {errors.effective_date && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.start_date?.message || errors.end_date?.message}
+                    {errors.effective_date?.message}
                   </p>
                 )}
               </div>
-
               <div>
                 <label className="form-label">
-                  Destination City
+                  Upload PDF
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
-                  name="destination_city"
+                  name="pdfFile"
                   control={control}
                   render={({ field }) => (
                     <input
-                      {...field}
-                      type="text"
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => field.onChange(e.target.files?.[0])}
                       className={clsx(
-                        "input",
-                        errors.destination_city
-                          ? "border-red-500 hover:border-red-500"
-                          : ""
+                        "file-input",
+                        errors.pdfFile && "border-red-500"
                       )}
                     />
                   )}
                 />
-                {errors.destination_city && (
+                {errors.pdfFile && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.destination_city.message}
+                    {errors.pdfFile.message}
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-5 mt-6">
-              <div>
+              <div className="form-group col-span-2">
                 <label className="form-label">
-                  Official Travel Purpose
+                  Resign Reason
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
                 </label>
                 <Controller
-                  name="purpose"
+                  name="reason"
                   control={control}
                   render={({ field }) => (
                     <textarea
                       {...field}
                       className={clsx(
                         "w-full text-sm text-gray-700 p-3 rounded-md bg-white border border-gray-300",
-                        "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
+                        "focus:border-blue-200 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
-                        errors.purpose &&
+                        errors.reason &&
                           "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
-                      placeholder="Your purpose"
+                      placeholder="Your reason"
                       rows={4}
                     />
                   )}
                 />
-                {errors.purpose && (
+                {errors.reason && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.purpose.message}
+                    {errors.reason.message}
                   </p>
                 )}
               </div>
@@ -591,31 +588,16 @@ export default function Home() {
             <form>
               <div className="flex flex-col gap-4 text-sm text-gray-700">
                 <div>
-                  <div className="font-semibold text-gray-600">Start Date</div>
-                  <p>{selectedData?.start_date ?? "-"}</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">End Date</div>
-                  <p>{selectedData?.end_date ?? "-"}</p>
-                </div>
-
-                <div>
                   <div className="font-semibold text-gray-600">
-                    Destination City
+                    Effective Date
                   </div>
-                  <p>{selectedData?.destination_city ?? "-"}</p>
+                  <p>{selectedData?.effective_date ?? "-"}</p>
                 </div>
                 <div>
                   <div className="font-semibold text-gray-600">
-                    Total Leave Days
+                    Resign Reason
                   </div>
-                  <p>{selectedData?.total_leave_days ?? "-"} days</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">Purpose</div>
-                  <p>{selectedData?.purpose ?? "-"}</p>
+                  <p>{selectedData?.reason ?? "-"}</p>
                 </div>
               </div>
             </form>
@@ -626,7 +608,7 @@ export default function Home() {
       <ActionModal
         isModalOpen={isActionModalOpen}
         onClose={onClose}
-        title={`${selectedActionType} Official Travel Request`}
+        title={`${selectedActionType} Resign Request`}
         onSubmit={handleSubmit(onCancel)}
         loading={loading}
         submitText={selectedActionType}
@@ -634,48 +616,21 @@ export default function Home() {
         <form onSubmit={handleSubmit(onCancel)}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Start Date Travel</label>
+              <label className="form-label">Effective Date Resign</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.start_date ?? ""}
+                value={selectedData?.effective_date ?? ""}
               />
             </div>
             <div>
-              <label className="form-label">End Date Travel</label>
+              <label className="form-label">Resign Reason</label>
               <input
                 className="input w-full"
                 type="text"
                 readOnly
-                value={selectedData?.end_date ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Destination City</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.destination_city ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Total Travel Days</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.total_leave_days ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Purpose</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.purpose ?? ""}
+                value={selectedData?.reason ?? ""}
               />
             </div>
           </div>
@@ -707,6 +662,6 @@ export default function Home() {
           </div>
         </form>
       </ActionModal>
-    </Main>
+    </div>
   );
 }

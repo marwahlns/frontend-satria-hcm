@@ -15,10 +15,16 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
 
         location_name: yup
             .string()
+            .test("not-empty", "Worklocation name cannot be empty or spaces only", value => {
+                return value?.trim().length > 0;
+            })
             .required("Worklocation name is required"),
 
         location_lat_long: yup
             .string()
+            .test("not-empty", "Latitude & longitude cannot be empty or spaces only", value => {
+                return value?.trim().length > 0;
+            })
             .required("Latitude & longitude is required"),
     });
 

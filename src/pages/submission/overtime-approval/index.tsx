@@ -21,11 +21,13 @@ export default function Home() {
   const [selectedData, setSelectedData] = useState(null);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
-  const api = `${process.env.NEXT_PUBLIC_API_URL}`;
   const [searchValue, setSearchValue] = useState("");
-
   const schema = yup.object().shape({
     remark: yup.string().required("Please fill out remark"),
   });
@@ -52,9 +54,11 @@ export default function Home() {
     setSelectedData(data);
     setIsDetailModalOpen(true);
   };
+
   const handleSearchChange = (value) => {
     setSearchValue(value);
   };
+
   const onClose = () => {
     setIsActionModalOpen(false);
     setIsDetailModalOpen(false);
@@ -66,7 +70,7 @@ export default function Home() {
     try {
       const result = await Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to ${selectedActionType} this resign request?`,
+        text: `Do you want to ${selectedActionType} this overtime request?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -85,7 +89,7 @@ export default function Home() {
         {
           remark: data.remark,
           actionType: selectedActionType,
-          trxType: "resign",
+          trxType: "overtime",
         },
         {
           headers: {
@@ -97,7 +101,7 @@ export default function Home() {
       if (response.status === 200) {
         Swal.fire({
           title: "Success!",
-          text: `Resign has been successfully ${selectedActionType}.`,
+          text: `Overtime has been successfully ${selectedActionType}.`,
           icon: "success",
           confirmButtonText: "OK",
         });
@@ -111,7 +115,7 @@ export default function Home() {
     } catch (err) {
       Swal.fire({
         title: "Error!",
-        text: `Failed to ${selectedActionType} resign. Please try again.`,
+        text: `Failed to ${selectedActionType} overtime. Please try again.`,
         icon: "error",
         confirmButtonText: "OK",
       });
@@ -128,7 +132,7 @@ export default function Home() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            type: "resign",
+            type: "overtime",
             exportData: true,
             status: filter.status,
             month: filter.month,
@@ -147,7 +151,7 @@ export default function Home() {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Resign_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Overtime_${yyyy}-${mm}-${dd}.xlsx`;
 
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -168,18 +172,19 @@ export default function Home() {
     }
   };
 
-  type ITrResign = {
+  type ITrOvertime = {
     user_name: number;
     user_departement: number;
-    effective_date: string;
-    reason: string;
+    shift_name: number;
+    check_in: string;
+    check_out: string;
     status_id: number;
     actionType: string;
     modalType: string;
     status_submittion: string;
   };
 
-  const columns: ColumnDef<ITrResign>[] = [
+  const columns: ColumnDef<ITrOvertime>[] = [
     {
       accessorKey: "number",
       header: "#",
@@ -196,13 +201,18 @@ export default function Home() {
       enableSorting: true,
     },
     {
-      accessorKey: "effective_date",
-      header: "Effective Date Resign",
+      accessorKey: "check_in",
+      header: "Check In",
       enableSorting: true,
     },
     {
-      accessorKey: "reason",
-      header: "Reason",
+      accessorKey: "check_out",
+      header: "Check Out",
+      enableSorting: true,
+    },
+    {
+      accessorKey: "note_ovt",
+      header: "Note",
       enableSorting: true,
     },
     {
@@ -289,7 +299,7 @@ export default function Home() {
       <div className="mb-6">
         <div className="flex flex-col gap-4 mt-4">
           <h1 className="text-3xl font-bold text-gray-800">
-            Resign submission data list
+            Overtime submission data list
           </h1>
 
           <div className="flex justify-between items-center">
@@ -323,12 +333,12 @@ export default function Home() {
           <ActionModal
             isModalOpen={isActionModalOpen}
             onClose={onClose}
-            title={`${selectedActionType} Resign Request`}
+            title={`${selectedActionType} Overtime Request`}
             onSubmit={handleSubmit(onSubmit)}
             loading={loading}
             submitText={selectedActionType}
           >
-            <form id="resignForm" onSubmit={handleSubmit(onSubmit)}>
+            <form id="overtimeForm" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Data Umum */}
                 <div>
@@ -350,21 +360,30 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Effective Date</label>
+                  <label className="form-label">Check In</label>
                   <input
                     className="input w-full"
                     type="text"
                     readOnly
-                    value={selectedData?.effective_date ?? ""}
+                    value={selectedData?.check_in ?? ""}
                   />
                 </div>
                 <div>
-                  <label className="form-label">Reason</label>
+                  <label className="form-label">Check Out</label>
                   <input
                     className="input w-full"
                     type="text"
                     readOnly
-                    value={selectedData?.reason ?? ""}
+                    value={selectedData?.check_out ?? ""}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Note Overtime</label>
+                  <input
+                    className="input w-full"
+                    type="text"
+                    readOnly
+                    value={selectedData?.note_ovt ?? ""}
                   />
                 </div>
               </div>
@@ -424,7 +443,7 @@ export default function Home() {
           <DetailModal
             isModalOpen={isDetailModalOpen}
             onClose={onClose}
-            title="Leave Request Detail"
+            title="Overtime Request Detail"
           >
             <div className="flex flex-col md:flex-row gap-6">
               <div className="w-full md:w-60">
@@ -448,15 +467,21 @@ export default function Home() {
                   <div className="flex flex-col gap-4 text-sm text-gray-700">
                     <div>
                       <div className="font-semibold text-gray-600">
-                        Effective Date
+                        Check In Overtime
                       </div>
-                      <p>{selectedData?.effective_date ?? "-"}</p>
+                      <p>{selectedData?.check_in_ovt ?? "-"}</p>
                     </div>
+
                     <div>
                       <div className="font-semibold text-gray-600">
-                        Resign Reason
+                        Check Out Overtime
                       </div>
-                      <p>{selectedData?.reason ?? "-"}</p>
+                      <p>{selectedData?.check_out_ovt ?? "-"}</p>
+                    </div>
+
+                    <div>
+                      <div className="font-semibold text-gray-600">Note</div>
+                      <p>{selectedData?.note_ovt ?? "-"}</p>
                     </div>
                   </div>
                 </form>
@@ -467,9 +492,8 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Resign Submission"
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=resign&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
+        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=overtime&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />

@@ -13,6 +13,9 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     const schema = yup.object().shape({
         title: yup
             .string()
+            .test("not-empty", "Title cannot be empty or spaces only", value => {
+                return value?.trim().length > 0;
+            })
             .required("Title is required"),
 
         days: yup

@@ -21,7 +21,11 @@ export default function Home() {
   const [selectedData, setSelectedData] = useState(null);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const api = `${process.env.NEXT_PUBLIC_API_URL}`;
   const [searchValue, setSearchValue] = useState("");
@@ -512,7 +516,6 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Leave Submission"
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}

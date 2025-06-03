@@ -29,8 +29,8 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                 inTime: selectedData.in_time,
                 outTime: selectedData.out_time,
                 graceBeforeIn: selectedData.gt_before_in,
-                graceBeforeOut: selectedData.gt_after_in,
-                graceAfterIn: selectedData.gt_before_out,
+                graceAfterIn: selectedData.gt_after_in,
+                graceBeforeOut: selectedData.gt_before_out,
                 graceAfterOut: selectedData.gt_after_out,
             });
         }

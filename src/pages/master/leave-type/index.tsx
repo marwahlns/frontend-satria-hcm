@@ -13,6 +13,7 @@ export default function Home() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
@@ -32,6 +33,10 @@ export default function Home() {
     setSelectedData(null);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
+
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: "Delete Confirmation",
@@ -49,7 +54,7 @@ export default function Home() {
         const response = await axios.delete(
           `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type/${id}`
         );
-        Swal.fire("Deleted!", "The leaveType has been deleted.", "success");
+        Swal.fire("Deleted!", "The leave type has been deleted.", "success");
       } catch (error) {
         Swal.fire("Error!", "Failed to delete the leaveType.", "error");
       }
@@ -66,7 +71,7 @@ export default function Home() {
   const columns: ColumnDef<ILeaveType>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {
@@ -123,10 +128,10 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"Leave Type List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
 
       <CreateModal

@@ -77,9 +77,17 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                     : null,
             });
         }
-    }, [selectedData, reset]);    
+    }, [selectedData, reset]);
 
     const onSubmit = async (data) => {
+        if (new Date(data.valid_from) > new Date(data.valid_to)) {
+            Swal.fire({
+                icon: "error",
+                title: "Invalid Date Range",
+                text: "Valid From cannot be later than Valid To!",
+            });
+            return;
+        }
         try {
             const token = Cookies.get("token");
             const response = await axios.put(

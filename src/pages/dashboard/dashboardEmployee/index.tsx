@@ -1,17 +1,13 @@
-import Main from "../../../main-layouts/layout-employee";
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import Main from "../../../main-layouts/main";
+import Image from "next/image";
 import Cookies from "js-cookie";
-import LeavePage from "../../transaction/leave-submit";
-import OvertimePage from "../../transaction/overtime-submit";
-import OfficialTravelPage from "../../transaction/officialTravel-submit";
-import ResignPage from "../../transaction/resign-submit";
-import MutationPage from "../../transaction/mutation-submit";
-import { FiUser, FiClock } from "react-icons/fi";
-import {
-  useLeaveStore,
-  useOfficialTravelStore,
-} from "../../../stores/submitStore";
+import AttendancePage from "../../attendance/attendance-record";
+import LeavePage from "../../submission/leave-submit";
+import OvertimePage from "../../submission/overtime-submit";
+import OfficialTravelPage from "../../submission/officialTravel-submit";
+import ResignPage from "../../submission/resign-submit";
+import MutationPage from "../../submission/mutation-submit";
 import {
   IoIosAirplane,
   IoIosArrowRoundUp,
@@ -19,23 +15,111 @@ import {
   IoMdCalendar,
 } from "react-icons/io";
 import axios from "axios";
-import AttendanceModal from "@/components/Modals/AttendanceModal";
+import Clock from "@/components/Clock";
+import AttendanceModal from "./AttendanceModal";
 
 export default function Home() {
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
-  const totalLeaves = useLeaveStore((state) => state.totalLeaves);
-  const setTotalLeaves = useLeaveStore((state) => state.setTotalLeaves);
-  const totalOfficialTravel = useOfficialTravelStore(
-    (state) => state.totalOfficialTravels
-  );
-  const setTotalOfficialTravel = useOfficialTravelStore(
-    (state) => state.setTotalOfficialTravels
-  );
-  const [absenType, setAbsenType] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [absenMode, setAbsenMode] = useState<"checkin" | "checkout">("checkin");
+  const [shiftId, setShiftId] = useState("");
+  const [shiftName, setShiftName] = useState("Unassigned shift");
+  const [inTime, setInTime] = useState("");
+  const [outTime, setOutTime] = useState("");
+  const [startIn, setStartIn] = useState("");
+  const [endIn, setendIn] = useState("");
+  const [startOut, setStartOut] = useState("");
+  const [endOut, setEndOut] = useState("");
+  const [clockIn, setClockIn] = useState("");
+  const [clockOut, setClockOut] = useState("");
+  const [clockInFullStr, setClockInFullStr] = useState("");
+  const [clockOutFullStr, setClockOutFullStr] = useState("");
   const [canCheckIn, setCanCheckIn] = useState(false);
   const [canCheckOut, setCanCheckOut] = useState(false);
+  const [totalPresence, setTotalPresence] = useState("0");
+  const [totalLateIn, setTotalLateIn] = useState("0");
+  const [totalLeave, setTotalLeave] = useState("0");
+  const [totalOfficialTravel, setTotalOfficialTravel] = useState("0");
+  const [isRefetch, setIsRefetch] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
+
+  const openAsCheckIn = () => { setAbsenMode("checkin"); setModalOpen(true); };
+  const openAsCheckOut = () => { setAbsenMode("checkout"); setModalOpen(true); };
+
+  // Function to get current time status and styling
+  const getTimeStatusAndStyling = () => {
+    const now = new Date();
+    // Buat datetime dalam timezone Jakarta
+    const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const currentTimeStr = jakartaTime.toISOString();
+
+    // DALAM RANGE CHECK IN
+    if (currentTimeStr > startIn && currentTimeStr <= endIn) {
+      if (clockIn) {
+        return {
+          status: 'checked-in',
+          borderColor: 'border-green-500',
+          bgColor: 'bg-green-100',
+          iconClass: 'ki-solid ki-user-tick text-success text-3xl',
+          statusText: '- In',
+          buttonColor: 'bg-green-600 hover:bg-green-700',
+          displayTime: clockIn
+        };
+      }
+
+      return {
+        status: 'late-check-in',
+        borderColor: 'border-red-500',
+        bgColor: 'bg-red-100',
+        iconClass: 'ki-solid ki-user text-red-500 text-3xl',
+        statusText: '- In',
+        buttonColor: 'bg-red-600 hover:bg-red-700',
+        displayTime: ''
+      };
+    }
+
+    // DALAM RANGE CHECK OUT
+    if (currentTimeStr >= startOut && currentTimeStr <= endOut) {
+      if (clockOut) {
+        return {
+          status: 'checked-out',
+          borderColor: 'border-green-500',
+          bgColor: 'bg-green-100',
+          iconClass: 'ki-solid ki-user-tick text-success text-3xl',
+          statusText: '- Out',
+          buttonColor: 'bg-green-600 hover:bg-green-700',
+          displayTime: clockOut
+        };
+      }
+
+      return {
+        status: 'check-out-time',
+        borderColor: 'border-blue-500',
+        bgColor: 'bg-blue-100',
+        iconClass: 'ki-solid ki-user text-blue-500 text-3xl',
+        statusText: '- Out',
+        buttonColor: 'bg-blue-600 hover:bg-blue-700',
+        displayTime: ''
+      };
+    }
+
+    // DEFAULT
+    return {
+      status: 'not-checked-in',
+      borderColor: 'border-slate-500',
+      bgColor: 'bg-slate-100',
+      iconClass: 'ki-solid ki-user text-slate-400 text-3xl',
+      statusText: '- Waiting for In Time',
+      buttonColor: 'bg-slate-500 hover:bg-slate-600',
+      displayTime: ''
+    };
+  };
+
+  const timeStatus = getTimeStatusAndStyling();
+  const currentStatus = timeStatus.status;
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -45,6 +129,16 @@ export default function Home() {
     { id: "mutation", label: "Mutation" },
     { id: "resign", label: "Resign" },
   ];
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "";
+    return timeString.substring(11, 16);
+  };
+
+  const formatDateTime = (timeString) => {
+    if (!timeString) return "";
+    return timeString.substring(0, 19);
+  };
 
   useEffect(() => {
     const nama = Cookies.get("user_name") || "";
@@ -56,203 +150,218 @@ export default function Home() {
       try {
         const token = Cookies.get("token");
 
-        const [response1, response2, response3] = await Promise.all([
-          axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave`, {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/trx/attendance/shift-today`,
+          {
             headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=officialTravel`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          ),
-          axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/trx/attendance`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+          }
+        );
 
-        const result1 = response1.data;
-        const result2 = response2.data;
-        const result3 = response3.data;
+        const result = response.data;
 
-        if (result1.success) {
-          setTotalLeaves(result1.data.totalItems);
-        }
-
-        if (result2.success) {
-          setTotalOfficialTravel(result2.data.totalItems);
-        }
-        if (result3.success) {
-          setCanCheckIn(result3.data.canCheckIn);
-          setCanCheckOut(result3.data.canCheckOut);
+        if (result.success) {
+          setShiftId(result.data.id_shift);
+          setShiftName(result.data.shift_name);
+          setInTime(result.data.in_time_shift);
+          setOutTime(result.data.out_time_shift);
+          setStartIn(result.data.gt_before_in);
+          setendIn(result.data.gt_after_in);
+          setStartOut(result.data.gt_before_out);
+          setEndOut(result.data.gt_after_out);
+          setClockIn(formatTime(result.data.clock_in_today));
+          setClockOut(formatTime(result.data.clock_out_today));
+          setClockInFullStr(formatDateTime(result.data.clock_in_today));
+          setClockOutFullStr(formatDateTime(result.data.clock_out_today));
+          setCanCheckIn(result.data.canCheckIn);
+          setCanCheckOut(result.data.canCheckOut);
+          setTotalPresence(result.data.total_data_in);
+          setTotalLateIn(result.data.total_data_late_in);
+          setTotalLeave(result.data.total_data_leave);
+          setTotalOfficialTravel(result.data.total_data_official_travel);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching shift data:", error);
       }
     };
 
     fetchData();
+  }, [isRefetch, currentStatus]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  const handleAbsen = (type) => {
-    setAbsenType(type);
-  };
-
-  const handleClose = () => {
-    setAbsenType(null);
-  };
+  useEffect(() => {
+    if (clockIn && clockIn !== "00:00" && clockIn !== "-") {
+      if (clockOut && clockOut !== "-") {
+        setIsStopwatchRunning(false);
+      } else {
+        setIsStopwatchRunning(true);
+      }
+    } else {
+      setIsStopwatchRunning(false);
+    }
+  }, [clockIn, clockOut]);
 
   return (
-    <Main>
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full max-w-7xl mx-auto mt-16">
-        {/* Profile */}
-        <div className="flex flex-col items-center text-center">
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-4">
-            <Image
-              src="/images/jenny.jpg"
-              alt="Profile"
-              fill
-              className="rounded-full border-4 border-green-400 object-cover"
+    <Main isSidebar={false} isWrapper={false} isFixedContainer={false}>
+      <div className="w-full px-0 md:px-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="col-span-2 md:col-span-1 overflow-x-auto">
+          {/* Card Profil */}
+          <div className="flex flex-col items-center text-center bg-gradient-to-b from-blue-50 to-white rounded-2xl p-6 border border-blue-100">
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-4">
+              <Image
+                src="/profile.jpg"
+                alt="Profile"
+                priority
+                fill
+                sizes="112px"
+                className="rounded-full object-cover"
+              />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">{name}</h2>
+            <div className="text-sm text-gray-600 mt-1">{department}</div>
+
+            {/* Check In/Out Info */}
+            <div
+              className={`rounded border border-dashed p-4 mt-4 flex flex-col items-center space-y-2 transition-all duration-300 ${timeStatus.borderColor} ${timeStatus.bgColor}`}
+            >
+              <div className="flex items-center space-x-3">
+                <i className={timeStatus.iconClass}></i>
+                <div className="flex items-start flex-col">
+                  <span className="text-md font-bold text-gray-800">
+                    {timeStatus.displayTime} {timeStatus.statusText}
+                  </span>
+
+                  <div className="flex space-x-2 text-sm text-gray-700">
+                    <i className="ki-solid ki-sun text-warning"></i>
+                    <p className="font-semibold text-xs">{shiftName}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Clock
+              isStart={isStopwatchRunning}
+              clockInTime={clockInFullStr}
+              clockOutTime={clockOutFullStr}
+              showControls={false}
             />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800">{name}</h2>
-          <div className="text-sm text-gray-600 mt-1">{department}</div>
-        </div>
+            <div className="mt-4">
+              {canCheckIn && (
+                <button
+                  className={`text-white px-4 py-2 rounded shadow transition-colors duration-300 ${timeStatus.buttonColor}`}
+                  onClick={openAsCheckIn}
+                >
+                  Start Attendance
+                </button>
+              )}
 
-        {/* Check In/Out Info */}
-        <div className="mt-4 flex flex-col items-center space-y-2">
-          <div className="flex items-center space-x-2 text-lg font-medium text-gray-700">
-            <FiUser className="text-red-500" />
-            <span>- In</span>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <FiClock className="text-yellow-500" />
-            <span>UTEOFF</span>
-          </div>
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            {canCheckIn && (
-              <button
-                className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg font-semibold"
-                onClick={() => handleAbsen("checkin")}
-              >
-                Check In
-              </button>
-            )}
-
-            {canCheckOut && (
-              <button
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold"
-                onClick={() => handleAbsen("checkout")}
-              >
-                Check Out
-              </button>
-            )}
-
-            {!canCheckIn && !canCheckOut && (
-              <span className="text-gray-500 font-medium">Sudah absen</span>
-            )}
-          </div>
-
-          {absenType && <AttendanceModal onClose={handleClose} />}
-        </div>
-
-        {/* Summary Boxes */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
-          {/* Presence */}
-          <div className="border border-dashed border-gray-300 p-4 rounded-lg text-center w-full max-w-[120px]">
-            <div className="flex items-center justify-center gap-2">
-              <IoIosArrowRoundUp className="text-green-500 text-xl" />
-              <div className="text-blue-900 font-bold text-lg">0</div>
+              {canCheckOut && (
+                <button
+                  className={`text-white px-4 py-2 rounded shadow transition-colors duration-300 ${timeStatus.buttonColor}`}
+                  onClick={openAsCheckOut}
+                >
+                  Finish Attendance
+                </button>
+              )}
             </div>
-            <div className="text-gray-500 text-sm mt-1">Presence</div>
           </div>
 
-          {/* Late In */}
-          <div className="border border-dashed border-gray-300 p-4 rounded-lg text-center w-full max-w-[120px]">
-            <div className="flex items-center justify-center gap-2">
-              <IoIosAlarm className="text-red-500 text-xl" />
-              <div className="text-blue-900 font-bold text-lg">0</div>
-            </div>
-            <div className="text-gray-500 text-sm mt-1">Late In</div>
-          </div>
-
-          {/* Leave */}
-          <div className="border border-dashed border-gray-300 p-4 rounded-lg text-center w-full max-w-[120px]">
-            <div className="flex items-center justify-center gap-2">
-              <IoMdCalendar className="text-yellow-500 text-xl" />
-              <div className="text-blue-900 font-bold text-lg">
-                {totalLeaves}
+          {/* Card Statistik */}
+          <div className="mt-6 grid grid-cols-2 gap-6">
+            {/* Presence */}
+            <div className="border border-dashed border-gray-300 p-4 bg-white rounded-lg text-center w-full">
+              <div className="flex items-center justify-center gap-2">
+                <IoIosArrowRoundUp className="text-green-500 text-xl" />
+                <div className="text-blue-900 font-bold text-lg">
+                  {totalPresence}
+                </div>
               </div>
+              <div className="text-gray-500 text-sm font-semibold mt-1">Presence</div>
             </div>
-            <div className="text-gray-500 text-sm mt-1">Leave</div>
-          </div>
 
-          {/* Official Travel */}
-          <div className="border border-dashed border-gray-300 p-4 rounded-lg text-center w-full max-w-[120px]">
-            <div className="flex items-center justify-center gap-2">
-              <IoIosAirplane className="text-blue-500 text-xl" />
-              <div className="text-blue-900 font-bold text-lg">
-                {totalOfficialTravel}
+            {/* Late In */}
+            <div className="border border-dashed border-gray-300 p-4 bg-white rounded-lg text-center w-full">
+              <div className="flex items-center justify-center gap-2">
+                <IoIosAlarm className="text-red-500 text-xl" />
+                <div className="text-blue-900 font-bold text-lg">
+                  {totalLateIn}
+                </div>
               </div>
+              <div className="text-gray-500 text-sm font-semibold mt-1">Late In</div>
             </div>
-            <div className="text-gray-500 text-sm mt-1">Official Travel</div>
+
+            {/* Leave */}
+            <div className="border border-dashed border-gray-300 p-4 bg-white rounded-lg text-center w-full">
+              <div className="flex items-center justify-center gap-2">
+                <IoMdCalendar className="text-yellow-500 text-xl" />
+                <div className="text-blue-900 font-bold text-lg">
+                  {totalLeave}
+                </div>
+              </div>
+              <div className="text-gray-500 text-sm font-semibold mt-1">Leave</div>
+            </div>
+
+            {/* Official Travel */}
+            <div className="border border-dashed border-gray-300 p-4 bg-white rounded-lg text-center w-full">
+              <div className="flex items-center justify-center gap-2">
+                <IoIosAirplane className="text-blue-500 text-xl" />
+                <div className="text-blue-900 font-bold text-lg">
+                  {totalOfficialTravel}
+                </div>
+              </div>
+              <div className="text-gray-500 text-sm font-semibold mt-1">Official Travel</div>
+            </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex flex-col items-center space-y-4 mt-8">
-          <div className="flex flex-wrap justify-center gap-4 border-b border-gray-200 w-full">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 ${
-                  activeTab === tab.id
+        {/* Konten Kanan */}
+        <div className="col-span-2 overflow-x-auto">
+          <div className="bg-white rounded-2xl p-6 border">
+            {/* Tabs */}
+            <div className="tabs mb-5 scrollable">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 ${activeTab === tab.id
                     ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
                     : "text-gray-600 hover:text-blue-600"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+                    }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-          {/* Content Area */}
-          <div className="w-full">
-            {activeTab === "overview" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold mb-4">Overview</h2>
-                <p>This is the Overview content.</p>
-              </div>
-            )}
-            {activeTab === "leave" && (
-              <div className="bg-gray-100 rounded-lg shadow-md p-6">
-                <LeavePage />
-              </div>
-            )}
-            {activeTab === "overtime" && (
-              <div className="bg-gray-100 rounded-lg shadow-md p-6">
-                <OvertimePage />
-              </div>
-            )}
-            {activeTab === "officialTravel" && (
-              <div className="bg-gray-100 rounded-lg shadow-md p-6">
-                <OfficialTravelPage />
-              </div>
-            )}
-            {activeTab === "mutation" && (
-              <div className="bg-gray-100 rounded-lg shadow-md p-6">
-                <MutationPage />
-              </div>
-            )}
-            {activeTab === "resign" && (
-              <div className="bg-gray-100 rounded-lg shadow-md p-6">
-                <ResignPage />
-              </div>
-            )}
+            {/* Tab Content */}
+            {activeTab === "overview" && <AttendancePage />}
+            {activeTab === "leave" && <LeavePage />}
+            {activeTab === "overtime" && <OvertimePage />}
+            {activeTab === "officialTravel" && <OfficialTravelPage />}
+            {activeTab === "mutation" && <MutationPage />}
+            {activeTab === "resign" && <ResignPage />}
           </div>
         </div>
       </div>
+
+      <AttendanceModal
+        isModalOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        setRefetch={setIsRefetch}
+        isRefetch={isRefetch}
+        shiftId={shiftId}
+        inTime={inTime}
+        startIn={startIn}
+        endIn={endIn}
+        startOut={startOut}
+        endOut={endOut}
+        type={absenMode}
+      />
     </Main>
   );
 }
