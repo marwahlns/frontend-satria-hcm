@@ -1,16 +1,131 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Cookies from "js-cookie";
+import clsx from "clsx";
+
+const SidebarMenuItems = ({ href, title, icon, isActive }: {
+  href: string;
+  title: string;
+  icon: string;
+  isActive?: boolean;
+}) => {
+  return (
+    <div className="menu-item">
+      <Link href={href} passHref>
+        <div
+          className={`menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px] ${isActive ? 'menu-item-active' : ''
+            }`}
+          tabIndex={0}
+        >
+          <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
+            <i className={`${icon} text-lg`}></i>
+          </span>
+          <span className={`menu-title text-sm font-semibold ${isActive ? 'text-primary' : 'text-gray-700'}`}>
+            {title}
+          </span>
+        </div>
+      </Link>
+    </div>
+  );
+};
+
+// Komponen Dropdown
+const SidebarAccordion = ({ label, icon, open, toggle, menus, pathname }: {
+  label: string;
+  icon: string;
+  open: boolean;
+  toggle: () => void;
+  menus: Array<{
+    href: string;
+    title: string;
+  }>;
+  pathname: string;
+}) => {
+  return (
+    <div
+      className="menu-item"
+      data-menu-item-toggle="accordion"
+      data-menu-item-trigger="click"
+    >
+      <div
+        className="menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px]"
+        tabIndex={0}
+        onClick={toggle}
+      >
+        <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
+          <i className={`${icon} text-lg`}></i>
+        </span>
+        <span className="menu-title text-sm font-semibold text-gray-700 menu-item-active:text-primary menu-link-hover:!text-primary">
+          {label}
+        </span>
+        <span className="menu-arrow text-gray-400 w-[20px] shrink-0 justify-end ml-1 mr-[-10px]">
+          <i className={`ki-filled ${open ? 'ki-minus' : 'ki-plus'} text-2xs`}></i>
+        </span>
+      </div>
+      <div
+        className={`menu-accordion ${open ? "show" : ""} gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+      >
+        {menus.map((menu, index) => (
+          <div
+            key={index}
+            className={`menu-item ${pathname === menu.href ? "active" : ""}`}
+          >
+            <Link
+              className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+              href={menu.href}
+              tabIndex={0}
+            >
+              <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+              <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                {menu.title}
+              </span>
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 function Sidebar() {
   const pathname = usePathname();
   const [role, setRole] = useState("");
+<<<<<<< Updated upstream
+=======
+  const [nrp, setNrp] = useState("");
+  const [deptHead, setDeptHead] = useState("");
+  const [masterDataOpen, setMasterDataOpen] = useState(false);
+  const [transactionOpen, setTransactionOpen] = useState(false);
+  const [submissionOpen, setSubmissionOpen] = useState(false);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     const userRole = Cookies.get("role");
     setRole(userRole || "guest");
   }, []);
+
+  const masterDataMenus = [
+    { href: "/master/leave-type", title: "Master Leave Type" },
+    { href: "/master/shift", title: "Master Shift" },
+    { href: "/master/shift-group", title: "Master Shift Group" },
+    { href: "/master/employee", title: "Master User" },
+    { href: "/master/worklocation", title: "Master Worklocation" }
+  ];
+
+  const transactionMenus = [
+    { href: "/transaction/shift-emp", title: "Transaction Shift" },
+    { href: "/transaction/leave-quota", title: "Transaction Leave Quota" }
+  ];
+
+  const submissionMenus = [
+    { href: "/submission/leave-approval", title: "Leave" },
+    { href: "/submission/overtime-approval", title: "Overtime" },
+    { href: "/submission/officialTravel-approval", title: "Official Travel" },
+    { href: "/submission/mutation-approval", title: "Mutation" },
+    { href: "/submission/resign-approval", title: "Resign" },
+  ];
 
   return (
     <div
@@ -76,6 +191,7 @@ function Sidebar() {
             data-menu-accordion-expand-all="false"
             id="sidebar_menu"
           >
+<<<<<<< Updated upstream
             <div
               className="menu-item"
               data-menu-item-toggle="accordion"
@@ -363,6 +479,100 @@ function Sidebar() {
                 </div>
               </div>
             </div>
+=======
+            <SidebarMenuItems
+              href="/dashboard"
+              title="Dashboards"
+              icon="ki-filled ki-graph-3"
+              isActive={pathname === "/dashboard"}
+            />
+
+
+            {nrp === "P0120001" && (
+              <>
+                <SidebarMenuItems
+                  href="/attendance/attendance-employee"
+                  title="Attendance"
+                  icon="ki-filled ki-user-square"
+                  isActive={pathname === "/attendance/attendance-employee"}
+                />
+                
+                <SidebarAccordion
+                  label="Master Data"
+                  icon="ki-filled ki-data"
+                  open={masterDataOpen || pathname.includes("/master")}
+                  toggle={() => setMasterDataOpen(!masterDataOpen)}
+                  menus={masterDataMenus}
+                  pathname={pathname}
+                />
+
+                <SidebarAccordion
+                  label="Transaction"
+                  icon="ki-filled ki-note-2"
+                  open={transactionOpen || pathname.includes("/transaction")}
+                  toggle={() => setTransactionOpen(!transactionOpen)}
+                  menus={transactionMenus}
+                  pathname={pathname}
+                />
+
+                <SidebarAccordion
+                  label="Submission"
+                  icon="ki-filled ki-directbox-default"
+                  open={submissionOpen || pathname.includes("/submission")}
+                  toggle={() => setSubmissionOpen(!submissionOpen)}
+                  menus={submissionMenus}
+                  pathname={pathname}
+                />
+              </>
+            )}
+
+            {deptHead === "1" && (
+              <div
+                className="menu-item"
+                data-menu-item-toggle="accordion"
+                data-menu-item-trigger="click"
+              >
+                <div
+                  className="menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px]"
+                  tabIndex={0}
+                >
+                  <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
+                    <i className="ki-filled ki-night-day text-lg"></i>
+                  </span>
+                  <span className="menu-title text-sm font-semibold text-gray-700 menu-item-active:text-primary menu-link-hover:!text-primary">
+                    Transaction
+                  </span>
+                  <span className="menu-arrow text-gray-400 w-[20px] shrink-0 justify-end ml-1 mr-[-10px]">
+                    <i className="ki-filled ki-plus text-2xs menu-item-show:hidden"></i>
+                    <i className="ki-filled ki-minus text-2xs hidden menu-item-show:inline-flex"></i>
+                  </span>
+                </div>
+
+                <div
+                  className={`menu-accordion ${pathname.includes("/transaction") ? "show" : ""
+                    } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+                >
+                  <div
+                    className={`menu-item ${pathname === "/transaction/mutation-submit"
+                      ? "active"
+                      : ""
+                      }`}
+                  >
+                    <Link
+                      className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"
+                      href="/transaction/mutation-submit"
+                      tabIndex={0}
+                    >
+                      <span className="menu-bullet flex w-[6px] relative before:absolute before:top-0 before:size-[6px] before:rounded-full before:-translate-x-1/2 before:-translate-y-1/2 menu-item-active:before:bg-primary menu-item-hover:before:bg-primary"></span>
+                      <span className="menu-title text-2sm font-medium text-gray-700 menu-item-active:text-primary menu-item-active:font-semibold menu-link-hover:!text-primary">
+                        Mutation Submit
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+>>>>>>> Stashed changes
           </div>
         </div>
       </div>

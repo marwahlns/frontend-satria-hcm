@@ -21,11 +21,11 @@ const LayoutEmployee: React.FC<CardProps> = ({ children }) => {
   return (
     <>
       <div className="flex grow">
-        <div className="wrapper flex grow flex-col">
-          <Header onLogout={handleLogout} />
+        <div className="flex flex-col min-h-screen w-full">
+          <Header onLogout={handleLogout} isFixed/>
           <main className="grow content pt-5" id="content" role="content">
-            <div className="container-fixed" id="content_container"></div>
-            <div className="container-fixed">{children}</div>
+            <div className="container-fluid" id="content_container"></div>
+            <div className="container-fluid">{children}</div>
           </main>
           <Footer />
         </div>

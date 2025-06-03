@@ -20,6 +20,9 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
 
         name: yup
             .string()
+            .test("not-empty", "Name cannot be empty or spaces only", value => {
+                return value?.trim().length > 0;
+            })
             .required("Name is required"),
 
         hari: yup.object().shape({
@@ -62,10 +65,10 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     });
 
     useEffect(() => {
-        
+
         if (selectedData) {
             const mappedHari = selectedData.details.reduce((acc, detail) => {
-                console.log("Data : ",selectedData.details)
+                console.log("Data : ", selectedData.details)
                 acc[detail.index_day.toLowerCase()] = {
                     value: detail.id_shift,
                     label: detail.id_shift + " | " + detail.MsShift.name,
@@ -74,13 +77,13 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 };
                 return acc;
             }, {});
-    
+
             reset({
                 code: selectedData.code,
                 name: selectedData.nama,
                 hari: mappedHari, // Data shift per hari
             });
-    
+
             setSelectedShifts(mappedHari);
         }
     }, [selectedData, reset]);
@@ -169,10 +172,8 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                                 <input
                                     {...field}
                                     type="text"
-                                    className={clsx(
-                                        "input",
-                                        errors.code ? "border-red-500 hover:border-red-500" : ""
-                                    )}
+                                    className={clsx("input")}
+                                    readOnly
                                 />
                             )}
                         />
@@ -197,7 +198,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             )}
                         />
                         {errors.name && (
-                            <p className="text-blue-500 text-sm mt-1">{errors.name.message}</p>
+                            <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
                         )}
                     </div>
                     <div className="form-group mb-2">

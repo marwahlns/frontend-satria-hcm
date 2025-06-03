@@ -14,6 +14,7 @@ export default function Home() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
@@ -41,6 +42,10 @@ export default function Home() {
   const handleCloseDetailModal = () => {
     setIsDetailModalOpen(false);
     setSelectedData(null);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
   };
 
   const handleDelete = async (id: number) => {
@@ -186,10 +191,10 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"Transaction Leave Quota List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
 
       <CreateModal

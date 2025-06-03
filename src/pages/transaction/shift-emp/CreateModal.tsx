@@ -14,7 +14,13 @@ import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
+    const [loading, setLoading] = useState(false);
     const [inputMethod, setInputMethod] = useState<"excel" | "table">("excel");
+    const [searchValue, setSearchValue] = useState("");
+
+    const handleSearchChange = (value) => {
+        setSearchValue(value);
+    };
 
     const schema = yup.object().shape({
         id_user: yup
@@ -150,6 +156,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     }, [isModalOpen, reset, inputMethod]);
 
     const onSubmit = async (data) => {
+        setLoading(true);
         if (new Date(data.valid_from) > new Date(data.valid_to)) {
             Swal.fire({
                 icon: "error",
@@ -414,10 +421,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         ) : (
                             <div className="form-group col-span-2">
                                 <DataTable
-                                    title={"User List"}
                                     columns={columns}
                                     url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
                                     isRefetch={isRefetch}
+                                    onSearchChange={handleSearchChange}
                                 />
                             </div>
                         )}
@@ -428,8 +435,34 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         <button type="button" className="btn btn-light" onClick={() => { setFile(null); onClose(); }}>
                             Cancel
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            Submit
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 mr-3 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                "Submit"
+                            )}
                         </button>
                     </div>
                 </div>

@@ -3,9 +3,10 @@ import Cookies from "js-cookie";
 
 type HeaderProps = {
   onLogout: () => void;
+  isFixed: boolean;
 };
 
-function Header({ onLogout }: HeaderProps) {
+function Header({ onLogout, isFixed = true }: HeaderProps) {
   const [name, setName] = useState("");
   const [departement, setDepartement] = useState("");
   const [role, setRole] = useState("");
@@ -20,7 +21,7 @@ function Header({ onLogout }: HeaderProps) {
   }, []);
   return (
     <header
-      className="header fixed top-0 z-10 left-0 right-0 flex items-stretch shrink-0 bg-[#fefefe] dark:bg-coal-500"
+      className={`header ${isFixed ? "fixed" : "fluid"} top-0 z-10 left-0 right-0 flex items-stretch shrink-0 bg-[#fefefe] dark:bg-coal-500`}
       data-sticky="true"
       data-sticky-class="shadow-sm dark:border-b dark:border-b-coal-100"
       data-sticky-name="header"
@@ -28,7 +29,7 @@ function Header({ onLogout }: HeaderProps) {
     >
       {/* begin: container */}
       <div
-        className="container-fixed flex justify-between items-stretch lg:gap-4"
+        className={`${isFixed ? "container-fixed" : "container-fluid"} flex justify-between items-stretch lg:gap-4`}
         id="header_container"
       >
         <div className="flex gap-1 lg:hidden items-center -ml-1">

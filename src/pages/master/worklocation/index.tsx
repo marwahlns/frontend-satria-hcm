@@ -13,6 +13,7 @@ export default function Home() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
@@ -30,6 +31,10 @@ export default function Home() {
   const handleCloseUpdateModal = () => {
     setIsUpdateModalOpen(false);
     setSelectedData(null);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
   };
 
   const handleDelete = async (id: string) => {
@@ -132,10 +137,10 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"Worklocation List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/worklocation`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
 
       <CreateModal
