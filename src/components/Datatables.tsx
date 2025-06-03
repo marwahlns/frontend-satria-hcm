@@ -107,6 +107,7 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                 })}
               </select>
               <span>entries</span>
+<<<<<<< Updated upstream
             </div>
 
             {/* Search */}
@@ -216,6 +217,176 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                   </div>
                 </div>
               </div>
+=======
+            </div>
+
+            {/* Search */}
+            <div className="flex gap-6">
+              <div className="relative">
+                <i className="ki-outline ki-magnifier leading-none text-md text-gray-500 absolute top-1/2 left-0 -translate-y-1/2 ml-3"></i>
+                <input
+                  className="input input-md pl-8"
+                  placeholder="Search..."
+                  type="text"
+                  defaultValue={search}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPage(1);
+                    setSearch(e.target.value);
+                    onSearchChange?.(value); // Kirim ke parent (index.jsx)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="card-body">
+            {/* Table Container with Fixed Height and Scroll */}
+            <div className="relative">
+              {isLoading && (
+                <div className="absolute top-0 left-0 w-full h-full bg-white bg-opacity-70 z-10 flex items-center justify-center">
+                  <div className="flex items-center space-x-2 text-white bg-slate-500 px-4 py-2 rounded">
+                    <i className="ki-outline ki-setting-2 animate-spin text-md"></i>
+                    <span>Loading...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Table Container with Scrollable Body */}
+              <div
+                className="overflow-hidden"
+                style={{ maxHeight: '500px' }} // Total container height
+              >
+                <div className="overflow-x-auto">
+                  <div
+                    className="overflow-y-auto"
+                    style={{ maxHeight: '300px' }} // Scrollable area height
+                  >
+                    <table className="table table-border w-full border-collapse min-w-full">
+                      <thead className="sticky top-0">
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <tr key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <th
+                                key={header.id}
+                                className="border border-gray-300 p-2 cursor-pointer select-none bg-gray-50"
+                                onClick={() => {
+                                  if (!header.column.getCanSort()) return;
+                                  setSort(header.column.id);
+                                  setOrder(order === "asc" ? "desc" : "asc");
+                                }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1 text-center text-nowrap">
+                                    {flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext()
+                                    )}
+                                  </div>
+                                  {header.column.getCanSort() && (
+                                    <i
+                                      className={clsx(
+                                        "ki-outline text-xs",
+                                        header.column.getIsSorted() === "asc"
+                                          ? "ki-arrow-up"
+                                          : header.column.getIsSorted() === "desc"
+                                            ? "ki-arrow-down"
+                                            : "ki-arrow-up-down"
+                                      )}
+                                    ></i>
+                                  )}
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        ))}
+                      </thead>
+                      <tbody>
+                        {table.getRowModel().rows.length > 0 ? (
+                          table.getRowModel().rows.map((row) => (
+                            <tr key={row.id} className="font-normal hover:bg-gray-50">
+                              {row.getVisibleCells().map((cell) => (
+                                <td key={cell.id} className="border border-gray-300 p-2">
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={columns.length}
+                              className="text-center p-4 border border-gray-300"
+                            >
+                              No results found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="card-footer justify-between items-center flex-col md:flex-row gap-3 text-gray-700 text-2sm font-medium">
+            <div className="text-2sm font-medium">
+              <span>
+                Showing {(page - 1) * limit + 1} to{" "}
+                {Math.min(page * limit, totalItems)} of {totalItems} entries
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm font-normal flex-wrap">
+              <button
+                disabled={isLoading || page === 1}
+                onClick={() => setPage(1)}
+                className="btn btn-sm hover:bg-slate-100"
+              >
+                <i className="ki-filled ki-double-left"></i>
+              </button>
+              <button
+                disabled={isLoading || page === 1}
+                onClick={() => setPage(page - 1)}
+                className="btn btn-sm hover:bg-slate-100"
+              >
+                <i className="ki-filled ki-left"></i>
+              </button>
+
+              {renderPagination().map((number, index) => (
+                <button
+                  key={index}
+                  onClick={() =>
+                    typeof number === "number" && setPage(number)
+                  }
+                  disabled={isLoading || typeof number === "string"}
+                  className={clsx(
+                    "btn btn-sm",
+                    number === page && "bg-slate-300 font-bold",
+                    "hover:bg-slate-100"
+                  )}
+                >
+                  {number}
+                </button>
+              ))}
+
+              <button
+                disabled={isLoading || page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="btn btn-sm hover:bg-slate-100"
+              >
+                <i className="ki-filled ki-right"></i>
+              </button>
+              <button
+                disabled={isLoading || page === totalPages}
+                onClick={() => setPage(totalPages)}
+                className="btn btn-sm hover:bg-slate-100"
+              >
+                <i className="ki-filled ki-double-right"></i>
+              </button>
+>>>>>>> Stashed changes
             </div>
           </div>
           <div className="card-footer justify-between items-center flex-col md:flex-row gap-3 text-gray-700 text-2sm font-medium">

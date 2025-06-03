@@ -53,7 +53,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                 plant: selectedData.user_detail?.plant,
                 klasifikasi: selectedData.user_detail?.klasifikasi,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 superior: selectedData.user_detail?.superior,
+=======
+                superior: selectedData.superior,
+>>>>>>> Stashed changes
 =======
                 superior: selectedData.superior,
 >>>>>>> Stashed changes
@@ -87,7 +91,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <input {...field} type="text" className="input" readOnly />
+=======
+                                    <input {...field} type="text" className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="text" className={clsx("input")} readOnly/>
 >>>>>>> Stashed changes
@@ -101,7 +109,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <input {...field} type="text" className="input" readOnly />
+=======
+                                    <input {...field} type="text" className={clsx("input")} readOnly />
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="text" className={clsx("input")} readOnly />
 >>>>>>> Stashed changes
@@ -115,7 +127,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <input {...field} type="text" className="input" readOnly />
+=======
+                                    <input {...field} type="text" className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="text" className={clsx("input")} readOnly/>
 >>>>>>> Stashed changes
@@ -129,7 +145,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <input {...field} type="text" className="input" readOnly />
+=======
+                                    <input {...field} type="text" className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="text" className={clsx("input")} readOnly/>
 >>>>>>> Stashed changes
@@ -143,7 +163,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <input {...field} type="date" className="input" readOnly />
+=======
+                                    <input {...field} type="date" className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="date" className={clsx("input")} readOnly/>
 >>>>>>> Stashed changes
@@ -156,6 +180,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="gender"
                                 control={control}
                                 render={({ field }) => (
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                                     <Select
                                         {...field}
@@ -171,6 +196,10 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                     <input {...field} type="text" 
                                     className={clsx("input")} readOnly/>
 >>>>>>> Stashed changes
+=======
+                                    <input {...field} type="text" 
+                                    className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
                                 )}
                             />
                         </div>
@@ -181,6 +210,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <Select
                                         {...field}
                                         options={genderOptions}
@@ -189,6 +219,10 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         isDisabled
                                         value={genderOptions.find((option) => option.value === field.value)}
                                     />
+=======
+                                    <input {...field} type="text" 
+                                    className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="text" 
                                     className={clsx("input")} readOnly/>
@@ -213,6 +247,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <Select
                                         {...field}
                                         options={genderOptions}
@@ -221,6 +256,10 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         isDisabled
                                         value={genderOptions.find((option) => option.value === field.value)}
                                     />
+=======
+                                    <input {...field} type="text" 
+                                    className={clsx("input")} readOnly/>
+>>>>>>> Stashed changes
 =======
                                     <input {...field} type="text" 
                                     className={clsx("input")} readOnly/>
@@ -235,12 +274,18 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <input {...field} type="date" className="input" readOnly />
 =======
+=======
+>>>>>>> Stashed changes
                                     <input {...field} 
                                     type="text" 
                                     className={clsx("input")} 
                                     readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -258,6 +303,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         type="text"
                                         className={clsx("input")} 
                                         readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -269,6 +317,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                                     <Select
                                         {...field}
                                         options={genderOptions}
@@ -278,10 +327,15 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         value={genderOptions.find((option) => option.value === field.value)}
                                     />
 =======
+=======
+>>>>>>> Stashed changes
                                     <input {...field} 
                                     type="text" 
                                     className={clsx("input")} 
                                     readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -299,6 +353,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         type="text"
                                         className={clsx("input")} 
                                         readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -316,6 +373,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         type="text"
                                         className={clsx("input")} 
                                         readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -333,6 +393,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         type="text"
                                         className={clsx("input")} 
                                         readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -350,6 +413,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         type="text"
                                         className={clsx("input")} 
                                         readOnly/>
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />
@@ -367,6 +433,9 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                         type="text"
                                         className={clsx("input")}
                                         readOnly />
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                                 )}
                             />

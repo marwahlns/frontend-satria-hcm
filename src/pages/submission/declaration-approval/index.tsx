@@ -18,7 +18,11 @@ export default function Home() {
   const [declarationData, setDeclarationData] = useState(null);
   const [declarationType, setDeclarationType] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
+  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
@@ -296,7 +300,6 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Declaration Submission"
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=declaration&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
