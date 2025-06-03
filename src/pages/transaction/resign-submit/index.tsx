@@ -7,7 +7,7 @@ import * as yup from "yup";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FilterData from "@/components/FilterData";
 import Cookies from "js-cookie";
 import DatePicker from "react-datepicker";
@@ -17,7 +17,7 @@ import Modal from "@/components/Modal";
 import ActionModal from "@/components/Modals/ActionModal";
 import DetailModal from "@/components/Modals/DetailModal";
 import StatusStepper from "@/components/StatusStepper";
-import AsyncSelect from "react-select/async";
+import { IoMdPaper } from "react-icons/io";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -30,10 +30,22 @@ export default function Home() {
   const [showFilter, setShowFilter] = useState(false);
   const [isRefetch, setIsRefetch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-
+  const [alreadyResign, setAlreadyResign] = useState(false);
+  const [dataResponse, setDataResponse] = useState(null);
   const submitSchema = yup.object({
     effective_date: yup.string().required("Effective date is required"),
     reason: yup.string().required("Resign reason is required"),
+    pdfFile: yup
+      .mixed()
+      .required("PDF document is required")
+      .test("fileSize", "Max file size is 2MB", (value) => {
+        return value && (value as File).size <= 2 * 1024 * 1024;
+      })
+      .test("fileType", "Only PDF files are allowed", (value) => {
+        if (!value) return false;
+        return (value as File).type === "application/pdf";
+      }),
+
     canceled_remark: yup.string().nullable(),
   });
 
@@ -48,6 +60,7 @@ export default function Home() {
     effective_date?: string;
     reason?: string;
     canceled_remark?: string;
+    pdfFile?: File;
   }
 
   const {
@@ -64,8 +77,15 @@ export default function Home() {
       effective_date: "",
       reason: "",
       canceled_remark: "",
+      pdfFile: undefined,
     },
   });
+
+  useEffect(() => {
+    if (dataResponse) {
+      handleDataFetched(dataResponse);
+    }
+  }, [dataResponse]);
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -73,6 +93,11 @@ export default function Home() {
     setIsActionModalOpen(true);
   };
 
+  const handleDataFetched = (response) => {
+    if (response?.alreadyResign !== undefined) {
+      setAlreadyResign(response.alreadyResign);
+    }
+  };
   const handleOpenDetailModal = (data) => {
     setSelectedData(data);
     setIsDetailModalOpen(true);
@@ -92,6 +117,10 @@ export default function Home() {
     setIsAddModalOpen(false);
     setSelectedData(null);
     reset();
+  };
+
+  const handleShowFile = (fileUrl: string) => {
+    window.open(fileUrl, "_blank");
   };
 
   const onCancel = async (data) => {
@@ -153,21 +182,23 @@ export default function Home() {
   const onSubmit = async (data) => {
     try {
       const token = Cookies.get("token");
+      const formData = new FormData();
+      formData.append("effective_date", data.effective_date || "");
+      formData.append("reason", data.reason || "");
+      formData.append("file", data.pdfFile || new Blob());
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=resign`,
-        {
-          ...data,
-          effective_date: data.effective_date,
-          reason: data.reason,
-        },
+        formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
           },
         }
       );
 
-      if (response.status == 201) {
+      if (response.status === 201) {
         Swal.fire({
           text: "Resign added successfully",
           icon: "success",
@@ -238,6 +269,7 @@ export default function Home() {
   type ITrLeave = {
     status_id: number;
     status_submittion: string;
+    file_upload: string;
   };
 
   const columns: ColumnDef<ITrLeave>[] = [
@@ -255,6 +287,28 @@ export default function Home() {
       accessorKey: "reason",
       header: "Reason",
       enableSorting: true,
+    },
+    {
+      accessorKey: "file_upload",
+      header: "File",
+      cell: ({ row }) => {
+        const file = row.original.file_upload;
+        if (file) {
+          const fileUrl = `http://localhost:3000/uploads/file_resign/${file}`;
+          return (
+            <div className="flex justify-center cursor-pointer">
+              <IoMdPaper
+                size={24}
+                color="#E53E3E"
+                onClick={() => handleShowFile(fileUrl)}
+                title="View PDF"
+              />
+            </div>
+          );
+        } else {
+          return <span>No File</span>;
+        }
+      },
     },
     {
       accessorKey: "status_submittion",
@@ -290,6 +344,7 @@ export default function Home() {
         );
       },
     },
+
     {
       accessorKey: "",
       header: "Action",
@@ -398,7 +453,7 @@ export default function Home() {
                   name="effective_date"
                   render={({ field }) => (
                     <DatePicker
-                      selected={field.value ? new Date(field.value) : null} // Menggunakan single date
+                      selected={field.value ? new Date(field.value) : null}
                       onChange={(date: Date | null) => {
                         field.onChange(date);
                         setValue(
@@ -419,7 +474,7 @@ export default function Home() {
                           : "border-gray-300"
                       )}
                       placeholderText="Pick a date"
-                      dateFormat="dd-MMM-yyyy" // Menentukan format yang diinginkan
+                      dateFormat="dd-MMM-yyyy"
                       isClearable={true}
                       locale={enGB}
                       minDate={
@@ -434,6 +489,33 @@ export default function Home() {
                   </p>
                 )}
               </div>
+              <div>
+                <label className="form-label">
+                  Upload PDF
+                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
+                </label>
+                <Controller
+                  name="pdfFile"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => field.onChange(e.target.files?.[0])}
+                      className={clsx(
+                        "block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100",
+                        errors.pdfFile && "border-red-500"
+                      )}
+                    />
+                  )}
+                />
+                {errors.pdfFile && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pdfFile.message}
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="form-label">
                   Resign Reason

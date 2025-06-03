@@ -8,9 +8,10 @@ import { useRouter } from "next/router";
 
 interface CardProps {
   children: ReactNode;
+  isSidebar?: boolean;
 }
 
-const Main: React.FC<CardProps> = ({ children }) => {
+const Main: React.FC<CardProps> = ({ children, isSidebar = true }) => {
   const router = useRouter();
 
   const handleLogout = () => {
@@ -26,7 +27,8 @@ const Main: React.FC<CardProps> = ({ children }) => {
   return (
     <>
       <div className="flex grow">
-        <Sidebar />
+        {isSidebar && <Sidebar />}
+
         <div className="wrapper flex grow flex-col">
           <Header onLogout={handleLogout} />
           <main className="grow content pt-5" id="content" role="content">

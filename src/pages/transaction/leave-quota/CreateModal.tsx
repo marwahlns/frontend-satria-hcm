@@ -15,6 +15,7 @@ import * as XLSX from "xlsx";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
   const [inputMethod, setInputMethod] = useState<"excel" | "table">("excel");
+  const [searchValue, setSearchValue] = useState("");
 
   const schema = yup.object().shape({
     inputMethod: yup.string().required(),
@@ -155,6 +156,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     }
     setValue("inputMethod", "excel");
   }, [isModalOpen, reset, inputMethod]);
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
 
   const onSubmit = async (data) => {
     if (new Date(data.valid_from) > new Date(data.valid_to)) {
@@ -509,6 +514,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                   columns={columns}
                   url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
                   isRefetch={isRefetch}
+                  onSearchChange={handleSearchChange}
                 />
                 {errors.id_user && (
                   <p className="text-red-500 text-sm mt-1">
