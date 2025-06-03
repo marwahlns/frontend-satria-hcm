@@ -2,9 +2,9 @@ import Main from "../../../main-layouts/main";
 import DataTable from "../../../components/Datatables";
 import clsx from "clsx";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
-import ActionModal from "@/components/Modals/ActionModal";
-import DetailModal from "@/components/Modals/DetailModal";
+import { useState } from "react";
+import ActionModal from "@/components/Modals/ActionModalUpper";
+import DetailModal from "@/components/Modals/DetailModalUpper";
 import FilterData from "@/components/FilterData";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -12,7 +12,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import Cookies from "js-cookie";
-import StatusStepper from "@/components/StatusStepper";
+import StatusStepper from "@/components/StatusStepperOfficialTravel";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,11 @@ export default function Home() {
   const api = `${process.env.NEXT_PUBLIC_API_URL}`;
   const schema = yup.object().shape({
     remark: yup.string().required("Please fill out remark"),
+    down_payment: yup.string().when("$isDownPayment", {
+      is: true,
+      then: (schema) => schema.required("Please fill out down payment"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
   });
 
   const {
@@ -36,11 +41,30 @@ export default function Home() {
     formState: { errors },
     reset,
   } = useForm({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema, {
+      context: {
+        isDownPayment: selectedData?.is_downPayment === true,
+      },
+    }),
     defaultValues: {
       remark: "",
+      down_payment: "",
     },
   });
+
+  const formatRupiahLive = (value: string): string => {
+    if (!value) return "";
+    const numberString = value.replace(/[^\d]/g, "");
+    const number = parseInt(numberString);
+    if (isNaN(number)) return "";
+    return "Rp " + number.toLocaleString("id-ID");
+  };
+
+  function parseRupiah(str: string): number | null {
+    const angka = str.replace(/\D/g, "");
+    if (!angka) return null;
+    return Number(angka);
+  }
 
   const handleOpenActionModal = (data, actionType) => {
     setSelectedData(data);
@@ -88,6 +112,7 @@ export default function Home() {
           remark: data.remark,
           actionType: selectedActionType,
           trxType: "officialTravel",
+          down_payment: parseRupiah(data.down_payment),
         },
         {
           headers: {
@@ -165,7 +190,6 @@ export default function Home() {
 
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error exporting EXCEL:", error);
       alert("Failed to export Excel.");
     }
   };
@@ -262,6 +286,7 @@ export default function Home() {
 
         return (
           <div className="flex space-x-1 justify-center">
+            {/* Tombol Detail selalu tampil kalau modalType-nya sesuai */}
             {(data.modalType === "detail" || data.modalType === "action") && (
               <button
                 className="btn btn-sm btn-outline btn-primary"
@@ -271,7 +296,7 @@ export default function Home() {
               </button>
             )}
 
-            {data.modalType === "action" && (
+            {data.modalType === "action" && data.status_id !== 7 && (
               <>
                 <button
                   className="btn btn-sm btn-outline btn-success"
@@ -322,6 +347,7 @@ export default function Home() {
                     setFilter(selectedFilter);
                     setShowFilter(false);
                   }}
+                  mode="officialTravel"
                 />
               )}{" "}
               <button
@@ -343,173 +369,460 @@ export default function Home() {
             submitText={selectedActionType}
           >
             <form id="officialTravelForm" onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Data Umum */}
-                <div>
-                  <label className="form-label">Employee Name</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.user_name ?? ""}
-                  />
+              {/* === Travel Info Section === */}
+              <section className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                  Travel Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { label: "Employee Name", value: selectedData?.user_name },
+                    {
+                      label: "Employee Department",
+                      value: selectedData?.user_departement,
+                    },
+                    {
+                      label: "Destination City",
+                      value: selectedData?.destination_city,
+                    },
+                    {
+                      label: "Destination Place",
+                      value: selectedData?.destination_place,
+                    },
+                    {
+                      label: "Transportation",
+                      value: selectedData?.transportation,
+                    },
+                    { label: "Lodging", value: selectedData?.lodging },
+                    { label: "Work Status", value: selectedData?.work_status },
+                    {
+                      label: "Office Activities",
+                      value: selectedData?.office_activities,
+                    },
+                    {
+                      label: "Activity Agenda",
+                      value: selectedData?.activity_agenda,
+                    },
+                    {
+                      label: "Start Date Travel",
+                      value: selectedData?.start_date,
+                    },
+                    { label: "End Date Travel", value: selectedData?.end_date },
+                    { label: "Purpose Travel", value: selectedData?.purpose },
+                  ].map((item, idx) => (
+                    <div key={idx}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {item.label}
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={item.value ?? ""}
+                        className="input w-full bg-gray-100 cursor-not-allowed"
+                      />
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <label className="form-label">Employee Departement</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.user_departement ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Start Date Travel</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.start_date ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">End Date Travel</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.end_date ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Destination City Travel</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.destination_city ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Purpose Travel</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.purpose ?? ""}
-                  />
-                </div>
-              </div>
+              </section>
 
-              <>
-                {selectedActionType === "Approved" ||
-                  (selectedActionType === "Rejected" &&
-                    selectedData?.status_id === 2 && (
-                      <div className="grid grid-cols-1 gap-5 mt-6">
-                        <div>
-                          <label className="form-label">Accepted Remark</label>
-                          <input
-                            className="input w-full"
-                            type="text"
-                            readOnly
-                            value={selectedData?.accepted_remark ?? ""}
-                          />
-                        </div>
-                      </div>
-                    ))}
+              <section className="mb-8 bg-gray-50 rounded-lg p-5 border">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                  Cost Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    {
+                      label: "Symbol Currency",
+                      value: selectedData?.symbol_currency,
+                    },
+                    {
+                      label: "Currency",
+                      value: selectedData?.currency,
+                    },
+                    {
+                      label: "Down Payment",
+                      value: formatRupiahLive(selectedData?.down_payment),
+                    },
+                    {
+                      label: "Taxi Cost",
+                      value: formatRupiahLive(selectedData?.taxi_cost),
+                    },
+                    {
+                      label: "Purpose Rent Cost",
+                      value: formatRupiahLive(selectedData?.rent_cost),
+                    },
+                    {
+                      label: "Hotel Cost",
+                      value: formatRupiahLive(selectedData?.hotel_cost),
+                    },
+                    {
+                      label: "UPD Cost",
+                      value: formatRupiahLive(selectedData?.upd_cost),
+                    },
+                    {
+                      label: "Fiskal Cost",
+                      value: formatRupiahLive(selectedData?.fiskal_cost),
+                    },
+                    {
+                      label: "Other Cost",
+                      value: formatRupiahLive(selectedData?.other_cost),
+                    },
+                  ].map((item, idx) => (
+                    <div key={idx}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {item.label}
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={item.value || "-"}
+                        className="input w-full bg-gray-100 cursor-not-allowed"
+                      />
+                    </div>
+                  ))}
 
-                <div className="grid grid-cols-1 gap-5 mt-6">
-                  <div>
-                    <label className="form-label">
-                      {selectedActionType === "Approved" &&
-                      selectedData?.status_id === 1
-                        ? "Approved Remark"
-                        : `${selectedActionType} Remark`}
+                  <div className="md:col-span-3 mt-8 border-t pt-4">
+                    <div className="text-sm font-semibold text-red-600">
+                      Total Cost
+                    </div>
+                    <p className="text-red-700 font-bold text-xl mt-1">
+                      {formatRupiahLive(selectedData?.total_cost)}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedData?.is_downPayment && (
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Down Payment
                     </label>
                     <Controller
-                      name="remark"
+                      name="down_payment"
                       control={control}
-                      render={({ field }) => (
+                      render={({ field: { onChange, onBlur, value, ref } }) => (
                         <input
-                          {...field}
+                          ref={ref}
                           type="text"
                           className={clsx(
-                            "input",
-                            errors.remark
-                              ? "border-red-500 hover:border-red-500"
-                              : ""
+                            "input w-full",
+                            errors.down_payment && "border-red-500"
                           )}
+                          value={formatRupiahLive(value)}
+                          onChange={(e) =>
+                            onChange(formatRupiahLive(e.target.value))
+                          }
+                          onBlur={onBlur}
                         />
                       )}
                     />
-                    {errors.remark && (
+                    {errors.down_payment && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.remark.message}
+                        {errors.down_payment.message}
                       </p>
                     )}
                   </div>
+                )}
+              </section>
+
+              <section className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                  Remarks
+                </h3>
+
+                {(selectedActionType === "Approved" ||
+                  selectedActionType === "Rejected") && (
+                  <>
+                    {[
+                      "DivHead",
+                      "DicDiv",
+                      "DeptHeadHC",
+                      "DivHeadHC",
+                      "DicHC",
+                      "Presdir",
+                    ].includes(selectedData?.statusUser) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Accepted Dept Head Remark
+                        </label>
+                        <input
+                          className="input w-full bg-gray-100 cursor-not-allowed"
+                          type="text"
+                          readOnly
+                          value={selectedData?.accepted_depthead_remark ?? ""}
+                        />
+                      </div>
+                    )}
+
+                    {[
+                      "DicDiv",
+                      "DeptHeadHC",
+                      "DivHeadHC",
+                      "DicHC",
+                      "Presdir",
+                    ].includes(selectedData?.statusUser) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Approved DivHead Remark
+                        </label>
+                        <input
+                          className="input w-full bg-gray-100 cursor-not-allowed"
+                          type="text"
+                          readOnly
+                          value={selectedData?.approved_divhead_remark ?? ""}
+                        />
+                      </div>
+                    )}
+
+                    {["DeptHeadHC", "DivHeadHC", "DicHC", "Presdir"].includes(
+                      selectedData?.statusUser
+                    ) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Approved DicDiv Remark
+                        </label>
+                        <input
+                          className="input w-full bg-gray-100 cursor-not-allowed"
+                          type="text"
+                          readOnly
+                          value={selectedData?.approved_dicdiv_remark ?? ""}
+                        />
+                      </div>
+                    )}
+
+                    {["DivHeadHC", "DicHC", "Presdir"].includes(
+                      selectedData?.statusUser
+                    ) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Approved Dept. Head HC Remark
+                        </label>
+                        <input
+                          className="input w-full bg-gray-100 cursor-not-allowed"
+                          type="text"
+                          readOnly
+                          value={
+                            selectedData?.approved_depthead_hc_remark ?? ""
+                          }
+                        />
+                      </div>
+                    )}
+
+                    {["DicHC", "Presdir"].includes(
+                      selectedData?.statusUser
+                    ) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Approved DivHead HC Remark
+                        </label>
+                        <input
+                          className="input w-full bg-gray-100 cursor-not-allowed"
+                          type="text"
+                          readOnly
+                          value={selectedData?.approved_divhead_hc_remark ?? ""}
+                        />
+                      </div>
+                    )}
+
+                    {["Presdir"].includes(selectedData?.statusUser) && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Approved DIC HC Remark
+                        </label>
+                        <input
+                          className="input w-full bg-gray-100 cursor-not-allowed"
+                          type="text"
+                          readOnly
+                          value={selectedData?.approved_dichc_remark ?? ""}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {selectedActionType === "Approved" &&
+                    selectedData?.status_id === 1
+                      ? "Approved Remark"
+                      : `${selectedActionType} Remark`}
+                  </label>
+                  <Controller
+                    name="remark"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="text"
+                        className={clsx(
+                          "input w-full",
+                          errors.remark && "border-red-500"
+                        )}
+                      />
+                    )}
+                  />
+                  {errors.remark && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.remark.message}
+                    </p>
+                  )}
                 </div>
-              </>
+              </section>
             </form>
           </ActionModal>
 
           <DetailModal
             isModalOpen={isDetailModalOpen}
             onClose={onClose}
-            title="Leave Request Detail"
+            title="Official Travel Request Detail"
           >
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col md:flex-row gap-8 p-4">
               <div className="w-full md:w-60">
                 <StatusStepper
                   statusId={selectedData?.status_id ?? 1}
                   createdDate={selectedData?.created_at}
-                  acceptedDate={selectedData?.accepted_date}
-                  approvedDate={selectedData?.approved_date}
+                  acceptedDeptHeadDate={selectedData?.accepted_depthead_date}
+                  approvedDivHeadDate={selectedData?.approved_divhead_date}
+                  approvedDicDivDate={selectedData?.approved_divhead_date}
+                  approvedDeptHeadHCDate={
+                    selectedData?.approved_depthead_hc_date
+                  }
+                  approvedDivHeadHCDate={selectedData?.approved_divhead_hc_date}
+                  approvedDicHCDate={selectedData?.approved_dichc_date}
+                  approvedPresdirDate={selectedData?.approved_presdir_date}
                   rejectedDate={selectedData?.rejected_date}
                   canceledDate={selectedData?.canceled_date}
-                  acceptedRemark={selectedData?.accepted_remark}
-                  approvedRemark={selectedData?.approved_remark}
+                  acceptedDeptHeadRemark={
+                    selectedData?.accepted_depthead_remark
+                  }
+                  approvedDivHeadRemark={selectedData?.approved_divhead_remark}
+                  approvedDicDivRemark={selectedData?.approved_dicdiv_remark}
+                  approvedDeptHeadHCRemark={
+                    selectedData?.approved_depthead_hc_remark
+                  }
+                  approvedDivHeadHCRemark={
+                    selectedData?.approved_divhead_hc_remark
+                  }
+                  approvedDicHCRemark={selectedData?.approved_dichc_remark}
+                  approvedPresdirRemark={selectedData?.approved_presdir_remark}
                   rejectedRemark={selectedData?.rejected_remark}
                   canceledRemark={selectedData?.canceled_remark}
-                  acceptTo={selectedData?.accept_to}
-                  approveTo={selectedData?.approve_to}
+                  acceptToDeptHead={selectedData?.accept_to_depthead}
+                  approveToDivHead={selectedData?.approve_to_divhead}
+                  approveToDicDiv={selectedData?.approve_to_dicdiv}
+                  approveToDeptHeadHC={selectedData?.approve_to_depthead_hc}
+                  approveToDivHeadHC={selectedData?.approve_to_divhead_hc}
+                  approveToDicDivHC={selectedData?.approve_to_dichc}
+                  approveToPresdir={selectedData?.approve_to_presdir}
                 />
               </div>
-              <div className="flex-1">
-                <form>
-                  <div className="flex flex-col gap-4 text-sm text-gray-700">
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        Start Date
+
+              <div className="flex-1 space-y-8">
+                <form className="text-sm text-gray-700 space-y-8">
+                  <section>
+                    <h3 className="text-lg font-bold border-b pb-2 text-gray-800">
+                      General Information
+                    </h3>
+                    <div className="flex flex-wrap gap-6 mt-4">
+                      <div className="w-full md:w-[30%]">
+                        <div className="font-semibold text-gray-600">Code</div>
+                        <p>{selectedData?.code ?? "-"}</p>
                       </div>
-                      <p>{selectedData?.start_date ?? "-"}</p>
+                      {[
+                        ["Destination City", selectedData?.destination_city],
+                        ["Destination Place", selectedData?.destination_place],
+                        ["Start Date", selectedData?.start_date],
+                        ["End Date", selectedData?.end_date],
+                        [
+                          "Total Leave Days",
+                          `${selectedData?.total_leave_days ?? "-"} days`,
+                        ],
+                        ["Transportation", selectedData?.transportation],
+                        ["Lodging", selectedData?.lodging],
+                        ["Work Status", selectedData?.work_status],
+                        ["Office Activities", selectedData?.office_activities],
+                        ["Purpose", selectedData?.purpose],
+                        ["Activity Agenda", selectedData?.activity_agenda],
+                      ].map(([label, value], idx) => (
+                        <div key={idx} className="w-full md:w-[30%]">
+                          <div className="font-semibold text-gray-600">
+                            {label}
+                          </div>
+                          <p>{value ?? "-"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="bg-gray-50 rounded-xl shadow-md p-6 mt-8">
+                    <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+                      Cost Details
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-600">
+                          Symbol Currency
+                        </div>
+                        <p className="text-gray-800 mt-1">
+                          {selectedData?.symbol_currency ?? "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-600">
+                          Currency
+                        </div>
+                        <p className="text-gray-800 mt-1">
+                          {selectedData?.currency ?? "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-green-600">
+                          Down Payment
+                        </div>
+                        <p className="text-green-700 font-semibold mt-1">
+                          {formatRupiahLive(selectedData?.down_payment)}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        End Date
-                      </div>
-                      <p>{selectedData?.end_date ?? "-"}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                      {[
+                        { label: "Taxi Cost", value: selectedData?.taxi_cost },
+                        { label: "Rent Cost", value: selectedData?.rent_cost },
+                        {
+                          label: "Hotel Cost",
+                          value: selectedData?.hotel_cost,
+                        },
+                        { label: "UPD Cost", value: selectedData?.upd_cost },
+                        {
+                          label: "Fiskal Cost",
+                          value: selectedData?.fiskal_cost,
+                        },
+                        {
+                          label: "Other Cost",
+                          value: selectedData?.other_cost,
+                        },
+                      ].map((item, idx) => (
+                        <div key={idx}>
+                          <div className="text-sm font-semibold text-gray-600">
+                            {item.label}
+                          </div>
+                          <p className="text-gray-800 mt-1">
+                            {formatRupiahLive(item.value)}
+                          </p>
+                        </div>
+                      ))}
                     </div>
 
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        Destination City
+                    <div className="mt-8 border-t pt-4">
+                      <div className="text-sm font-semibold text-red-600">
+                        Total Cost
                       </div>
-                      <p>{selectedData?.destination_city ?? "-"}</p>
+                      <p className="text-red-700 font-bold text-xl mt-1">
+                        {formatRupiahLive(selectedData?.total_cost)}
+                      </p>
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        Total Leave Days
-                      </div>
-                      <p>{selectedData?.total_leave_days ?? "-"} days</p>
-                    </div>
-
-                    <div>
-                      <div className="font-semibold text-gray-600">Purpose</div>
-                      <p>{selectedData?.purpose ?? "-"}</p>
-                    </div>
-                  </div>
+                  </section>
                 </form>
               </div>
             </div>

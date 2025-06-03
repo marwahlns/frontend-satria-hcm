@@ -129,6 +129,7 @@ export default function Home() {
             label: user.department,
           },
           superior: user.superior,
+          isDisabled: user.isDisable === true, // ⬅️ tambahkan ini
         }));
       }
       return [];
@@ -296,6 +297,13 @@ export default function Home() {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const optionBackgroundColor = (state) => {
+    if (state.isDisabled) return "#ffe5e5"; // merah muda untuk disabled
+    if (state.isSelected) return "#2684ff"; // default react-select blue
+    if (state.isFocused) return "#f0f0f0"; // default hover
+    return "white";
   };
 
   const handleExportExcel = async () => {
@@ -520,10 +528,25 @@ export default function Home() {
                                 }
                               : null
                           }
+                          getOptionLabel={(e) => e.label}
+                          getOptionValue={(e) => e.value}
+                          isOptionDisabled={(option) =>
+                            (option as any).isDisabled === true
+                          }
+                          styles={{
+                            option: (base, state) => ({
+                              ...base,
+                              backgroundColor: optionBackgroundColor(state),
+                              color: state.isDisabled ? "#999" : base.color,
+                              cursor: state.isDisabled
+                                ? "not-allowed"
+                                : "default",
+                            }),
+                          }}
                           onChange={(selectedOption) => {
                             const option = selectedOption as any;
                             field.onChange(option?.value || "");
-                            setSelectedUser(option); // update state (tidak langsung dipakai di bawah)
+                            setSelectedUser(option);
 
                             setValue(
                               "department_from",

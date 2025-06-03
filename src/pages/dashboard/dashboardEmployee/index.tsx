@@ -1,4 +1,4 @@
-import Main from "../../../main-layouts/layout-employee";
+import Main from "../../../main-layouts/main";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
@@ -42,7 +42,6 @@ export default function Home() {
     { id: "leave", label: "Leave" },
     { id: "overtime", label: "Overtime" },
     { id: "officialTravel", label: "Official Travel" },
-    { id: "mutation", label: "Mutation" },
     { id: "resign", label: "Resign" },
   ];
 
@@ -103,7 +102,7 @@ export default function Home() {
   };
 
   return (
-    <Main>
+    <Main isSidebar={false}>
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full max-w-7xl mx-auto mt-16">
         {/* Profile */}
         <div className="flex flex-col items-center text-center">
@@ -238,11 +237,6 @@ export default function Home() {
             {activeTab === "officialTravel" && (
               <div className="bg-gray-100 rounded-lg shadow-md p-6">
                 <OfficialTravelPage />
-              </div>
-            )}
-            {activeTab === "mutation" && (
-              <div className="bg-gray-100 rounded-lg shadow-md p-6">
-                <MutationPage />
               </div>
             )}
             {activeTab === "resign" && (

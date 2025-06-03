@@ -19,6 +19,7 @@ import DetailModal from "@/components/Modals/DetailModal";
 import StatusStepper from "@/components/StatusStepper";
 import AsyncSelect from "react-select/async";
 import { useLeaveStore } from "../../../stores/submitStore";
+import { IoMdPaper } from "react-icons/io";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -44,9 +45,22 @@ export default function Home() {
     end_date: yup.string().required("End date is required"),
     leave_reason: yup.string().required("Leave reason is required"),
     canceled_remark: yup.string().nullable(),
+    support_document: yup
+      .mixed()
+      .nullable()
+      .test(
+        "is-valid-file",
+        "Only PDF files under 2MB are allowed",
+        (value) => {
+          if (!value) return true;
+          const file = value as File;
+          const isPDF = file.type === "application/pdf";
+          const isSmallEnough = file.size <= 2 * 1024 * 1024;
+          return isPDF && isSmallEnough;
+        }
+      ),
   });
 
-  // Schema saat CANCEL leave
   const cancelSchema = yup.object({
     canceled_remark: yup
       .string()
@@ -64,6 +78,7 @@ export default function Home() {
     leave_reason?: string;
     canceled_remark?: string;
     date_range?: [Date | null, Date | null];
+    support_document?: File;
   }
 
   const {
@@ -83,11 +98,16 @@ export default function Home() {
       leave_reason: "",
       canceled_remark: "",
       date_range: [null, null],
+      support_document: undefined,
     },
   });
 
   const handleSearchChange = (value) => {
     setSearchValue(value);
+  };
+
+  const handleShowFile = (fileUrl: string) => {
+    window.open(fileUrl, "_blank");
   };
 
   const handleOpenActionModal = (data, actionType) => {
@@ -199,68 +219,61 @@ export default function Home() {
   const onSubmit = async (data) => {
     try {
       const token = Cookies.get("token");
+
+      const formData = new FormData();
+      formData.append(
+        "leave_type_id",
+        (parseInt(data.leave_type_id?.value, 10) || 0).toString()
+      );
+      formData.append("start_date", data.start_date || "");
+      formData.append("end_date", data.end_date || "");
+      formData.append("leave_reason", data.leave_reason || "");
+      if (data.support_document) {
+        formData.append("file", data.support_document);
+      }
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=leave`,
-        {
-          ...data,
-          leave_type_id: parseInt(data.leave_type_id.value, 10),
-          start_date: data.start_date,
-          end_date: data.end_date,
-          leave_reason: data.leave_reason,
-        },
+        formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
           },
         }
       );
 
       if (response.status === 201) {
-        const total = response.data?.data?.totalItems;
-
-        if (total !== undefined) {
-          setTotalLeaves(total);
-        } else {
-          const token = Cookies.get("token");
-          const res = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          if (res.data.success) {
-            setTotalLeaves(res.data.data.totalItems);
-          }
-        }
-
         Swal.fire({
+          title: "Success",
           text: "Leave added successfully",
           icon: "success",
           timer: 1500,
+          showConfirmButton: false,
         });
         setIsRefetch(!isRefetch);
         onClose();
         reset();
       } else {
+        Swal.fire({
+          title: "Unexpected Response",
+          text: "Server returned unexpected status.",
+          icon: "warning",
+        });
         onClose();
         reset();
       }
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        const message = error.response.data?.message;
-        Swal.fire({
-          title: "Error",
-          text: message,
-          icon: "error",
-        });
-      } else {
-        console.error(error);
-        Swal.fire({
-          title: "Error",
-          text: "An unexpected error occurred",
-          icon: "error",
-        });
-      }
+      console.error("Error submitting leave:", error);
+
+      const errorMessage =
+        error.response?.data?.message ||
+        "Terjadi kesalahan saat mengirim data.";
+
+      Swal.fire({
+        title: "Submission Failed",
+        text: errorMessage,
+        icon: "error",
+      });
     }
   };
 
@@ -317,6 +330,7 @@ export default function Home() {
   type ITrLeave = {
     status_id: number;
     status_submittion: string;
+    support_document: string;
   };
 
   const columns: ColumnDef<ITrLeave>[] = [
@@ -349,6 +363,28 @@ export default function Home() {
       accessorKey: "leave_reason",
       header: "Reason",
       enableSorting: true,
+    },
+    {
+      accessorKey: "file_upload",
+      header: "File",
+      cell: ({ row }) => {
+        const file = row.original.support_document;
+        if (file) {
+          const fileUrl = `http://localhost:3000/uploads/file_leave/${file}`;
+          return (
+            <div className="flex justify-center cursor-pointer">
+              <IoMdPaper
+                size={24}
+                color="#E53E3E"
+                onClick={() => handleShowFile(fileUrl)}
+                title="View PDF"
+              />
+            </div>
+          );
+        } else {
+          return <span>No File</span>;
+        }
+      },
     },
     {
       accessorKey: "status_submittion",
@@ -593,6 +629,30 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-5 mt-6">
               <div>
+                <label className="form-label">Upload PDF</label>
+                <Controller
+                  name="support_document"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => field.onChange(e.target.files?.[0])}
+                      className={clsx(
+                        "block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100",
+                        errors.support_document && "border-red-500"
+                      )}
+                    />
+                  )}
+                />
+                {errors.support_document && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.support_document.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <label className="form-label">
                   Leave Reason
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
@@ -666,7 +726,6 @@ export default function Home() {
                   <div className="font-semibold text-gray-600">Start Date</div>
                   <p>{selectedData?.start_date ?? "-"}</p>
                 </div>
-
                 <div>
                   <div className="font-semibold text-gray-600">End Date</div>
                   <p>{selectedData?.end_date ?? "-"}</p>
