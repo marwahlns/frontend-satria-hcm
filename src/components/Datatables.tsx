@@ -8,11 +8,7 @@ import clsx from "clsx";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 
-<<<<<<< Updated upstream
-const DataTable = ({ columns, url, isRefetch, title }) => {
-=======
 const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
->>>>>>> Stashed changes
   const [data, setData] = useState([]);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -90,13 +86,8 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
         <div className="card card-grid min-w-full">
           <div className="card-header py-5 flex-wrap">
             {/* Limit */}
-<<<<<<< Updated upstream
-            <div className="flex items-center gap-2 text-gray-700 text-2sm font-medium">
-              Show
-=======
             <div className="flex items-center gap-2 flex items-center gap-2 text-gray-700 text-2sm font-medium">
               <label>Show:</label>
->>>>>>> Stashed changes
               <select
                 value={limit}
                 onChange={(e) => {
@@ -107,11 +98,7 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                 }}
                 className={clsx("select select-sm w-16")}
               >
-<<<<<<< Updated upstream
-                {[10, 25, 50, 100, 200].map((item) => {
-=======
                 {[5, 10, 25, 50, 100, 200].map((item) => {
->>>>>>> Stashed changes
                   return (
                     <option key={item} value={item}>
                       {item}
@@ -119,14 +106,9 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                   );
                 })}
               </select>
-<<<<<<< Updated upstream
-              per page
-            </div>
-=======
               <span>entries</span>
             </div>
 
->>>>>>> Stashed changes
             {/* Search */}
             <div className="flex gap-6">
               <div className="relative">
@@ -155,39 +137,6 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                   </div>
                 </div>
               )}
-<<<<<<< Updated upstream
-              <div className="overflow-x-auto">
-                <table className="table table-border w-full border-collapse min-w-full">
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <th
-                            key={header.id}
-                            className="border border-gray-300 p-2 cursor-pointer select-none"
-                            onClick={() => {
-                              if (!header.column.getCanSort()) return;
-                              setSort(header.column.id);
-                              setOrder(order === "asc" ? "desc" : "asc");
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 text-center text-nowrap">
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                              </div>
-                              {header.column.getCanSort() && (
-                                <i
-                                  className={clsx(
-                                    "ki-outline text-xs",
-                                    header.column.getIsSorted() === "asc"
-                                      ? "ki-arrow-up"
-                                      : header.column.getIsSorted() === "desc"
-                                        ? "ki-arrow-down"
-                                        : "ki-arrow-up-down"
-=======
 
               {/* Table Container with Scrollable Body */}
               <div
@@ -231,7 +180,6 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                                             : "ki-arrow-up-down"
                                       )}
                                     ></i>
->>>>>>> Stashed changes
                                   )}
                                 </div>
                               </th>
@@ -270,32 +218,6 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
               </div>
             </div>
           </div>
-<<<<<<< Updated upstream
-          <div className="card-footer justify-center md:justify-end flex-col md:flex-row gap-3 text-gray-600 text-2sm font-medium">
-            <div>
-              <span>
-                {(page - 1) * limit + 1} -{" "}
-                {Math.min(page * limit, totalItems)} of {totalItems} entries
-              </span>
-            </div>
-            {/* Pagination */}
-            <div className="my-3 flex justify-end items-center">
-              <div className="flex items-center text-sm font-normal">
-                <button
-                  disabled={isLoading || page === 1}
-                  onClick={() => setPage(1)}
-                  className="btn btn-sm hover:bg-slate-100"
-                >
-                  <i className="ki-solid ki-double-left-arrow"></i>
-                </button>
-                <button
-                  disabled={isLoading || page === 1}
-                  onClick={() => setPage(page - 1)}
-                  className="btn btn-sm hover:bg-slate-100"
-                >
-                  <i className="ki-solid ki-to-left"></i>
-                </button>
-=======
           <div className="card-footer justify-between items-center flex-col md:flex-row gap-3 text-gray-700 text-2sm font-medium">
             <div className="text-2sm font-medium">
               <span>
@@ -303,7 +225,6 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                 {Math.min(page * limit, totalItems)} of {totalItems} entries
               </span>
             </div>
->>>>>>> Stashed changes
 
             <div className="flex items-center gap-2 text-sm font-normal flex-wrap">
               <button
