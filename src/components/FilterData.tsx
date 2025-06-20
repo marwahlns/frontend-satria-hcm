@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 
 interface RoleFilterProps {
-  onSelect: (filter: { month: string; year: string; status: number }) => void;
+  onSelect: (filter: { month: string; year: string; status?: number }) => void;
+  mode?: "general" | "officialTravel";
+  disableStatus?: boolean;
 }
 
-const FilterData: React.FC<RoleFilterProps> = ({ onSelect }) => {
-  const statusMap: Record<number, string> = {
+const FilterData: React.FC<RoleFilterProps> = ({
+  onSelect,
+  mode = "general",
+  disableStatus = false,
+}) => {
+  const generalStatusMap: Record<number, string> = {
     0: "All",
     1: "Opened",
     2: "Partial Approved",
@@ -14,36 +20,60 @@ const FilterData: React.FC<RoleFilterProps> = ({ onSelect }) => {
     7: "Canceled",
   };
 
+  const officialTravelStatusMap: Record<number, string> = {
+    0: "All",
+    1: "Opened",
+    6: "Rejected",
+    7: "Canceled",
+    8: "Approved By Dept Head",
+    9: "Approved By Div Head",
+    10: "Approved By DIC Division",
+    11: "Approved By Dept Head HC",
+    12: "Approved By Div Head HC",
+    13: "Approved By DIC HC",
+    14: "Approved By President Director",
+  };
+
+  const statusMap =
+    mode === "officialTravel" ? officialTravelStatusMap : generalStatusMap;
+
   const statusOptions = Object.entries(statusMap).map(([status, label]) => ({
     label,
     value: parseInt(status),
   }));
 
-  const [selectedMonthYear, setSelectedMonthYear] = useState(""); // Format YYYY-MM
+  const [selectedMonthYear, setSelectedMonthYear] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(0);
 
   const handleApply = () => {
-    if (selectedMonthYear) {
-      const [year, month] = selectedMonthYear.split("-");
+    const [year = "", month = ""] = selectedMonthYear.split("-");
 
-      onSelect({
-        month,
-        year,
-        status: selectedStatus,
-      });
-    } else {
-      onSelect({
-        month: "",
-        year: "",
-        status: selectedStatus,
-      });
+    const filter: { month: string; year: string; status?: number } = {
+      month,
+      year,
+    };
+
+    if (!disableStatus) {
+      filter.status = selectedStatus;
     }
+
+    onSelect(filter);
   };
 
   const handleReset = () => {
     setSelectedMonthYear("");
     setSelectedStatus(0);
-    onSelect({ month: "", year: "", status: 0 });
+
+    const filter: { month: string; year: string; status?: number } = {
+      month: "",
+      year: "",
+    };
+
+    if (!disableStatus) {
+      filter.status = 0;
+    }
+
+    onSelect(filter);
   };
 
   return (
@@ -60,20 +90,22 @@ const FilterData: React.FC<RoleFilterProps> = ({ onSelect }) => {
         />
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Status:</label>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(parseInt(e.target.value))}
-          className="w-full border px-3 py-2 rounded"
-        >
-          {statusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!disableStatus && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Status:</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(parseInt(e.target.value))}
+            className="w-full border px-3 py-2 rounded"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex justify-between">
         <button onClick={handleReset} className="btn btn-filled btn-secondary">

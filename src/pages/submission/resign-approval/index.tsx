@@ -3,8 +3,8 @@ import DataTable from "../../../components/Datatables";
 import clsx from "clsx";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState, useEffect } from "react";
-import ActionModal from "@/components/Modals/ActionModal";
-import DetailModal from "@/components/Modals/DetailModal";
+import ActionModal from "@/components/Modals/ActionModalUpper";
+import DetailModal from "@/components/Modals/DetailModalUpper";
 import FilterData from "@/components/FilterData";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -13,6 +13,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { Controller, useForm } from "react-hook-form";
 import Cookies from "js-cookie";
 import StatusStepper from "@/components/StatusStepper";
+import { IoMdPaper } from "react-icons/io";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -22,8 +23,15 @@ export default function Home() {
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
-  const api = `${process.env.NEXT_PUBLIC_API_URL}`;
+  const [filter, setFilter] = useState<{
+    month: string;
+    year: string;
+    status?: number;
+  }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [searchValue, setSearchValue] = useState("");
 
   const schema = yup.object().shape({
@@ -61,9 +69,13 @@ export default function Home() {
     setSelectedData(null);
     reset();
   };
+  const handleShowFile = (fileUrl: string) => {
+    window.open(fileUrl, "_blank");
+  };
 
   const onSubmit = async (data) => {
     try {
+      setLoading(true);
       const result = await Swal.fire({
         title: `Are you sure?`,
         text: `Do you want to ${selectedActionType} this resign request?`,
@@ -72,7 +84,8 @@ export default function Home() {
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
         confirmButtonText: `Yes, ${selectedActionType} it!`,
-        cancelButtonText: "Cancel",
+        cancelButtonText: "Discard",
+        reverseButtons: true,
       });
 
       if (!result.isConfirmed) {
@@ -115,12 +128,15 @@ export default function Home() {
         icon: "error",
         confirmButtonText: "OK",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleExportExcel = async () => {
     const token = Cookies.get("token");
     try {
+      setLoading(true);
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
         {
@@ -163,8 +179,14 @@ export default function Home() {
 
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error exporting EXCEL:", error);
-      alert("Failed to export Excel.");
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export Excel.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -177,6 +199,7 @@ export default function Home() {
     actionType: string;
     modalType: string;
     status_submittion: string;
+    file_upload: string;
   };
 
   const columns: ColumnDef<ITrResign>[] = [
@@ -197,18 +220,41 @@ export default function Home() {
     },
     {
       accessorKey: "effective_date",
-      header: "Effective Date Resign",
+      header: "Effective Date",
       enableSorting: true,
     },
+    // {
+    //   accessorKey: "reason",
+    //   header: "Reason",
+    //   enableSorting: true,
+    // },
     {
-      accessorKey: "reason",
-      header: "Reason",
-      enableSorting: true,
+      accessorKey: "file_upload",
+      header: "Resign Attachment",
+      cell: ({ row }) => {
+        const file = row.original.file_upload;
+        if (file) {
+          const fileUrl = `http://localhost:3000/uploads/file_resign/${file}`;
+          return (
+            <div className="flex justify-center cursor-pointer">
+              <IoMdPaper
+                size={24}
+                color="#E53E3E"
+                onClick={() => handleShowFile(fileUrl)}
+                title="View PDF"
+              />
+            </div>
+          );
+        } else {
+          return <span>No File</span>;
+        }
+      },
+      enableSorting: false,
     },
     {
       accessorKey: "status_submittion",
       header: "Status",
-      enableSorting: true,
+      enableSorting: false,
       cell: ({ row }) => {
         const statusId = row.original.status_id;
         const statusSubmittion = row.original.status_submittion;
@@ -286,188 +332,205 @@ export default function Home() {
 
   return (
     <Main>
-      <div className="mb-6">
-        <div className="flex flex-col gap-4 mt-4">
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
           <h1 className="text-3xl font-bold text-gray-800">
-            Resign submission data list
+            Resign Submissions
           </h1>
+        </div>
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative">
+            <button
+              onClick={() => setShowFilter((prev) => !prev)}
+              className="btn btn-filled btn-primary"
+            >
+              <i className="ki-filled ki-filter-tablet mr-1" />
+              Filter
+            </button>
 
-          <div className="flex justify-between items-center">
-            <div></div>
-            <div className="flex gap-3 items-center">
-              <button
-                onClick={() => setShowFilter((prev) => !prev)}
-                className="btn btn-filled btn-primary"
-              >
-                <i className="ki-filled ki-filter-tablet mr-1" />
-                Filter
-              </button>
-              {showFilter && (
+            {showFilter && (
+              <div className="absolute top-12 left-0 z-50">
                 <FilterData
                   onSelect={(selectedFilter) => {
                     setFilter(selectedFilter);
                     setShowFilter(false);
                   }}
                 />
-              )}{" "}
-              <button
-                className="btn btn-filled btn-success"
-                onClick={() => handleExportExcel()}
-              >
-                <i className="ki-filled ki-file-down"></i>
-                Export to Excel
-              </button>
-            </div>
+              </div>
+            )}
           </div>
 
-          <ActionModal
-            isModalOpen={isActionModalOpen}
-            onClose={onClose}
-            title={`${selectedActionType} Resign Request`}
-            onSubmit={handleSubmit(onSubmit)}
-            loading={loading}
-            submitText={selectedActionType}
+          <button
+            className="btn btn-filled btn-success"
+            onClick={handleExportExcel}
+            disabled={loading}
           >
-            <form id="resignForm" onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Data Umum */}
-                <div>
-                  <label className="form-label">Employee Name</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.user_name ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Employee Department</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.user_departement ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Effective Date</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.effective_date ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Reason</label>
-                  <input
-                    className="input w-full"
-                    type="text"
-                    readOnly
-                    value={selectedData?.reason ?? ""}
-                  />
-                </div>
-              </div>
-
+            {loading ? (
               <>
-                {selectedActionType === "Approved" ||
-                  (selectedActionType === "Rejected" &&
-                    selectedData?.status_id === 2 && (
-                      <div className="grid grid-cols-1 gap-5 mt-6">
-                        <div>
-                          <label className="form-label">Accepted Remark</label>
-                          <input
-                            className="input w-full"
-                            type="text"
-                            readOnly
-                            value={selectedData?.accepted_remark ?? ""}
-                          />
-                        </div>
-                      </div>
-                    ))}
-
-                <div className="grid grid-cols-1 gap-5 mt-6">
-                  <div>
-                    <label className="form-label">
-                      {selectedActionType === "Approved" &&
-                      selectedData?.status_id === 1
-                        ? "Approved Remark"
-                        : `${selectedActionType} Remark`}
-                    </label>
-                    <Controller
-                      name="remark"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className={clsx(
-                            "input",
-                            errors.remark
-                              ? "border-red-500 hover:border-red-500"
-                              : ""
-                          )}
-                        />
-                      )}
-                    />
-                    {errors.remark && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.remark.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </>
-            </form>
-          </ActionModal>
-
-          <DetailModal
-            isModalOpen={isDetailModalOpen}
-            onClose={onClose}
-            title="Leave Request Detail"
-          >
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="w-full md:w-60">
-                <StatusStepper
-                  statusId={selectedData?.status_id ?? 1}
-                  createdDate={selectedData?.created_at}
-                  acceptedDate={selectedData?.accepted_date}
-                  approvedDate={selectedData?.approved_date}
-                  rejectedDate={selectedData?.rejected_date}
-                  canceledDate={selectedData?.canceled_date}
-                  acceptedRemark={selectedData?.accepted_remark}
-                  approvedRemark={selectedData?.approved_remark}
-                  rejectedRemark={selectedData?.rejected_remark}
-                  canceledRemark={selectedData?.canceled_remark}
-                  acceptTo={selectedData?.accept_to}
-                  approveTo={selectedData?.approve_to}
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
                 />
-              </div>
-              <div className="flex-1">
-                <form>
-                  <div className="flex flex-col gap-4 text-sm text-gray-700">
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        Effective Date
-                      </div>
-                      <p>{selectedData?.effective_date ?? "-"}</p>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-600">
-                        Resign Reason
-                      </div>
-                      <p>{selectedData?.reason ?? "-"}</p>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </DetailModal>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <i className="ki-filled ki-file-down"></i>
+                Export to Excel
+              </>
+            )}
+          </button>
         </div>
       </div>
 
+      <ActionModal
+        isModalOpen={isActionModalOpen}
+        onClose={onClose}
+        title={`${selectedActionType} Resign Request`}
+        onSubmit={handleSubmit(onSubmit)}
+        loading={loading}
+        submitText={selectedActionType}
+      >
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-60">
+              <h3 className="font-bold border-b pb-2 text-gray-700">
+                Approval Stage
+              </h3>
+              <StatusStepper
+                statusId={selectedData?.status_id ?? 1}
+                createdDate={selectedData?.created_at}
+                acceptedDate={selectedData?.accepted_date}
+                approvedDate={selectedData?.approved_date}
+                rejectedDate={selectedData?.rejected_date}
+                canceledDate={selectedData?.canceled_date}
+                acceptedRemark={selectedData?.accepted_remark}
+                approvedRemark={selectedData?.approved_remark}
+                rejectedRemark={selectedData?.rejected_remark}
+                canceledRemark={selectedData?.canceled_remark}
+                acceptTo={selectedData?.accept_to}
+                approveTo={selectedData?.approve_to}
+              />
+            </div>
+            <div className="flex-1 space-y-8">
+              <section className="text-sm text-gray-700 space-y-8">
+                <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
+                  General Information
+                </h3>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  {[
+                    ["Employee Name", selectedData?.user_name],
+                    ["Employee Department", selectedData?.user_departement],
+                    ["Effective Date", selectedData?.effective_date],
+                    ["Resign Reason", selectedData?.reason],
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="w-full md:w-[30%]">
+                      <div className="font-semibold text-gray-600">{label}</div>
+                      <p className="font-bold">{value ?? "-"}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <section
+            className={clsx(
+              "rounded-xl shadow-md p-6 mt-8",
+              selectedActionType === "Approved" && "bg-green-100",
+              selectedActionType === "Rejected" && "bg-red-100",
+              selectedActionType === "Accepted" && "bg-blue-100"
+            )}
+          >
+            <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+              Remark
+            </h3>
+            <div className="grid grid-cols-1 gap-5">
+              <div>
+                <label className="form-label mb-2">
+                  {selectedActionType === "Approved" &&
+                  selectedData?.status_id === 1
+                    ? "Approved Remark"
+                    : `${selectedActionType} Remark`}
+                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
+                </label>
+                <Controller
+                  name="remark"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      autoFocus
+                      className={clsx(
+                        "input",
+                        errors.remark
+                          ? "border-red-500 hover:border-red-500"
+                          : ""
+                      )}
+                    />
+                  )}
+                />
+                {errors.remark && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.remark.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        </form>
+      </ActionModal>
+
+      <DetailModal
+        isModalOpen={isDetailModalOpen}
+        onClose={onClose}
+        title="Resign Request Detail"
+      >
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-60">
+            <h3 className="font-bold border-b pb-2 text-gray-700">
+              Approval Stage
+            </h3>
+            <StatusStepper
+              statusId={selectedData?.status_id ?? 1}
+              createdDate={selectedData?.created_at}
+              acceptedDate={selectedData?.accepted_date}
+              approvedDate={selectedData?.approved_date}
+              rejectedDate={selectedData?.rejected_date}
+              canceledDate={selectedData?.canceled_date}
+              acceptedRemark={selectedData?.accepted_remark}
+              approvedRemark={selectedData?.approved_remark}
+              rejectedRemark={selectedData?.rejected_remark}
+              canceledRemark={selectedData?.canceled_remark}
+              acceptTo={selectedData?.accept_to}
+              approveTo={selectedData?.approve_to}
+            />
+          </div>
+          <div className="flex-1 space-y-8">
+            <section className="text-sm text-gray-700 space-y-8">
+              <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
+                General Information
+              </h3>
+              <div className="flex flex-wrap gap-6 mt-4">
+                {[
+                  ["Employee Name", selectedData?.user_name],
+                  ["Employee Department", selectedData?.user_departement],
+                  ["Effective Date", selectedData?.effective_date],
+                  ["Resign Reason", selectedData?.reason],
+                ].map(([label, value], idx) => (
+                  <div key={idx} className="w-full md:w-[30%]">
+                    <div className="font-semibold text-gray-600">{label}</div>
+                    <p className="font-bold">{value ?? "-"}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </DetailModal>
+
       <DataTable
-        title="Resign Submission"
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=resign&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}

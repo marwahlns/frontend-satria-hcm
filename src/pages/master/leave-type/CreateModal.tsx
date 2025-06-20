@@ -5,19 +5,19 @@ import { Controller, useForm } from "react-hook-form";
 import clsx from "clsx";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
-
+    const [loading, setLoading] = useState(false);
+    
     const schema = yup.object().shape({
         title: yup
             .string()
+            .test("not-empty", "Title cannot be empty or spaces only", value => {
+                return value?.trim().length > 0;
+            })
             .required("Title is required"),
-
-        days: yup
-            .number()
-            .required("Days is required"),
     });
 
     const {
@@ -29,7 +29,6 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         resolver: yupResolver(schema),
         defaultValues: {
             title: "",
-            days: 0,
         },
     });
 
@@ -40,14 +39,13 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     }, [isModalOpen, reset]);
 
     const onSubmit = async (data) => {
+        setLoading(true);
         try {
             const token = Cookies.get("token");
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type`,
                 {
-                    ...data,
                     title: data.title,
-                    days: data.days,
                 },
                 {
                     headers: {
@@ -56,7 +54,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 }
             );
 
-            if (response.status == 201) {
+            if (response.status === 201) {
                 Swal.fire({
                     text: "Leave type added successfully",
                     icon: "success",
@@ -66,11 +64,36 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 onClose();
                 reset();
             } else {
-                onClose();
-                reset();
+                Swal.fire({
+                    text: "Failed to add leave type",
+                    icon: "error",
+                    timer: 1500,
+                });
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error:", error);
+            
+            if (error.response?.status === 400) {
+                Swal.fire({
+                    text: error.response.data.message || "Invalid input data",
+                    icon: "error",
+                    timer: 2000,
+                });
+            } else if (error.response?.status === 500) {
+                Swal.fire({
+                    text: "Server error. Please try again later.",
+                    icon: "error",
+                    timer: 2000,
+                });
+            } else {
+                Swal.fire({
+                    text: "Network error. Please check your connection.",
+                    icon: "error",
+                    timer: 2000,
+                });
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -110,8 +133,34 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         <button type="button" className="btn btn-light" onClick={onClose}>
                             Cancel
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            Submit
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 mr-3 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                "Submit"
+                            )}
                         </button>
                     </div>
                 </div>

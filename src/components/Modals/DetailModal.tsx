@@ -4,7 +4,7 @@ const DetailModal = ({ isModalOpen, onClose, title = "Modal", children }) => {
   return (
     <Modal isModalOpen={isModalOpen}>
       <div className="modal-header">
-        <h3 className="modal-title">{title}</h3>
+        <h3 className="modal-title text-lg">{title}</h3>
         <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
           <i className="ki-outline ki-cross"></i>
         </button>
@@ -14,4 +14,4 @@ const DetailModal = ({ isModalOpen, onClose, title = "Modal", children }) => {
   );
 };
 
-export default DetailModal;
+export default DetailModal;

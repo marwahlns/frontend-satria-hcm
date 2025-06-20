@@ -15,6 +15,7 @@ export default function Home() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
@@ -42,6 +43,10 @@ export default function Home() {
   const handleCloseDetailModal = () => {
     setIsDetailModalOpen(false);
     setSelectedData(null);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
   };
 
   const handleDelete = async (id: string) => {
@@ -84,7 +89,7 @@ export default function Home() {
   const columns: ColumnDef<IShift>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {
@@ -166,11 +171,11 @@ export default function Home() {
         </div>
       </div>
 
-      <DataTable
-        title={"Shift List"}
+      <DataTable        
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/shift`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
 
       <CreateModal

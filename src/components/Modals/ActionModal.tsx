@@ -15,7 +15,7 @@ const ActionModal = ({
   return (
     <Modal isModalOpen={isModalOpen}>
       <div className="modal-header">
-        <h3 className="modal-title">{title}</h3>
+        <h3 className="modal-title text-lg">{title}</h3>
         <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
           <i className="ki-outline ki-cross"></i>
         </button>
@@ -25,7 +25,7 @@ const ActionModal = ({
         <div className="flex gap-2">
           {showCancel && (
             <button type="button" className="btn btn-light" onClick={onClose}>
-              Cancel
+              Discard
             </button>
           )}
 

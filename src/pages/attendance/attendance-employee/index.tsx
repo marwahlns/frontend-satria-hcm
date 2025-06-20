@@ -236,7 +236,6 @@ export default function Home() {
       </div>
 
       <DataTable
-        title="Attendance Submission"
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx/attendance`}
         isRefetch={isRefetch}
