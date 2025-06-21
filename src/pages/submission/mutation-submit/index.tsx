@@ -15,18 +15,24 @@ import "react-datepicker/dist/react-datepicker.css";
 import { enGB } from "date-fns/locale";
 import Modal from "@/components/Modal";
 import ActionModal from "@/components/Modals/ActionModal";
-import DetailModal from "@/components/Modals/DetailModal";
+import DetailModal from "@/components/Modals/DetailModalUpper";
 import StatusStepper from "@/components/StatusStepper";
 import AsyncSelect from "react-select/async";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [selectedData, setSelectedData] = useState(null);
-  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+  const [filter, setFilter] = useState<{
+    month: string;
+    year: string;
+    status?: number;
+  }>({
     month: "",
     year: "",
     status: 0,
@@ -105,7 +111,7 @@ export default function Home() {
     if (!watch("department_from")) {
       setValue("department_from", "-");
     }
-  }, []);
+  }, [watch, setValue]);
 
   const loadUserOptions = async (inputValue) => {
     try {
@@ -116,6 +122,7 @@ export default function Home() {
           headers: { Authorization: `Bearer ${token}` },
           params: {
             search: inputValue,
+            submition: "true",
           },
         }
       );
@@ -133,7 +140,7 @@ export default function Home() {
             label: user.department,
           },
           superior: user.superior,
-          isDisabled: user.isDisable === true, // ⬅️ tambahkan ini
+          isDisabled: user.isDisable === true,
         }));
       }
       return [];
@@ -203,11 +210,16 @@ export default function Home() {
     setIsDetailModalOpen(false);
     setIsAddModalOpen(false);
     setSelectedData(null);
+    setValue("department_to", "");
+    setValue("division_to", "");
+    setValue("department_from", "");
+    setValue("division_from", "");
     reset();
   };
 
   const onCancel = async (data) => {
     try {
+      setLoading(true);
       const result = await Swal.fire({
         title: `Are you sure?`,
         text: `Do you want to ${selectedActionType} this mutation request?`,
@@ -216,7 +228,8 @@ export default function Home() {
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
         confirmButtonText: `Yes, ${selectedActionType} it!`,
-        cancelButtonText: "Cancel",
+        cancelButtonText: "Discard",
+        reverseButtons: true,
       });
 
       if (!result.isConfirmed) {
@@ -259,11 +272,71 @@ export default function Home() {
         icon: "error",
         confirmButtonText: "OK",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportPDF = async (searchId) => {
+    const token = Cookies.get("token");
+    try {
+      setLoading(true);
+      setLoadingId(searchId);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            type: "mutation",
+            exportData: "pdf",
+            status: filter.status,
+            month: filter.month,
+            year: filter.year,
+            search: searchId,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to export PDF file");
+      }
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Data_Mutation_${yyyy}-${mm}-${dd}.pdf`;
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export PDF.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
+      setLoadingId(null);
     }
   };
 
   const onSubmit = async (data) => {
     try {
+      setLoading(true);
       const token = Cookies.get("token");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=mutation`,
@@ -298,21 +371,29 @@ export default function Home() {
         onClose();
         reset();
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to ${selectedActionType} mutation. Please try again.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const optionBackgroundColor = (state) => {
-    if (state.isDisabled) return "#ffe5e5"; // merah muda untuk disabled
-    if (state.isSelected) return "#2684ff"; // default react-select blue
-    if (state.isFocused) return "#f0f0f0"; // default hover
+    if (state.isDisabled) return "#ffe5e5";
+    if (state.isSelected) return "#2684ff";
+    if (state.isFocused) return "#f0f0f0";
     return "white";
   };
 
   const handleExportExcel = async () => {
     const token = Cookies.get("token");
     try {
+      setLoading(true);
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
         {
@@ -355,12 +436,19 @@ export default function Home() {
 
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error exporting EXCEL:", error);
-      alert("Failed to export Excel.");
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export excel`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   type ITrMutation = {
+    id: number;
     status_id: number;
     status_submittion: string;
   };
@@ -371,16 +459,46 @@ export default function Home() {
       header: "#",
       enableSorting: false,
     },
+    // {
+    //   accessorKey: "division_from",
+    //   header: "From Division",
+    //   enableSorting: true,
+    // },
+    {
+      accessorKey: "dept_from",
+      header: "From Department",
+      enableSorting: true,
+    },
+    // {
+    //   accessorKey: "superior_from",
+    //   header: "From Superior",
+    //   enableSorting: true,
+    // },
+    // {
+    //   accessorKey: "reason",
+    //   header: "Reason",
+    //   enableSorting: true,
+    // },
+    // {
+    //   accessorKey: "division_to",
+    //   header: "To Divison",
+    //   enableSorting: true,
+    // },
+    {
+      accessorKey: "dept_to",
+      header: "To Department",
+      enableSorting: true,
+    },
     {
       accessorKey: "effective_date",
-      header: "Start Date",
-      enableSorting: true,
+      header: "Effective Date",
+      enableSorting: false,
     },
-    {
-      accessorKey: "reason",
-      header: "Reason",
-      enableSorting: true,
-    },
+    // {
+    //   accessorKey: "superior_to",
+    //   header: "Superior To",
+    //   enableSorting: true,
+    // },
     {
       accessorKey: "status_submittion",
       header: "Status",
@@ -432,7 +550,21 @@ export default function Home() {
             <div className="tooltip" id="update_tooltip">
               Detail
             </div>
-            {data.status_id == 1 && (
+            <button
+              className="btn btn-sm btn-outline btn-danger"
+              onClick={() => handleExportPDF(data.id)}
+              disabled={loadingId === data.id}
+            >
+              {loadingId === data.id ? (
+                <span className="flex items-center gap-1">
+                  <span className="loading loading-spinner loading-xs"></span>
+                  Exporting...
+                </span>
+              ) : (
+                <i className="ki-filled ki-file-down"></i>
+              )}
+            </button>
+            {/* {data.status_id == 1 && (
               <>
                 <button
                   data-tooltip="#delete_tooltip"
@@ -445,7 +577,7 @@ export default function Home() {
                   Cancel
                 </div>
               </>
-            )}
+            )} */}
           </div>
         );
       },
@@ -461,36 +593,48 @@ export default function Home() {
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           <button
-            className="btn btn-outline btn-primary"
+            className="btn btn-outline btn-success"
             onClick={() => handleExportExcel()}
           >
-            <i className="ki-filled ki-file-down"></i>
-            Export
+            {loading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <i className="ki-filled ki-file-down"></i>
+                Export
+              </>
+            )}
           </button>
-
-          <button
-            onClick={() => setShowFilter((prev) => !prev)}
-            className="btn btn-outline btn-primary"
-          >
-            <i className="ki-filled ki-filter-tablet mr-1" />
-            Filter
-          </button>
-          {showFilter && (
-            <FilterData
-              onSelect={(selectedFilter) => {
-                setFilter(selectedFilter);
-                setShowFilter(false);
-              }}
-            />
-          )}
-
-          <button
+          <div className="relative">
+            <button
+              onClick={() => setShowFilter((prev) => !prev)}
+              className="btn btn-outline btn-primary"
+            >
+              <i className="ki-filled ki-filter-tablet mr-1" />
+              Filter
+            </button>
+            {showFilter && (
+              <FilterData
+                onSelect={(selectedFilter) => {
+                  setFilter(selectedFilter);
+                  setShowFilter(false);
+                }}
+              />
+            )}
+          </div>
+          {/* <button
             className="btn btn-filled btn-primary"
             onClick={() => handleOpenAddModal()}
           >
             <i className="ki-outline ki-plus-squared"></i>
             Add Data
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -504,10 +648,7 @@ export default function Home() {
       <Modal isModalOpen={isAddModalOpen}>
         <div className="modal-header">
           <h3 className="modal-title">Add Mutation Submission</h3>
-          <button
-            className="btn btn-xs btn-icon btn-light"
-            onClick={onClose}
-          >
+          <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
             <i className="ki-outline ki-cross"></i>
           </button>
         </div>
@@ -534,9 +675,9 @@ export default function Home() {
                       value={
                         field.value
                           ? {
-                            value: selectedUser?.value,
-                            label: selectedUser?.label || "",
-                          }
+                              value: selectedUser?.value,
+                              label: selectedUser?.label || "",
+                            }
                           : null
                       }
                       getOptionLabel={(e) => e.label}
@@ -549,9 +690,7 @@ export default function Home() {
                           ...base,
                           backgroundColor: optionBackgroundColor(state),
                           color: state.isDisabled ? "#999" : base.color,
-                          cursor: state.isDisabled
-                            ? "not-allowed"
-                            : "default",
+                          cursor: state.isDisabled ? "not-allowed" : "default",
                         }),
                       }}
                       onChange={(selectedOption) => {
@@ -605,10 +744,10 @@ export default function Home() {
                           "effective_date",
                           date
                             ? new Date(date).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })
                             : ""
                         );
                       }}
@@ -633,18 +772,13 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Mutation From Header */}
               <div className="md:col-span-2">
                 <label className="form-label block w-full break-words mb-1">
                   Mutation From:
                 </label>
               </div>
-
-              {/* Superior Now */}
               <div>
-                <label className="form-label block mb-1">
-                  Superior Now
-                </label>
+                <label className="form-label block mb-1">Superior Now</label>
                 <div
                   className={clsx(
                     "w-full text-sm",
@@ -661,9 +795,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="form-label block mb-1">
-                  Division Now
-                </label>
+                <label className="form-label block mb-1">Division Now</label>
                 <div
                   className={clsx(
                     "w-full text-sm",
@@ -678,12 +810,8 @@ export default function Home() {
                   </p>
                 )}
               </div>
-
-              {/* Department Now */}
               <div>
-                <label className="form-label block mb-1">
-                  Department Now
-                </label>
+                <label className="form-label block mb-1">Department Now</label>
                 <div
                   className={clsx(
                     "w-full text-sm",
@@ -725,9 +853,9 @@ export default function Home() {
                       value={
                         field.value
                           ? {
-                            value: selectedSuperior?.value,
-                            label: selectedSuperior?.label || "",
-                          }
+                              value: selectedSuperior?.value,
+                              label: selectedSuperior?.label || "",
+                            }
                           : null
                       }
                       onChange={(selectedOption) => {
@@ -735,10 +863,7 @@ export default function Home() {
                         field.onChange(option?.value || "");
                         setSelectedSuperior(option);
 
-                        setValue(
-                          "department_to",
-                          option?.department || "-"
-                        );
+                        setValue("department_to", option?.department || "-");
                         setValue("division_to", option?.division || "-");
                       }}
                       classNamePrefix="react-select"
@@ -773,9 +898,7 @@ export default function Home() {
 
               {/* Department To */}
               <div>
-                <label className="form-label block mb-1">
-                  Department To
-                </label>
+                <label className="form-label block mb-1">Department To</label>
                 <div
                   className={clsx(
                     "w-full text-sm",
@@ -807,7 +930,7 @@ export default function Home() {
                         "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
                         errors.reason &&
-                        "border-red-500 focus:border-red-500 focus:ring-red-500"
+                          "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
                       placeholder="Your reason"
                       rows={4}
@@ -826,12 +949,8 @@ export default function Home() {
           {/* Footer */}
           <div className="modal-footer justify-end flex-shrink-0">
             <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-light"
-                onClick={onClose}
-              >
-                Cancel
+              <button type="button" className="btn btn-light" onClick={onClose}>
+                Discard
               </button>
               <button type="submit" className="btn btn-primary">
                 Submit
@@ -848,6 +967,9 @@ export default function Home() {
       >
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-60">
+            <h3 className="font-bold border-b pb-2 text-gray-700">
+              Approval Stage
+            </h3>
             <StatusStepper
               statusId={selectedData?.status_id ?? 1}
               createdDate={selectedData?.created_at}
@@ -863,28 +985,36 @@ export default function Home() {
               approveTo={selectedData?.approve_to}
             />
           </div>
-          <div className="flex-1">
-            <form>
-              <div className="flex flex-col gap-4 text-sm text-gray-700">
-                <div>
-                  <div className="font-semibold text-gray-600">
-                    Effective Date
-                  </div>
-                  <p>{selectedData?.effective_date ?? "-"}</p>
+          <div className="flex-1 space-y-8">
+            <form className="text-sm text-gray-700 space-y-8">
+              <section>
+                <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
+                  General Information
+                </h3>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  {[
+                    ["From Divison", selectedData?.division_from],
+                    ["From Department", selectedData?.dept_from],
+                    ["From Superior", selectedData?.superior_from],
+                    ["To Division", selectedData?.division_to],
+                    ["To Department", selectedData?.dept_to],
+                    ["To Superior", selectedData?.superior_to],
+                    ["Effective Date", selectedData?.effective_date],
+                    ["Mutation Reason", selectedData?.reason],
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="w-full md:w-[30%]">
+                      <div className="font-semibold text-gray-600">{label}</div>
+                      <p className="font-bold">{value ?? "-"}</p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-600">
-                    Mutation Reason
-                  </div>
-                  <p>{selectedData?.reason ?? "-"}</p>
-                </div>
-              </div>
+              </section>
             </form>
           </div>
         </div>
       </DetailModal>
 
-      <ActionModal
+      {/* <ActionModal
         isModalOpen={isActionModalOpen}
         onClose={onClose}
         title={`${selectedActionType} Mutation Request`}
@@ -940,7 +1070,7 @@ export default function Home() {
             </div>
           </div>
         </form>
-      </ActionModal>
+      </ActionModal> */}
     </div>
   );
 }

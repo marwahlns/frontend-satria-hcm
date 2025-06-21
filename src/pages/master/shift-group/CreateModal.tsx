@@ -119,7 +119,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 text: errorMessage,
                 icon: "error",
             });
+            setLoading(false);
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -161,7 +164,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[400px] max-h-[65vh]">
                     <div className="form-group mb-2">
-                        <label className="form-label mb-1">Code</label>
+                        <label className="form-label mb-1">Code<span className="text-red-500">*</span></label>
                         <Controller
                             name="code"
                             control={control}
@@ -173,6 +176,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                         "input",
                                         errors.code ? "border-red-500 hover:border-red-500" : ""
                                     )}
+                                    placeholder="Code"
                                 />
                             )}
                         />
@@ -181,7 +185,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         )}
                     </div>
                     <div className="form-group mb-2">
-                        <label className="form-label mb-1">Name</label>
+                        <label className="form-label mb-1">Name<span className="text-red-500">*</span></label>
                         <Controller
                             name="name"
                             control={control}
@@ -193,6 +197,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                         "input",
                                         errors.name ? "border-red-500 hover:border-red-500" : ""
                                     )}
+                                    placeholder="Name"
                                 />
                             )}
                         />
@@ -273,7 +278,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
                             {loading ? (

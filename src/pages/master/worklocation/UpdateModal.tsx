@@ -5,10 +5,11 @@ import { Controller, useForm } from "react-hook-form";
 import clsx from "clsx";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch }) => {
+    const [loading, setLoading] = useState(false);
     const schema = yup.object().shape({
         location_code: yup
             .string(),
@@ -22,10 +23,18 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
 
         location_lat_long: yup
             .string()
-            .test("not-empty", "Latitude & longitude cannot be empty or spaces only", value => {
-                return value?.trim().length > 0;
-            })
-            .required("Latitude & longitude is required"),
+            .required("Latitude & longitude is required.")
+            .matches(
+                /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/,
+                "Invalid latitude & longitude format. Use numbers, commas, and hyphens (e.g., -6.234, 106.876)."
+            )
+            .test(
+                "not-empty-or-spaces",
+                "Latitude & longitude cannot be empty or spaces only.",
+                (value) => {
+                    return value ? value.trim().length > 0 : false;
+                }
+            ),
     });
 
     const {
@@ -53,6 +62,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     }, [selectedData, reset]);
 
     const onSubmit = async (data) => {
+        setLoading(true);
         try {
             const token = Cookies.get("token");
             const response = await axios.put(
@@ -84,6 +94,8 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
             }
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -98,8 +110,8 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
             <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
-                    <div className="form-group mb-2">
-                            <label className="form-label mb-1">Code</label>
+                        <div className="form-group mb-2">
+                            <label className="form-label mb-1">Code<span className="text-red-500">*</span></label>
                             <Controller
                                 name="location_code"
                                 control={control}
@@ -117,7 +129,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             />
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Name</label>
+                            <label className="form-label mb-1">Name<span className="text-red-500">*</span></label>
                             <Controller
                                 name="location_name"
                                 control={control}
@@ -138,7 +150,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             )}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Latitude, Longitude</label>
+                            <label className="form-label mb-1">Latitude, Longitude<span className="text-red-500">*</span></label>
                             <Controller
                                 name="location_lat_long"
                                 control={control}
@@ -150,7 +162,6 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                                             "input",
                                             errors.location_lat_long ? "border-red-500 hover:border-red-500" : ""
                                         )}
-                                        onChange={(e) => field.onChange(Number(e.target.value))}
                                         placeholder="Latitude, Longitude"
                                     />
                                 )}
@@ -164,10 +175,36 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            Submit
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 mr-3 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                "Submit"
+                            )}
                         </button>
                     </div>
                 </div>

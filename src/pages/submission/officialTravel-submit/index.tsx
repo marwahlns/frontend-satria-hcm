@@ -6,13 +6,14 @@ import * as yup from "yup";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import FilterData from "@/components/FilterData";
 import Cookies from "js-cookie";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { enGB } from "date-fns/locale";
 import Modal from "@/components/Modal";
+import AddModalOfficial from "@/components/Modals/AddOfficialTravelModal";
 import ActionModal from "@/components/Modals/ActionModalUpper";
 import DetailModal from "@/components/Modals/DetailModalUpper";
 import DeclarationModal from "@/components/Modals/DeclarationModal";
@@ -25,9 +26,14 @@ import { IoIosList } from "react-icons/io";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
   const [isCancelTravelModalOpen, setIsCancelTravelModalOpen] = useState(false);
   const [isCancelDeclarationModalOpen, setIsCancelDeclarationModalOpen] =
     useState(false);
+  const [declarationStatus, setDeclarationStatus] = useState<number | null>(
+    null
+  );
+  const [formCount, setFormCount] = useState(1); // Mulai dari 1
   const [declarationType, setDeclarationType] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,7 +41,11 @@ export default function Home() {
   const [isDeclarationModalOpen, setIsDeclarationModalOpen] = useState(false);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [selectedData, setSelectedData] = useState(null);
-  const [filter, setFilter] = useState<{ month: string; year: string; status?: number }>({
+  const [filter, setFilter] = useState<{
+    month: string;
+    year: string;
+    status?: number;
+  }>({
     month: "",
     year: "",
     status: 0,
@@ -47,24 +57,36 @@ export default function Home() {
     (state) => state.setTotalOfficialTravels
   );
   const [travelType, setTravelType] = useState(null);
-  const [selectedCountries, setSelectedCountries] = useState<CountryOption[]>(
-    []
-  );
+  const [selectedCountry1, setSelectedCountry1] = useState(null);
+  const [selectedRegion1, setSelectedRegion1] = useState(null);
+  const [regionOptions1, setRegionOptions1] = useState([]);
+
+  const [selectedCountry2, setSelectedCountry2] = useState(null);
+  const [selectedRegion2, setSelectedRegion2] = useState(null);
+  const [regionOptions2, setRegionOptions2] = useState([]);
+
+  const [selectedCountry3, setSelectedCountry3] = useState(null);
+  const [selectedRegion3, setSelectedRegion3] = useState(null);
+  const [regionOptions3, setRegionOptions3] = useState([]);
+
   const [exchangeRates, setExchangeRates] = useState<
     Record<string, number | string>
   >({});
   const [declarationData, setDeclarationData] = useState(null);
   const [officialTravelData, setOfficialTravelData] = useState(null);
+  const [activeDropdownRow, setActiveDropdownRow] = useState(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const submitSchemaBase = yup.object({
     start_date: yup.string().required("Start date is required"),
     end_date: yup.string().required("End date is required"),
-    destination_city: yup
-      .array()
-      .of(yup.string())
-      .min(1, "Destination city is required"),
+    destination_city1: yup.string().required("Destination City 1 is required"),
+    destination_city2: yup.string().nullable(),
+    destination_city3: yup.string().nullable(),
+    destination_place1: yup.string().required("Destination place is required"),
+    destination_place2: yup.string().nullable(),
+    destination_place3: yup.string().nullable(),
     purpose: yup.string().required("Purpose official travel is required"),
     type: yup.string().required("Type is required"),
-    destination_place: yup.string().required("Destination place is required"),
     transportation: yup.string().required("Transportation is required"),
     lodging: yup.string().required("Lodging is required"),
     work_status: yup.string().required("Work status is required"),
@@ -97,9 +119,13 @@ export default function Home() {
   interface OfficialTravelFormValues {
     start_date?: string;
     end_date?: string;
-    destination_city?: string[];
+    destination_city1?: string;
+    destination_city2?: string;
+    destination_city3?: string;
     type?: string;
-    destination_place?: string;
+    destination_place1?: string;
+    destination_place2?: string;
+    destination_place3?: string;
     transportation?: string;
     lodging?: string;
     work_status?: string;
@@ -138,13 +164,17 @@ export default function Home() {
     defaultValues: {
       start_date: "",
       end_date: "",
-      destination_city: [],
+      destination_city1: "",
+      destination_city2: "",
+      destination_city3: "",
       purpose: "",
       canceled_remark: "",
       type: "",
       symbol_currency: [],
       currency: [],
-      destination_place: "",
+      destination_place1: "",
+      destination_place2: "",
+      destination_place3: "",
       transportation: "",
       lodging: "",
       work_status: "",
@@ -174,11 +204,18 @@ export default function Home() {
     const total = watchCosts.reduce((acc, cur) => acc + (cur ?? 0), 0);
     setValue("total_cost", total);
 
-    if (travelType === "international" && selectedCountries.length > 0) {
-      const currencyCodes = selectedCountries.map((c) => c.currencyCode);
-      const currencyValues = selectedCountries.map((c) =>
+    const selectedAll = [
+      selectedCountry1,
+      selectedCountry2,
+      selectedCountry3,
+    ].filter(Boolean);
+
+    if (travelType === "international" && selectedAll.length > 0) {
+      const currencyCodes = selectedAll.map((c) => c.currencyCode);
+      const currencyValues = selectedAll.map((c) =>
         String(exchangeRates[c.currencyCode] ?? "")
       );
+
       setValue("symbol_currency", currencyCodes);
       setValue("currency", currencyValues);
     } else {
@@ -196,12 +233,46 @@ export default function Home() {
     };
   }, [
     watchCosts,
-    selectedCountries,
+    selectedCountry1,
+    selectedCountry2,
+    selectedCountry3,
     travelType,
     setValue,
     exchangeRates,
     setIsRefetch,
   ]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdownRow(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const addForm = () => {
+    if (formCount < 3) {
+      setFormCount(formCount + 1);
+    }
+  };
+
+  const removeForm = (index) => {
+    if (index === 1) {
+      setSelectedCountry2(null);
+      setSelectedRegion2(null);
+      setRegionOptions2([]);
+    } else if (index === 2) {
+      setSelectedCountry3(null);
+      setSelectedRegion3(null);
+      setRegionOptions3([]);
+    }
+    setFormCount(formCount - 1);
+  };
 
   const handleOpenCancelTravelModal = (data, actionType) => {
     setSelectedData(data);
@@ -284,7 +355,9 @@ export default function Home() {
     setIsChooseModalOpen(false);
     setSelectedData(null);
     reset();
-    setSelectedCountries([]);
+    setSelectedCountry1(null);
+    setSelectedCountry2(null);
+    setSelectedCountry3(null);
     setTravelType("");
     useOfficialTravelStore.getState().setOfficialTravelData(null);
   };
@@ -329,7 +402,7 @@ export default function Home() {
     { label: "NON TA (Jika tidak butuh tiket pesawat)", value: "NTA" },
   ];
 
-  const loadDomesticOptions = async (inputValue) => {
+  const loadProvinceOptions = async (inputValue) => {
     const provResponse = await fetch(
       "https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json"
     );
@@ -337,6 +410,7 @@ export default function Home() {
     const provinceOptions = provData.map((item) => ({
       label: item.name.toUpperCase(),
       value: item.name.toUpperCase(),
+      id: item.id,
     }));
 
     return provinceOptions.filter((option) =>
@@ -344,41 +418,105 @@ export default function Home() {
     );
   };
 
-  const loadInternationalOptions = async (inputValue) => {
-    const countryResponse = await fetch("https://restcountries.com/v3.1/all");
-    const countryData = await countryResponse.json();
+  const loadRegionByProvinceCode = async (inputValue, provinceCode) => {
+    try {
+      if (!provinceCode) return [];
 
-    const countryOptions = countryData
-      .filter(
-        (item) =>
-          item.name &&
-          item.name.common &&
-          item.name.common.toUpperCase() !== "INDONESIA"
-      )
-      .map((item) => {
-        const currencyCode = item.currencies
-          ? Object.keys(item.currencies)[0]
-          : "-";
+      const response = await fetch(
+        `https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinceCode}.json`
+      );
+      if (!response.ok) throw new Error("Failed to fetch regions");
 
-        const currencyObj = item.currencies
-          ? (Object.values(item.currencies)[0] as { symbol?: string })
-          : undefined;
+      const data = await response.json();
 
-        return {
-          label: item.name.common.toUpperCase(),
-          value: item.name.common.toUpperCase(),
-          currencyCode: currencyCode || "-",
-          currencySymbol: currencyObj?.symbol || "-",
-        };
-      });
+      const options = data.map((item) => ({
+        label: item.name.toUpperCase(),
+        value: item.name.toUpperCase(),
+      }));
 
-    return countryOptions.filter((option) =>
-      option.label.toLowerCase().includes(inputValue.toLowerCase())
+      return options.filter((option) =>
+        option.label.toLowerCase().includes(inputValue.toLowerCase())
+      );
+    } catch (error) {
+      console.error("Error loading regions:", error);
+      return [];
+    }
+  };
+
+  const loadInternationalOptions = async (inputValue: string) => {
+    const response = await fetch(
+      `http://geodb-free-service.wirefreethought.com/v1/geo/countries?limit=10&namePrefix=${inputValue}`
     );
+
+    const data = await response.json();
+
+    const countryOptions = (data.data || [])
+      .map((item: any) => ({
+        label: item.name.toUpperCase(),
+        value: item.name.toUpperCase(),
+        wikiDataId: item.wikiDataId,
+        currencyCode: item.currencyCodes?.[0] || "-",
+      }))
+      .filter((option: any) =>
+        option.label.toLowerCase().includes(inputValue.toLowerCase())
+      );
+
+    return countryOptions;
+  };
+
+  const fetchRegionsByCountryCode = async (
+    countryCode: string,
+    inputValue: string = ""
+  ) => {
+
+    const limit = 10;
+    let offset = 0;
+    let allRegions: any[] = [];
+    let hasMore = true;
+
+    try {
+      while (hasMore) {
+        const response = await fetch(
+          `http://geodb-free-service.wirefreethought.com/v1/geo/countries/${countryCode}/regions?limit=${limit}&offset=${offset}`
+        );
+
+        const result = await response.json();
+        const data = result.data;
+
+        if (!data || !Array.isArray(data)) {
+          console.error("Invalid API response format:", result);
+          return [];
+        }
+
+        allRegions = allRegions.concat(data);
+
+        const totalCount = result.metadata?.totalCount;
+        offset += limit;
+
+        hasMore = totalCount
+          ? allRegions.length < totalCount
+          : data.length === limit;
+      }
+
+      let mappedRegions = allRegions.map((region: any) => ({
+        label: region.name.toUpperCase(),
+        value: region.name.toUpperCase(),
+      }));
+
+      // Filter berdasarkan inputValue
+      if (inputValue) {
+        mappedRegions = mappedRegions.filter((region) =>
+          region.label.toLowerCase().includes(inputValue.toLowerCase())
+        );
+      }
+      return mappedRegions;
+    } catch (error) {
+      return [];
+    }
   };
 
   const loadOptions = (inputValue) => {
-    if (travelType === "domestic") return loadDomesticOptions(inputValue);
+    if (travelType === "domestic") return loadProvinceOptions(inputValue);
     if (travelType === "international")
       return loadInternationalOptions(inputValue);
     return Promise.resolve([]);
@@ -408,13 +546,6 @@ export default function Home() {
     { label: "Other Cost", name: "other_cost" },
   ];
 
-  type CountryOption = {
-    label: string;
-    value: string;
-    currencyCode?: string;
-    currencySymbol?: string;
-  };
-
   const fetchDeclarations = async (codeTrx) => {
     try {
       const token = Cookies.get("token");
@@ -439,6 +570,7 @@ export default function Home() {
 
   const onCancel = async (data) => {
     try {
+      setLoading(true);
       const result = await Swal.fire({
         title: `Are you sure?`,
         text: `Do you want to ${selectedActionType} this official travel request?`,
@@ -447,7 +579,8 @@ export default function Home() {
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
         confirmButtonText: `Yes, ${selectedActionType} it!`,
-        cancelButtonText: "Cancel",
+        cancelButtonText: "Discard",
+        reverseButtons: true,
       });
 
       if (!result.isConfirmed) {
@@ -490,12 +623,45 @@ export default function Home() {
         icon: "error",
         confirmButtonText: "OK",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const onSubmit = async (data) => {
     try {
+      setLoading(true);
+      const result = await Swal.fire({
+        title: `Are you sure?`,
+        text: `Do you want to submit this leave request?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: `Yes, submit it!`,
+        cancelButtonText: "Discard",
+        reverseButtons: true,
+      });
+      if (!result.isConfirmed) {
+        setLoading(false);
+        return;
+      }
+
       const token = Cookies.get("token");
+      const destination_city1 =
+        selectedCountry1 && selectedRegion1
+          ? `${selectedCountry1.label}, ${selectedRegion1.label}`
+          : "";
+
+      const destination_city2 =
+        selectedCountry2 && selectedRegion2
+          ? `${selectedCountry2.label}, ${selectedRegion2.label}`
+          : "";
+
+      const destination_city3 =
+        selectedCountry3 && selectedRegion3
+          ? `${selectedCountry3.label}, ${selectedRegion3.label}`
+          : "";
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=officialTravel`,
         {
@@ -503,7 +669,6 @@ export default function Home() {
           start_date: data.start_date,
           end_date: data.end_date,
           type: data.type,
-          destination_place: data.destination_place,
           transportation: data.transportation,
           lodging: data.lodging,
           work_status: data.work_status,
@@ -514,9 +679,12 @@ export default function Home() {
           other_cost: data.other_cost,
           total_cost: data.total_cost,
           activity_agenda: data.activity_agenda,
-          destination_city: Array.isArray(data.destination_city)
-            ? data.destination_city.join(", ")
-            : data.destination_city,
+          destination_city1,
+          destination_city2,
+          destination_city3,
+          destination_place1: data.destination_place1,
+          destination_place2: data.destination_place2,
+          destination_place3: data.destination_place3,
           symbol_currency: Array.isArray(data.symbol_currency)
             ? data.symbol_currency.join(", ")
             : data.symbol_currency,
@@ -562,14 +730,23 @@ export default function Home() {
         onClose();
         reset();
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to ${selectedActionType} official travel. Please try again.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleExportExcel = async () => {
+  const handleExportPDF = async (searchId) => {
     const token = Cookies.get("token");
     try {
+      setLoading(true);
+      setLoadingId(searchId);
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
         {
@@ -582,25 +759,23 @@ export default function Home() {
             status: filter.status,
             month: filter.month,
             year: filter.year,
-            search: searchValue,
+            search: searchId,
           },
           responseType: "blob",
         }
       );
 
       if (response.status !== 200) {
-        throw new Error("Failed to export Excel file");
+        throw new Error("Failed to export PDF file");
       }
 
       const today = new Date();
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
-      const fileName = `Data_Leave_${yyyy}-${mm}-${dd}.xlsx`;
+      const fileName = `Data_Official_Travel_${yyyy}-${mm}-${dd}.pdf`;
 
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
+      const blob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
 
@@ -612,73 +787,164 @@ export default function Home() {
 
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error exporting EXCEL:", error);
-      alert("Failed to export Excel.");
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export PDF.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
+      setLoadingId(null);
     }
   };
 
-  type ITrLeave = {
-    status_id: number;
-    status_submittion: string;
-    isDeclaration: boolean;
+  const handleExportPdfDeclaration = async (searchId) => {
+    const token = Cookies.get("token");
+    try {
+      setLoading(true);
+      setLoadingId(searchId);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            type: "declaration",
+            exportData: true,
+            status: filter.status,
+            month: filter.month,
+            year: filter.year,
+            search: searchId,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to export Excel file");
+      }
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Data_Declaration_${yyyy}-${mm}-${dd}.pdf`;
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export PDF.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
+      setLoadingId(null);
+    }
   };
 
-  const columns: ColumnDef<ITrLeave>[] = [
+  type IOffficialTravel = {
+    id: number;
+    code: string;
+    status_id: number;
+    status_submittion: string;
+    destination_place1: string;
+    destination_place2: string;
+    destination_place3: string;
+    isDeclaration: boolean;
+    isDomestic: boolean;
+  };
+
+  const columns: ColumnDef<IOffficialTravel>[] = [
     {
       accessorKey: "number",
       header: "#",
       enableSorting: false,
     },
     {
+      accessorKey: "destination_place1",
+      header: "Destination Place",
+      enableSorting: true,
+      cell: ({ row }) => {
+        const data = row.original;
+
+        const places = [
+          data.destination_place1,
+          data.destination_place2,
+          data.destination_place3,
+        ].filter(Boolean);
+        if (places.length === 0) return "-";
+
+        const firstPlace = places[0];
+
+        return places.length > 1 ? `${firstPlace}, etc` : firstPlace;
+      },
+    },
+    {
       accessorKey: "start_date",
       header: "Start Date",
-      enableSorting: true,
+      enableSorting: false,
     },
     {
       accessorKey: "end_date",
       header: "End Date",
-      enableSorting: true,
+      enableSorting: false,
     },
-    {
-      accessorKey: "total_leave_days",
-      header: "Total Days",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "destination_city",
-      header: "Destination City",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "purpose",
-      header: "Purpose",
-      enableSorting: true,
-    },
+    // {
+    //   accessorKey: "total_leave_days",
+    //   header: "Total Days",
+    //   enableSorting: true,
+    //   cell: ({ getValue }) => (
+    //     <div className="text-right">{getValue() as number}</div>
+    //   ),
+    // },
     {
       accessorKey: "status_submittion",
       header: "Status",
       enableSorting: false,
       cell: ({ row }) => {
+        const code = row.original.code;
         const statusId = row.original.status_id;
         const statusSubmittion = row.original.status_submittion;
 
-        const getStatusColor = (statusId: number) => {
+        const getStatusColor = (statusId: number, code: string) => {
+          const isDomestik = code.startsWith("TRF2");
           switch (statusId) {
             case 1:
               return "badge badge-pill badge-outline badge-dark";
-            case 2:
+            case 8:
+            case 9:
+            case 10:
+            case 12:
+            case 13:
               return "badge badge-pill badge-outline badge-primary";
-            case 3:
-              return "badge badge-pill badge-outline badge-success";
+            case 11:
+              return isDomestik
+                ? "badge badge-pill badge-outline badge-success"
+                : "badge badge-pill badge-outline badge-primary";
+            case 14:
+              return !isDomestik
+                ? "badge badge-pill badge-outline badge-success"
+                : "badge badge-pill badge-outline badge-primary";
             case 6:
               return "badge badge-pill badge-outline badge-danger";
             default:
               return "badge badge-pill badge-outline badge-warning";
           }
         };
-
-        const badgeClass = getStatusColor(statusId);
-
+        const badgeClass = getStatusColor(statusId, code);
         return (
           <div className="flex justify-center">
             <span className={`${badgeClass} text-center`}>
@@ -693,101 +959,129 @@ export default function Home() {
       header: "Action",
       cell: ({ row }) => {
         const data = row.original;
-        const [showDeclarationDropdown, setShowDeclarationDropdown] =
-          useState(false);
+        const isDropdownOpen = activeDropdownRow === data.id;
 
-        const toggleDeclarationDropdown = () => {
-          setShowDeclarationDropdown(!showDeclarationDropdown);
+        const toggleDropdown = async () => {
+          if (!isDropdownOpen) {
+            const declaration = await fetchDeclarations(data.id);
+            setDeclarationStatus(declaration?.status_id ?? null);
+          }
+          setActiveDropdownRow(isDropdownOpen ? null : data.id);
         };
 
         return (
           <div className="flex space-x-1 justify-center relative">
+            {/* Tombol lainnya seperti Detail dan Export PDF */}
             <button
-              data-tooltip="#update_tooltip"
               className="btn btn-sm btn-outline btn-primary"
               onClick={() => handleOpenDetailModal(data)}
             >
               <i className="ki-outline ki-eye text-white"></i>
             </button>
-            <div className="tooltip" id="update_tooltip">
-              Detail
-            </div>
+            <button
+              className="btn btn-sm btn-outline btn-danger"
+              onClick={() => handleExportPDF(data.id)}
+              disabled={loadingId === data.id}
+            >
+              {loadingId === data.id ? (
+                <span className="flex items-center gap-1">
+                  <span className="loading loading-spinner loading-xs"></span>
+                  Exporting...
+                </span>
+              ) : (
+                <i className="ki-filled ki-file-down"></i>
+              )}
+            </button>
 
-            {data.status_id == 1 && (
-              <>
-                <button
-                  data-tooltip="#delete_tooltip"
-                  className="btn btn-sm btn-outline btn-danger"
-                  onClick={() => handleOpenCancelTravelModal(data, "Canceled")}
-                >
-                  <i className="ki-outline ki-trash text-white"></i>
-                </button>
-                <div className="tooltip" id="delete_tooltip">
-                  Cancel
-                </div>
-              </>
+            {data.status_id === 1 && (
+              <button
+                className="btn btn-sm btn-outline btn-danger"
+                onClick={() => handleOpenCancelTravelModal(data, "Canceled")}
+              >
+                <i className="ki-outline ki-arrow-circle-left text-white"></i>
+              </button>
             )}
 
-            {data.status_id === 14 && (
+            {(data.status_id === 14 ||
+              (data.status_id === 11 && data.isDomestic)) && (
               <>
-                {data.isDeclaration === false ? (
-                  <>
-                    <button
-                      data-tooltip="#declaration_tooltip"
-                      className="btn btn-sm btn-outline btn-success"
-                      onClick={async () => {
-                        await handleOpenDeclarationModal(data);
-                        setDeclarationType("Create");
-                      }}
-                    >
-                      <i className="ki-outline">
-                        <IoIosList />
-                      </i>
-                    </button>
-                    <div className="tooltip" id="declaration_tooltip">
-                      Declaration
-                    </div>
-                  </>
+                {!data.isDeclaration ? (
+                  <button
+                    className="btn btn-sm btn-outline btn-success"
+                    onClick={async () => {
+                      await handleOpenDeclarationModal(data);
+                      setDeclarationType("Create");
+                    }}
+                  >
+                    <IoIosList />
+                  </button>
                 ) : (
-                  <>
+                  <div className="relative">
                     <button
-                      data-tooltip="#declaration_tooltip"
                       className="btn btn-sm btn-outline btn-success"
-                      onClick={toggleDeclarationDropdown}
+                      onClick={toggleDropdown}
                     >
-                      <i className="ki-outline">
-                        <IoIosList />
-                      </i>
+                      <IoIosList />
                     </button>
-                    <div className="tooltip" id="declaration_tooltip">
-                      Declaration
-                    </div>
 
-                    {showDeclarationDropdown && (
-                      <div className="absolute top-full mt-1 right-0 bg-white border rounded shadow-md w-40 z-10">
+                    {isDropdownOpen && (
+                      <div className="absolute top-0 left-[-170px] bg-white border rounded shadow-md w-44 z-10">
                         <button
                           className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                           onClick={async () => {
                             await handleOpenDeclarationModal(data);
                             setDeclarationType("Detail");
-                            setShowDeclarationDropdown(false);
+                            setActiveDropdownRow(null);
                           }}
                         >
                           Detail Declaration
                         </button>
+
+                        {declarationStatus === 1 && (
+                          <button
+                            className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                            onClick={async () => {
+                              await handleOpenDeclarationModal(data);
+                              setDeclarationType("Canceled");
+                              setActiveDropdownRow(null);
+                            }}
+                          >
+                            Cancel Declaration
+                          </button>
+                        )}
+
                         <button
                           className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                          disabled={loadingId === data.id}
                           onClick={async () => {
-                            await handleOpenDeclarationModal(data);
-                            setDeclarationType("Canceled");
-                            setShowDeclarationDropdown(false);
+                            setLoadingId(data.id);
+                            try {
+                              const declaration = await fetchDeclarations(
+                                data.id
+                              );
+                              await handleExportPdfDeclaration(data?.code);
+                            } catch (error) {
+                              console.error(
+                                "Failed to export declaration:",
+                                error
+                              );
+                            } finally {
+                              setLoadingId(null);
+                            }
                           }}
                         >
-                          Cancel Declaration
+                          {loadingId === data.id ? (
+                            <span className="flex items-center gap-1 text-gray-500">
+                              <span className="loading loading-spinner loading-xs"></span>
+                              Exporting...
+                            </span>
+                          ) : (
+                            "Export Declaration"
+                          )}
                         </button>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </>
             )}
@@ -805,30 +1099,24 @@ export default function Home() {
           <p className="text-gray-500 text-sm">Your Official Travel Record</p>
         </div>
         <div className="flex gap-3 items-center">
-          <button
-            className="btn btn-outline btn-primary"
-            onClick={() => handleExportExcel()}
-          >
-            <i className="ki-filled ki-file-down"></i>
-            Export
-          </button>
-
-          <button
-            onClick={() => setShowFilter((prev) => !prev)}
-            className="btn btn-outline btn-primary"
-          >
-            <i className="ki-filled ki-filter-tablet mr-1" />
-            Filter
-          </button>
-          {showFilter && (
-            <FilterData
-              onSelect={(selectedFilter) => {
-                setFilter(selectedFilter);
-                setShowFilter(false);
-              }}
-              mode="officialTravel"
-            />
-          )}
+          <div className="relative">
+            <button
+              onClick={() => setShowFilter((prev) => !prev)}
+              className="btn btn-outline btn-primary"
+            >
+              <i className="ki-filled ki-filter-tablet mr-1" />
+              Filter
+            </button>
+            {showFilter && (
+              <FilterData
+                onSelect={(selectedFilter) => {
+                  setFilter(selectedFilter);
+                  setShowFilter(false);
+                }}
+                mode="officialTravel"
+              />
+            )}
+          </div>
 
           <button
             className="btn btn-filled btn-primary"
@@ -875,7 +1163,7 @@ export default function Home() {
         </div>
       </Modal>
 
-      <Modal isModalOpen={isAddModalOpen}>
+      <AddModalOfficial isModalOpen={isAddModalOpen}>
         <div className="modal-header">
           <h3 className="modal-title">Add Official Travel Submittion</h3>
           <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
@@ -888,408 +1176,556 @@ export default function Home() {
           )}
         >
           <div className="modal-body max-h-[65vh] overflow-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="max-w-[960px] w-full mx-auto">
               <div>
-                <label className="form-label">
-                  Destination Place
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="destination_place"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      placeholder="Input destination place"
-                      className={clsx(
-                        "input",
-                        errors.destination_place
-                          ? "border-red-500 hover:border-red-500"
-                          : ""
+                {[0, 1, 2].slice(0, formCount).map((index) => {
+                  const selectedCountry =
+                    index === 0
+                      ? selectedCountry1
+                      : index === 1
+                      ? selectedCountry2
+                      : selectedCountry3;
+                  const selectedRegion =
+                    index === 0
+                      ? selectedRegion1
+                      : index === 1
+                      ? selectedRegion2
+                      : selectedRegion3;
+                  const regionOptions =
+                    index === 0
+                      ? regionOptions1
+                      : index === 1
+                      ? regionOptions2
+                      : regionOptions3;
+
+                  return (
+                    <div
+                      key={index}
+                      className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2 border p-4 rounded-lg relative"
+                    >
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => removeForm(index)}
+                          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          title="Remove Destination"
+                        >
+                          <i className="ki-outline ki-cross-circle"></i>
+                        </button>
                       )}
-                    />
-                  )}
-                />
-                {errors.destination_place && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.destination_place.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="form-label">
-                  Transportation
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="transportation"
-                  control={control}
-                  render={({ field }) => {
-                    const selectedValue =
-                      transportOptions.find(
-                        (opt) => opt.value === field.value
-                      ) ||
-                      (field.value
-                        ? { label: field.value, value: field.value }
-                        : null);
 
-                    return (
-                      <AsyncCreatableSelect
-                        cacheOptions
-                        defaultOptions={transportOptions}
-                        loadOptions={createLoadOptions(transportOptions)}
-                        onChange={(selected) => field.onChange(selected?.value)}
-                        onCreateOption={(inputValue) => {
-                          const newOption = {
-                            label: inputValue,
-                            value: inputValue,
-                          };
-                          transportOptions.push(newOption);
-                          field.onChange(inputValue);
-                        }}
-                        value={selectedValue}
-                        placeholder="Select transportation"
-                        classNamePrefix="react-select"
-                        className={clsx(
-                          "react-select-container",
-                          errors.transportation && "border-red-500"
+                      <div>
+                        <label className="form-label">
+                          {travelType === "international"
+                            ? "Destination Country"
+                            : "Destination Province"}{" "}
+                          {index + 1}
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <Controller
+                          control={control}
+                          name={
+                            index === 0
+                              ? "destination_city1"
+                              : index === 1
+                              ? "destination_city2"
+                              : "destination_city3"
+                          }
+                          render={({ field }) => (
+                            <AsyncSelect
+                              {...field}
+                              isClearable
+                              cacheOptions
+                              defaultOptions
+                              loadOptions={loadOptions}
+                              value={selectedCountry}
+                              onChange={async (selectedOption) => {
+                                field.onChange(selectedOption?.value);
+
+                                let regions = [];
+                                let newSelectedCountries: any[] = [];
+
+                                const isDomestic = travelType === "domestic";
+
+                                const getRegions = async () => {
+                                  if (isDomestic) {
+                                    if (!selectedOption?.id) return [];
+                                    return await loadRegionByProvinceCode(
+                                      "",
+                                      selectedOption.id
+                                    );
+                                  } else {
+                                    if (!selectedOption?.wikiDataId) return [];
+                                    return await fetchRegionsByCountryCode(
+                                      selectedOption.wikiDataId
+                                    );
+                                  }
+                                };
+
+                                regions = await getRegions();
+
+                                if (index === 0) {
+                                  setSelectedCountry1(selectedOption);
+                                  setSelectedRegion1(null);
+                                  setRegionOptions1(regions);
+                                  newSelectedCountries = [
+                                    selectedOption,
+                                    selectedCountry2,
+                                    selectedCountry3,
+                                  ];
+                                } else if (index === 1) {
+                                  setSelectedCountry2(selectedOption);
+                                  setSelectedRegion2(null);
+                                  setRegionOptions2(regions);
+                                  newSelectedCountries = [
+                                    selectedCountry1,
+                                    selectedOption,
+                                    selectedCountry3,
+                                  ];
+                                } else {
+                                  setSelectedCountry3(selectedOption);
+                                  setSelectedRegion3(null);
+                                  setRegionOptions3(regions);
+                                  newSelectedCountries = [
+                                    selectedCountry1,
+                                    selectedCountry2,
+                                    selectedOption,
+                                  ];
+                                }
+
+                                if (!isDomestic) {
+                                  const filteredCountries =
+                                    newSelectedCountries.filter(
+                                      (country) =>
+                                        country &&
+                                        typeof country.currencyCode === "string"
+                                    );
+
+                                  const uniqueCurrencies = Array.from(
+                                    new Set(
+                                      filteredCountries.map(
+                                        (opt) => opt.currencyCode
+                                      )
+                                    )
+                                  );
+
+                                  const newRates: Record<
+                                    string,
+                                    number | string
+                                  > = {};
+
+                                  for (const code of uniqueCurrencies) {
+                                    try {
+                                      const res = await fetch(
+                                        `https://hexarate.paikama.co/api/rates/latest/${code}?target=IDR`
+                                      );
+                                      const data = await res.json();
+                                      newRates[code] = data.data?.mid ?? "N/A";
+                                    } catch (error) {
+                                      newRates[code] = "Error";
+                                    }
+                                  }
+
+                                  setExchangeRates(newRates);
+                                }
+                              }}
+                              placeholder={`Select country ${index + 1}`}
+                              classNamePrefix="react-select"
+                            />
+                          )}
+                        />
+
+                        {errors[`destination_city${index + 1}`] && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors[`destination_city${index + 1}`]?.message}
+                          </p>
                         )}
-                      />
-                    );
-                  }}
-                />
-                {errors.transportation && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.transportation.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="form-label">
-                  Lodging
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="lodging"
-                  control={control}
-                  render={({ field }) => {
-                    const selectedValue =
-                      lodgingOptions.find((opt) => opt.value === field.value) ||
-                      (field.value
-                        ? { label: field.value, value: field.value }
-                        : null);
+                      </div>
 
-                    return (
-                      <AsyncCreatableSelect
-                        cacheOptions
-                        defaultOptions={lodgingOptions}
-                        loadOptions={createLoadOptions(lodgingOptions)}
-                        onChange={(selected) => field.onChange(selected?.value)}
-                        onCreateOption={(inputValue) => {
-                          const newOption = {
-                            label: inputValue,
-                            value: inputValue,
-                          };
-                          lodgingOptions.push(newOption);
-                          field.onChange(inputValue);
-                        }}
-                        value={selectedValue}
-                        placeholder="Select lodging"
-                        classNamePrefix="react-select"
-                        className={clsx(
-                          "react-select-container",
-                          errors.lodging && "border-red-500"
+                      <div>
+                        <label className="form-label">
+                          Destination Region {index + 1}
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <AsyncSelect
+                          isClearable
+                          cacheOptions
+                          defaultOptions={regionOptions}
+                          loadOptions={(inputValue) => {
+                            const filtered = regionOptions.filter((option) =>
+                              option.label
+                                .toLowerCase()
+                                .includes(inputValue.toLowerCase())
+                            );
+                            return Promise.resolve(filtered);
+                          }}
+                          value={selectedRegion}
+                          onChange={(selected) => {
+                            if (index === 0) setSelectedRegion1(selected);
+                            else if (index === 1) setSelectedRegion2(selected);
+                            else setSelectedRegion3(selected);
+                          }}
+                          getOptionLabel={(e) => e.label}
+                          getOptionValue={(e) => e.value}
+                          placeholder={`Select region ${index + 1}`}
+                          classNamePrefix="react-select"
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">
+                          Destination Place {index + 1}
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <Controller
+                          name={
+                            index === 0
+                              ? "destination_place1"
+                              : index === 1
+                              ? "destination_place2"
+                              : "destination_place3"
+                          }
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              placeholder={`Input destination place ${
+                                index + 1
+                              }`}
+                              className={clsx(
+                                "input",
+                                errors[`destination_place_${index + 1}`]
+                                  ? "border-red-500 hover:border-red-500"
+                                  : ""
+                              )}
+                            />
+                          )}
+                        />
+                        {errors[`destination_place${index + 1}`] && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors[`destination_place${index + 1}`].message}
+                          </p>
                         )}
-                      />
-                    );
-                  }}
-                />
-                {errors.lodging && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.lodging.message}
-                  </p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {formCount < 3 && (
+                  <button
+                    type="button"
+                    onClick={addForm}
+                    className="bg-blue-500 text-white text-sm px-2 py-1 mb-4 rounded hover:bg-blue-600"
+                  >
+                    <i className="ki-outline ki-plus-circle mr-3"></i>
+                    Add Destination
+                  </button>
                 )}
               </div>
-              <div>
-                <label className="form-label">
-                  Work Status
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="work_status"
-                  control={control}
-                  render={({ field }) => {
-                    const selectedValue =
-                      workstatusOptions.find(
-                        (opt) => opt.value === field.value
-                      ) ||
-                      (field.value
-                        ? { label: field.value, value: field.value }
-                        : null);
-
-                    return (
-                      <AsyncCreatableSelect
-                        cacheOptions
-                        defaultOptions={workstatusOptions}
-                        loadOptions={createLoadOptions(workstatusOptions)}
-                        onChange={(selected) => field.onChange(selected?.value)}
-                        onCreateOption={(inputValue) => {
-                          const newOption = {
-                            label: inputValue,
-                            value: inputValue,
-                          };
-                          workstatusOptions.push(newOption);
-                          field.onChange(inputValue);
-                        }}
-                        value={selectedValue}
-                        placeholder="Select work job"
-                        classNamePrefix="react-select"
-                        className={clsx(
-                          "react-select-container",
-                          errors.work_status && "border-red-500"
-                        )}
-                      />
-                    );
-                  }}
-                />
-
-                {errors.work_status && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.work_status.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="form-label">
-                  Office Activities
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="office_activities"
-                  control={control}
-                  render={({ field }) => {
-                    const selectedValue =
-                      officeActivitiesOptions.find(
-                        (opt) => opt.value === field.value
-                      ) ||
-                      (field.value
-                        ? { label: field.value, value: field.value }
-                        : null);
-
-                    return (
-                      <AsyncCreatableSelect
-                        cacheOptions
-                        defaultOptions={officeActivitiesOptions}
-                        loadOptions={createLoadOptions(officeActivitiesOptions)}
-                        onChange={(selected) => field.onChange(selected?.value)}
-                        onCreateOption={(inputValue) => {
-                          const newOption = {
-                            label: inputValue,
-                            value: inputValue,
-                          };
-                          officeActivitiesOptions.push(newOption);
-                          field.onChange(inputValue);
-                        }}
-                        value={selectedValue}
-                        placeholder="Select office activities"
-                        classNamePrefix="react-select"
-                        className={clsx(
-                          "react-select-container",
-                          errors.office_activities && "border-red-500"
-                        )}
-                      />
-                    );
-                  }}
-                />
-                {errors.office_activities && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.office_activities.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="form-label">
-                  Type Assignment
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="type"
-                  control={control}
-                  render={({ field }) => {
-                    const selectedValue =
-                      typeStOptions.find((opt) => opt.value === field.value) ||
-                      (field.value
-                        ? { label: field.value, value: field.value }
-                        : null);
-
-                    return (
-                      <AsyncCreatableSelect
-                        cacheOptions
-                        defaultOptions={typeStOptions}
-                        loadOptions={createLoadOptions(typeStOptions)}
-                        onChange={(selected) => field.onChange(selected?.value)}
-                        onCreateOption={(inputValue) => {
-                          const newOption = {
-                            label: inputValue,
-                            value: inputValue,
-                          };
-                          typeStOptions.push(newOption);
-                          field.onChange(inputValue);
-                        }}
-                        value={selectedValue}
-                        placeholder="Select type assignment"
-                        classNamePrefix="react-select"
-                        className={clsx(
-                          "react-select-container",
-                          errors.type && "border-red-500"
-                        )}
-                      />
-                    );
-                  }}
-                />
-                {errors.type && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.type.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="form-label">
-                  Leave Date
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  control={control}
-                  name="date_range"
-                  render={({ field }) => (
-                    <DatePicker
-                      selectsRange
-                      startDate={field.value?.[0] || null}
-                      endDate={field.value?.[1] || null}
-                      onChange={(dates: [Date | null, Date | null]) => {
-                        const [start, end] = dates;
-                        field.onChange(dates);
-                        setValue(
-                          "start_date",
-                          start
-                            ? new Date(start).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""
-                        );
-                        setValue(
-                          "end_date",
-                          end
-                            ? new Date(end).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
-                            : ""
-                        );
-                      }}
-                      className={clsx(
-                        "input w-full text-sm py-2 px-3 rounded-md border",
-                        errors.start_date || errors.end_date
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      )}
-                      placeholderText="Pick a date"
-                      dateFormat="dd-MMM-yyyy"
-                      isClearable={true}
-                      locale={enGB}
-                      minDate={
-                        new Date(new Date().setDate(new Date().getDate() + 5))
-                      }
-                    />
-                  )}
-                />
-                {(errors.start_date || errors.end_date) && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.start_date?.message || errors.end_date?.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="form-label">
-                  Destination City
-                  <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                </label>
-                <Controller
-                  name="destination_city"
-                  control={control}
-                  render={({ field }) => {
-                    const handleCountryChange = async (
-                      selectedOptions: CountryOption[] | null
-                    ) => {
-                      setSelectedCountries(selectedOptions || []);
-                      const valuesOnly = selectedOptions
-                        ? selectedOptions.map((opt) => opt.value)
-                        : [];
-                      field.onChange(valuesOnly);
-
-                      if (!selectedOptions || selectedOptions.length === 0) {
-                        setExchangeRates({});
-                        return;
-                      }
-
-                      const uniqueCurrencies = Array.from(
-                        new Set(
-                          selectedOptions
-                            .map((opt) => opt.currencyCode)
-                            .filter(Boolean)
-                        )
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 border p-4 rounded-lg relative">
+                <div>
+                  <label className="form-label">
+                    Lodging<span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Controller
+                    name="lodging"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedValue =
+                        lodgingOptions.find(
+                          (opt) => opt.value === field.value
+                        ) ||
+                        (field.value
+                          ? { label: field.value, value: field.value }
+                          : null);
+                      return (
+                        <AsyncCreatableSelect
+                          cacheOptions
+                          defaultOptions={lodgingOptions}
+                          loadOptions={createLoadOptions(lodgingOptions)}
+                          onChange={(selected) =>
+                            field.onChange(selected?.value)
+                          }
+                          onCreateOption={(inputValue) => {
+                            const newOption = {
+                              label: inputValue,
+                              value: inputValue,
+                            };
+                            lodgingOptions.push(newOption);
+                            field.onChange(inputValue);
+                          }}
+                          value={selectedValue}
+                          placeholder="Select lodging"
+                          classNamePrefix="react-select"
+                          className={clsx(
+                            "react-select-container",
+                            errors.lodging && "border-red-500"
+                          )}
+                        />
                       );
+                    }}
+                  />
+                  {errors.lodging && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.lodging.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="form-label">
+                    Transportation
+                    <span style={{ color: "red", marginLeft: "5px" }}>*</span>
+                  </label>
+                  <Controller
+                    name="transportation"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedValue =
+                        transportOptions.find(
+                          (opt) => opt.value === field.value
+                        ) ||
+                        (field.value
+                          ? { label: field.value, value: field.value }
+                          : null);
 
-                      const newRates: Record<string, number | string> = {};
-
-                      for (const code of uniqueCurrencies) {
-                        try {
-                          const res = await fetch(
-                            `https://hexarate.paikama.co/api/rates/latest/${code}?target=IDR`
+                      return (
+                        <AsyncCreatableSelect
+                          cacheOptions
+                          defaultOptions={transportOptions}
+                          loadOptions={createLoadOptions(transportOptions)}
+                          onChange={(selected) =>
+                            field.onChange(selected?.value)
+                          }
+                          onCreateOption={(inputValue) => {
+                            const newOption = {
+                              label: inputValue,
+                              value: inputValue,
+                            };
+                            transportOptions.push(newOption);
+                            field.onChange(inputValue);
+                          }}
+                          value={selectedValue}
+                          placeholder="Select transportation"
+                          classNamePrefix="react-select"
+                          className={clsx(
+                            "react-select-container",
+                            errors.transportation && "border-red-500"
+                          )}
+                        />
+                      );
+                    }}
+                  />
+                  {errors.transportation && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.transportation.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="form-label">
+                    Work Status<span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Controller
+                    name="work_status"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedValue =
+                        workstatusOptions.find(
+                          (opt) => opt.value === field.value
+                        ) ||
+                        (field.value
+                          ? { label: field.value, value: field.value }
+                          : null);
+                      return (
+                        <AsyncCreatableSelect
+                          cacheOptions
+                          defaultOptions={workstatusOptions}
+                          loadOptions={createLoadOptions(workstatusOptions)}
+                          onChange={(selected) =>
+                            field.onChange(selected?.value)
+                          }
+                          onCreateOption={(inputValue) => {
+                            const newOption = {
+                              label: inputValue,
+                              value: inputValue,
+                            };
+                            workstatusOptions.push(newOption);
+                            field.onChange(inputValue);
+                          }}
+                          value={selectedValue}
+                          placeholder="Select work job"
+                          classNamePrefix="react-select"
+                          className={clsx(
+                            "react-select-container",
+                            errors.work_status && "border-red-500"
+                          )}
+                        />
+                      );
+                    }}
+                  />
+                  {errors.work_status && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.work_status.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="form-label">
+                    Office Activities
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Controller
+                    name="office_activities"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedValue =
+                        officeActivitiesOptions.find(
+                          (opt) => opt.value === field.value
+                        ) ||
+                        (field.value
+                          ? { label: field.value, value: field.value }
+                          : null);
+                      return (
+                        <AsyncCreatableSelect
+                          cacheOptions
+                          defaultOptions={officeActivitiesOptions}
+                          loadOptions={createLoadOptions(
+                            officeActivitiesOptions
+                          )}
+                          onChange={(selected) =>
+                            field.onChange(selected?.value)
+                          }
+                          onCreateOption={(inputValue) => {
+                            const newOption = {
+                              label: inputValue,
+                              value: inputValue,
+                            };
+                            officeActivitiesOptions.push(newOption);
+                            field.onChange(inputValue);
+                          }}
+                          value={selectedValue}
+                          placeholder="Select office activities"
+                          classNamePrefix="react-select"
+                          className={clsx(
+                            "react-select-container",
+                            errors.office_activities && "border-red-500"
+                          )}
+                        />
+                      );
+                    }}
+                  />
+                  {errors.office_activities && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.office_activities.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="form-label">
+                    Type Assignment<span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Controller
+                    name="type"
+                    control={control}
+                    render={({ field }) => {
+                      const selectedValue =
+                        typeStOptions.find(
+                          (opt) => opt.value === field.value
+                        ) ||
+                        (field.value
+                          ? { label: field.value, value: field.value }
+                          : null);
+                      return (
+                        <AsyncCreatableSelect
+                          cacheOptions
+                          defaultOptions={typeStOptions}
+                          loadOptions={createLoadOptions(typeStOptions)}
+                          onChange={(selected) =>
+                            field.onChange(selected?.value)
+                          }
+                          onCreateOption={(inputValue) => {
+                            const newOption = {
+                              label: inputValue,
+                              value: inputValue,
+                            };
+                            typeStOptions.push(newOption);
+                            field.onChange(inputValue);
+                          }}
+                          value={selectedValue}
+                          placeholder="Select type assignment"
+                          classNamePrefix="react-select"
+                          className={clsx(
+                            "react-select-container",
+                            errors.type && "border-red-500"
+                          )}
+                        />
+                      );
+                    }}
+                  />
+                  {errors.type && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.type.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="form-label">
+                    Leave Date<span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name="date_range"
+                    render={({ field }) => (
+                      <DatePicker
+                        selectsRange
+                        startDate={field.value?.[0] || null}
+                        endDate={field.value?.[1] || null}
+                        onChange={(dates: [Date | null, Date | null]) => {
+                          const [start, end] = dates;
+                          field.onChange(dates);
+                          setValue(
+                            "start_date",
+                            start
+                              ? new Date(start).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : ""
                           );
-                          const data = await res.json();
-                          newRates[code] = data.data?.mid ?? "N/A";
-                        } catch (error) {
-                          newRates[code] = "Error";
-                        }
-                      }
-
-                      setExchangeRates(newRates);
-                    };
-
-                    return (
-                      <AsyncSelect
-                        isMulti
-                        cacheOptions
-                        defaultOptions
-                        loadOptions={loadOptions}
-                        onChange={handleCountryChange}
-                        value={
-                          Array.isArray(field.value)
-                            ? selectedCountries.filter((c) =>
-                                field.value.includes(c.value)
-                              )
-                            : []
-                        }
-                        placeholder={
-                          travelType === "domestic"
-                            ? "Select province destinations"
-                            : "Select country destinations"
-                        }
-                        classNamePrefix="react-select"
+                          setValue(
+                            "end_date",
+                            end
+                              ? new Date(end).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : ""
+                          );
+                        }}
                         className={clsx(
-                          "react-select-container",
-                          errors.destination_city && "border-red-500"
+                          "input w-full text-sm py-2 px-3 rounded-md border",
+                          errors.start_date || errors.end_date
+                            ? "border-red-500"
+                            : "border-gray-300"
                         )}
+                        placeholderText="Pick a date"
+                        dateFormat="dd-MMM-yyyy"
+                        isClearable={true}
+                        locale={enGB}
+                        minDate={
+                          new Date(new Date().setDate(new Date().getDate() + 5))
+                        }
                       />
-                    );
-                  }}
-                />
+                    )}
+                  />
+                  {(errors.start_date || errors.end_date) && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.start_date?.message || errors.end_date?.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1299,7 +1735,7 @@ export default function Home() {
               </h3>
 
               {travelType === "international" &&
-                selectedCountries.length > 0 && (
+                (selectedCountry1 || selectedCountry2 || selectedCountry3) && (
                   <>
                     <Controller
                       name="currency"
@@ -1312,34 +1748,36 @@ export default function Home() {
                       render={({ field }) => <input type="hidden" {...field} />}
                     />
 
-                    <div className="bg-white rounded-md p-4 max-w-md mx-auto mt-6 shadow-sm text-sm">
+                    <div className="bg-white rounded-md p-4 max-w-full mx-auto mt-6 shadow-sm text-sm">
                       <h4 className="text-base font-semibold text-gray-800 mb-3">
                         Currency Info
                       </h4>
                       <ul>
-                        {selectedCountries.map((country) => (
-                          <li
-                            key={country.value}
-                            className="flex justify-between py-2 border-b last:border-b-0 border-gray-200"
-                          >
-                            <span className="text-gray-700">
-                              {country.label} ({country.currencyCode})
-                            </span>
-                            <span className="font-medium text-gray-900">
-                              {exchangeRates[country.currencyCode]
-                                ? `1 ${country.currencyCode} = ${Number(
-                                    exchangeRates[country.currencyCode]
-                                  ).toLocaleString("id-ID")} IDR`
-                                : "Loading..."}
-                            </span>
-                          </li>
-                        ))}
+                        {[selectedCountry1, selectedCountry2, selectedCountry3]
+                          .filter(Boolean)
+                          .map((country) => (
+                            <li
+                              key={country!.value}
+                              className="flex justify-between py-2 border-b last:border-b-0 border-gray-200"
+                            >
+                              <span className="text-gray-700">
+                                {country!.label} ({country!.currencyCode})
+                              </span>
+                              <span className="font-medium text-gray-900">
+                                {exchangeRates[country!.currencyCode]
+                                  ? `1 ${country!.currencyCode} = ${Number(
+                                      exchangeRates[country!.currencyCode]
+                                    ).toLocaleString("id-ID")} IDR`
+                                  : "Loading..."}
+                              </span>
+                            </li>
+                          ))}
                       </ul>
                     </div>
                   </>
                 )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 {costFields.map(({ label, name }) => (
                   <div key={name}>
                     <label className="form-label block text-sm font-medium text-gray-700 mb-1">
@@ -1361,7 +1799,7 @@ export default function Home() {
                             const numberVal = parseRupiah(val);
                             onChange(numberVal);
                           }}
-                          className={`input w-full rounded-lg border px-3 py-2 text-sm ${
+                          className={`input w-full rounded-lg border px-3 py-2 text-sm text-right placeholder:text-left ${
                             errors[name] ? "border-red-500" : "border-gray-300"
                           }`}
                         />
@@ -1406,7 +1844,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 mt-6">
+            <div className="grid grid-cols-2 gap-5 mt-6">
               <div>
                 <label className="form-label">
                   Activity Agenda
@@ -1436,8 +1874,7 @@ export default function Home() {
                   </p>
                 )}
               </div>
-            </div>
-            <div className="grid grid-cols-1 gap-5 mt-6">
+
               <div>
                 <label className="form-label">
                   Official Travel Purpose
@@ -1481,7 +1918,7 @@ export default function Home() {
             </div>
           </div>
         </form>
-      </Modal>
+      </AddModalOfficial>
 
       <DetailModal
         isModalOpen={isDetailModalOpen}
@@ -1490,7 +1927,11 @@ export default function Home() {
       >
         <div className="flex flex-col md:flex-row gap-8 p-4">
           <div className="w-full md:w-60">
+            <h3 className="font-bold border-b pb-2 text-gray-700">
+              Approval Stage
+            </h3>
             <StatusStepper
+              code={selectedData?.code}
               statusId={selectedData?.status_id ?? 1}
               createdDate={selectedData?.created_at}
               acceptedDeptHeadDate={selectedData?.accepted_depthead_date}
@@ -1526,33 +1967,53 @@ export default function Home() {
           <div className="flex-1 space-y-8">
             <form className="text-sm text-gray-700 space-y-8">
               <section>
-                <h3 className="text-lg font-bold border-b pb-2 text-gray-800">
+                <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
                   General Information
                 </h3>
                 <div className="flex flex-wrap gap-6 mt-4">
-                  <div className="w-full md:w-[30%]">
-                    <div className="font-semibold text-gray-600">Code</div>
-                    <p>{selectedData?.code ?? "-"}</p>
-                  </div>
                   {[
-                    ["Destination City", selectedData?.destination_city],
-                    ["Destination Place", selectedData?.destination_place],
-                    ["Start Date", selectedData?.start_date],
-                    ["End Date", selectedData?.end_date],
+                    ["Code Official Travel", selectedData?.code],
                     [
-                      "Total Leave Days",
-                      `${selectedData?.total_leave_days ?? "-"} days`,
+                      "Destination City",
+                      [
+                        selectedData?.destination_city1,
+                        selectedData?.destination_city2,
+                        selectedData?.destination_city3,
+                      ].filter(Boolean),
+                    ],
+                    [
+                      "Destination Place",
+                      [
+                        selectedData?.destination_place1?.value ??
+                          selectedData?.destination_place1,
+                        selectedData?.destination_place2?.value ??
+                          selectedData?.destination_place2,
+                        selectedData?.destination_place3?.value ??
+                          selectedData?.destination_place3,
+                      ].filter(Boolean),
                     ],
                     ["Transportation", selectedData?.transportation],
                     ["Lodging", selectedData?.lodging],
                     ["Work Status", selectedData?.work_status],
                     ["Office Activities", selectedData?.office_activities],
-                    ["Purpose", selectedData?.purpose],
                     ["Activity Agenda", selectedData?.activity_agenda],
+                    ["Start Date Travel", selectedData?.start_date],
+                    ["End Date Travel", selectedData?.end_date],
+                    ["Purpose Travel", selectedData?.purpose],
                   ].map(([label, value], idx) => (
                     <div key={idx} className="w-full md:w-[30%]">
                       <div className="font-semibold text-gray-600">{label}</div>
-                      <p>{value ?? "-"}</p>
+                      {Array.isArray(value) ? (
+                        <ul className="list-disc pl-5 font-bold">
+                          {value.length > 0 ? (
+                            value.map((item, i) => <li key={i}>{item}</li>)
+                          ) : (
+                            <li>-</li>
+                          )}
+                        </ul>
+                      ) : (
+                        <p className="font-bold">{value ?? "-"}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1594,10 +2055,19 @@ export default function Home() {
                   {[
                     { label: "Taxi Cost", value: selectedData?.taxi_cost },
                     { label: "Rent Cost", value: selectedData?.rent_cost },
-                    { label: "Hotel Cost", value: selectedData?.hotel_cost },
+                    {
+                      label: "Hotel Cost",
+                      value: selectedData?.hotel_cost,
+                    },
                     { label: "UPD Cost", value: selectedData?.upd_cost },
-                    { label: "Fiskal Cost", value: selectedData?.fiskal_cost },
-                    { label: "Other Cost", value: selectedData?.other_cost },
+                    {
+                      label: "Fiskal Cost",
+                      value: selectedData?.fiskal_cost,
+                    },
+                    {
+                      label: "Other Cost",
+                      value: selectedData?.other_cost,
+                    },
                   ].map((item, idx) => (
                     <div key={idx}>
                       <div className="text-sm font-semibold text-gray-600">
@@ -1632,157 +2102,205 @@ export default function Home() {
         loading={loading}
         submitText={selectedActionType}
       >
-        <form id="officialTravelForm" onSubmit={handleSubmit(onSubmit)}>
-          <section className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
-              Travel Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: "Employee Name", value: selectedData?.user_name },
-                {
-                  label: "Employee Department",
-                  value: selectedData?.user_departement,
-                },
-                {
-                  label: "Destination City",
-                  value: selectedData?.destination_city,
-                },
-                {
-                  label: "Destination Place",
-                  value: selectedData?.destination_place,
-                },
-                {
-                  label: "Transportation",
-                  value: selectedData?.transportation,
-                },
-                { label: "Lodging", value: selectedData?.lodging },
-                { label: "Work Status", value: selectedData?.work_status },
-                {
-                  label: "Office Activities",
-                  value: selectedData?.office_activities,
-                },
-                {
-                  label: "Activity Agenda",
-                  value: selectedData?.activity_agenda,
-                },
-                {
-                  label: "Start Date Travel",
-                  value: selectedData?.start_date,
-                },
-                { label: "End Date Travel", value: selectedData?.end_date },
-                { label: "Purpose Travel", value: selectedData?.purpose },
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {item.label}
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={item.value ?? ""}
-                    className="input w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-8 bg-gray-50 rounded-lg p-5 border">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
-              Cost Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                {
-                  label: "Symbol Currency",
-                  value: selectedData?.symbol_currency,
-                },
-                {
-                  label: "Currency",
-                  value: selectedData?.currency,
-                },
-                {
-                  label: "Down Payment",
-                  value: formatRupiahLive(selectedData?.down_payment),
-                },
-                {
-                  label: "Taxi Cost",
-                  value: formatRupiahLive(selectedData?.taxi_cost),
-                },
-                {
-                  label: "Purpose Rent Cost",
-                  value: formatRupiahLive(selectedData?.rent_cost),
-                },
-                {
-                  label: "Hotel Cost",
-                  value: formatRupiahLive(selectedData?.hotel_cost),
-                },
-                {
-                  label: "UPD Cost",
-                  value: formatRupiahLive(selectedData?.upd_cost),
-                },
-                {
-                  label: "Fiskal Cost",
-                  value: formatRupiahLive(selectedData?.fiskal_cost),
-                },
-                {
-                  label: "Other Cost",
-                  value: formatRupiahLive(selectedData?.other_cost),
-                },
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {item.label}
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={item.value || "-"}
-                    className="input w-full bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-              ))}
-
-              <div className="md:col-span-3 mt-8 border-t pt-4">
-                <div className="text-sm font-semibold text-red-600">
-                  Total Cost
-                </div>
-                <p className="text-red-700 font-bold text-xl mt-1">
-                  {formatRupiahLive(selectedData?.total_cost)}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
-              Remarks
-            </h3>
-            <div>
-              <label className="form-label">
-                Canceled Remark{" "}
-                <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-              </label>
-              <Controller
-                name="canceled_remark"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className={clsx(
-                      "input w-full",
-                      errors.canceled_remark && "border-red-500"
-                    )}
-                  />
-                )}
+        <form id="officialTravelForm" onSubmit={handleSubmit(onCancel)}>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-60">
+              <h3 className="font-bold border-b pb-2 text-gray-700">
+                Approval Stage
+              </h3>
+              <StatusStepper
+                code={selectedData?.code}
+                statusId={selectedData?.status_id ?? 1}
+                createdDate={selectedData?.created_at}
+                acceptedDeptHeadDate={selectedData?.accepted_depthead_date}
+                approvedDivHeadDate={selectedData?.approved_divhead_date}
+                approvedDicDivDate={selectedData?.approved_divhead_date}
+                approvedDeptHeadHCDate={selectedData?.approved_depthead_hc_date}
+                approvedDivHeadHCDate={selectedData?.approved_divhead_hc_date}
+                approvedDicHCDate={selectedData?.approved_dichc_date}
+                approvedPresdirDate={selectedData?.approved_presdir_date}
+                rejectedDate={selectedData?.rejected_date}
+                canceledDate={selectedData?.canceled_date}
+                acceptedDeptHeadRemark={selectedData?.accepted_depthead_remark}
+                approvedDivHeadRemark={selectedData?.approved_divhead_remark}
+                approvedDicDivRemark={selectedData?.approved_dicdiv_remark}
+                approvedDeptHeadHCRemark={
+                  selectedData?.approved_depthead_hc_remark
+                }
+                approvedDivHeadHCRemark={
+                  selectedData?.approved_divhead_hc_remark
+                }
+                approvedDicHCRemark={selectedData?.approved_dichc_remark}
+                approvedPresdirRemark={selectedData?.approved_presdir_remark}
+                rejectedRemark={selectedData?.rejected_remark}
+                canceledRemark={selectedData?.canceled_remark}
+                acceptToDeptHead={selectedData?.accept_to_depthead}
+                approveToDivHead={selectedData?.approve_to_divhead}
+                approveToDicDiv={selectedData?.approve_to_dicdiv}
+                approveToDeptHeadHC={selectedData?.approve_to_depthead_hc}
+                approveToDivHeadHC={selectedData?.approve_to_divhead_hc}
+                approveToDicDivHC={selectedData?.approve_to_dichc}
+                approveToPresdir={selectedData?.approve_to_presdir}
               />
-              {errors.canceled_remark && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.canceled_remark.message}
-                </p>
-              )}
+            </div>
+            <div className="flex-1 space-y-8">
+              <section className="text-sm text-gray-700 space-y-8">
+                <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
+                  General Information
+                </h3>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  {[
+                    ["Code Official Travel", selectedData?.code],
+                    [
+                      "Destination City",
+                      [
+                        selectedData?.destination_city1,
+                        selectedData?.destination_city2,
+                        selectedData?.destination_city3,
+                      ].filter(Boolean),
+                    ],
+                    [
+                      "Destination Place",
+                      [
+                        selectedData?.destination_place1?.value ??
+                          selectedData?.destination_place1,
+                        selectedData?.destination_place2?.value ??
+                          selectedData?.destination_place2,
+                        selectedData?.destination_place3?.value ??
+                          selectedData?.destination_place3,
+                      ].filter(Boolean),
+                    ],
+                    ["Transportation", selectedData?.transportation],
+                    ["Lodging", selectedData?.lodging],
+                    ["Work Status", selectedData?.work_status],
+                    ["Office Activities", selectedData?.office_activities],
+                    ["Activity Agenda", selectedData?.activity_agenda],
+                    ["Start Date Travel", selectedData?.start_date],
+                    ["End Date Travel", selectedData?.end_date],
+                    ["Purpose Travel", selectedData?.purpose],
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="w-full md:w-[30%]">
+                      <div className="font-semibold text-gray-600">{label}</div>
+                      {Array.isArray(value) ? (
+                        <ul className="list-disc pl-5 font-bold">
+                          {value.length > 0 ? (
+                            value.map((item, i) => <li key={i}>{item}</li>)
+                          ) : (
+                            <li>-</li>
+                          )}
+                        </ul>
+                      ) : (
+                        <p className="font-bold">{value ?? "-"}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className="bg-gray-50 rounded-xl shadow-md p-6 mt-8">
+                <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+                  Cost Details
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-600">
+                      Symbol Currency
+                    </div>
+                    <p className="text-gray-800 mt-1">
+                      {selectedData?.symbol_currency ?? "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-600">
+                      Currency
+                    </div>
+                    <p className="text-gray-800 mt-1">
+                      {selectedData?.currency ?? "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-green-600">
+                      Down Payment
+                    </div>
+                    <p className="text-green-700 font-semibold mt-1">
+                      {formatRupiahLive(selectedData?.down_payment)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {[
+                    { label: "Taxi Cost", value: selectedData?.taxi_cost },
+                    { label: "Rent Cost", value: selectedData?.rent_cost },
+                    {
+                      label: "Hotel Cost",
+                      value: selectedData?.hotel_cost,
+                    },
+                    { label: "UPD Cost", value: selectedData?.upd_cost },
+                    {
+                      label: "Fiskal Cost",
+                      value: selectedData?.fiskal_cost,
+                    },
+                    {
+                      label: "Other Cost",
+                      value: selectedData?.other_cost,
+                    },
+                  ].map((item, idx) => (
+                    <div key={idx}>
+                      <div className="text-sm font-semibold text-gray-600">
+                        {item.label}
+                      </div>
+                      <p className="text-gray-800 mt-1">
+                        {formatRupiahLive(item.value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 border-t pt-4">
+                  <div className="text-sm font-semibold text-red-600">
+                    Total Cost
+                  </div>
+                  <p className="text-red-700 font-bold text-xl mt-1">
+                    {formatRupiahLive(selectedData?.total_cost)}
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <section className="bg-gray-50 rounded-xl shadow-md p-6 mt-8">
+            <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+              Remark
+            </h3>
+            <div className="grid grid-cols-1 gap-5">
+              <div>
+                <label className="form-label mb-2">
+                  Canceled Remark
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <Controller
+                  name="canceled_remark"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className={clsx(
+                        "input",
+                        errors.canceled_remark
+                          ? "border-red-500 hover:border-red-500"
+                          : ""
+                      )}
+                    />
+                  )}
+                />
+                {errors.canceled_remark && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.canceled_remark.message}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
         </form>

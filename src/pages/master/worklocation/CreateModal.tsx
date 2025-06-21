@@ -27,10 +27,18 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
 
         location_lat_long: yup
             .string()
-            .test("not-empty", "Latitude & longitude cannot be empty or spaces only", value => {
-                return value?.trim().length > 0;
-            })
-            .required("Latitude & longitude is required"),
+            .required("Latitude & longitude is required.")
+            .matches(
+                /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/,
+                "Invalid latitude & longitude format. Use numbers, commas, and hyphens (e.g., -6.234, 106.876)."
+            )
+            .test(
+                "not-empty-or-spaces",
+                "Latitude & longitude cannot be empty or spaces only.",
+                (value) => {
+                    return value ? value.trim().length > 0 : false;
+                }
+            ),
     });
 
     const {
@@ -88,6 +96,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             }
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -103,7 +113,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Code</label>
+                            <label className="form-label mb-1">Code<span className="text-red-500">*</span></label>
                             <Controller
                                 name="location_code"
                                 control={control}
@@ -124,7 +134,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Name</label>
+                            <label className="form-label mb-1">Name<span className="text-red-500">*</span></label>
                             <Controller
                                 name="location_name"
                                 control={control}
@@ -145,7 +155,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Latitude, Longitude</label>
+                            <label className="form-label mb-1">Latitude, Longitude<span className="text-red-500">*</span></label>
                             <Controller
                                 name="location_lat_long"
                                 control={control}
@@ -170,7 +180,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
                             {loading ? (

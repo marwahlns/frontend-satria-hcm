@@ -54,7 +54,7 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
       }
     };
     getData();
-  }, [page, limit, search, sort, order, url, isRefetch]);
+  }, [token, page, limit, search, sort, order, url, isRefetch]);
 
   const table = useReactTable({
     data,

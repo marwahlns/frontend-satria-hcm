@@ -137,6 +137,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     }, [isModalOpen, reset]);
 
     const onSubmit = async (data) => {
+        if (new Date(data.join_date) > new Date(data.end_date)) {
+            Swal.fire({
+                icon: "error",
+                title: "Invalid Date Range",
+                text: "Join Date cannot be later than End Date!",
+            });
+            return;
+        }
         setLoading(true);
         try {
             const token = Cookies.get("token");
@@ -187,12 +195,18 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 setRefetch(!isRefetch);
                 onClose();
                 reset();
-            } else {
-                onClose();
-                reset();
             }
         } catch (error) {
             console.error(error);
+            const errorMessage =
+                error?.response?.data?.message || "Something went wrong";
+            Swal.fire({
+                text: errorMessage,
+                icon: "error",
+                timer: 2000,
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -398,7 +412,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[400px] max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Full Name</label>
+                            <label className="form-label mb-1">Full Name<span className="text-red-500">*</span></label>
                             <Controller
                                 name="name"
                                 control={control}
@@ -409,7 +423,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">NRP</label>
+                            <label className="form-label mb-1">NRP<span className="text-red-500">*</span></label>
                             <Controller
                                 name="nrp"
                                 control={control}
@@ -420,7 +434,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.nrp && <p className="text-red-500 text-sm mt-1">{errors.nrp.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Email</label>
+                            <label className="form-label mb-1">Email<span className="text-red-500">*</span></label>
                             <Controller
                                 name="email"
                                 control={control}
@@ -431,7 +445,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Phone/WA</label>
+                            <label className="form-label mb-1">Phone/WA<span className="text-red-500">*</span></label>
                             <Controller
                                 name="phone"
                                 control={control}
@@ -442,7 +456,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Birth Date</label>
+                            <label className="form-label mb-1">Birth Date<span className="text-red-500">*</span></label>
                             <Controller
                                 name="bdate"
                                 control={control}
@@ -453,7 +467,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.bdate && <p className="text-red-500 text-sm mt-1">{errors.bdate.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Gender</label>
+                            <label className="form-label mb-1">Gender<span className="text-red-500">*</span></label>
                             <Controller
                                 name="gender"
                                 control={control}
@@ -478,7 +492,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Marital Status</label>
+                            <label className="form-label mb-1">Marital Status<span className="text-red-500">*</span></label>
                             <Controller
                                 name="marital_status"
                                 control={control}
@@ -506,7 +520,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.marital_status && <p className="text-red-500 text-sm mt-1">{errors.marital_status.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Address</label>
+                            <label className="form-label mb-1">Address<span className="text-red-500">*</span></label>
                             <Controller
                                 name="address"
                                 control={control}
@@ -522,7 +536,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Vendor</label>
+                            <label className="form-label mb-1">Vendor<span className="text-red-500">*</span></label>
                             <Controller
                                 name="vendor"
                                 control={control}
@@ -547,7 +561,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.vendor && <p className="text-red-500 text-sm mt-1">{errors.vendor.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Join Date</label>
+                            <label className="form-label mb-1">Join Date<span className="text-red-500">*</span></label>
                             <Controller
                                 name="join_date"
                                 control={control}
@@ -558,7 +572,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.join_date && <p className="text-red-500 text-sm mt-1">{errors.join_date.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">End Date</label>
+                            <label className="form-label mb-1">End Date<span className="text-red-500">*</span></label>
                             <Controller
                                 name="end_date"
                                 control={control}
@@ -571,7 +585,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Worklocation</label>
+                            <label className="form-label mb-1">Worklocation<span className="text-red-500">*</span></label>
                             <Controller
                                 name="worklocation"
                                 control={control}
@@ -596,7 +610,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.worklocation && <p className="text-red-500 text-sm mt-1">{errors.worklocation.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Plant</label>
+                            <label className="form-label mb-1">Plant<span className="text-red-500">*</span></label>
                             <Controller
                                 name="plant"
                                 control={control}
@@ -621,7 +635,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.plant && <p className="text-red-500 text-sm mt-1">{errors.plant.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Klasifikasi</label>
+                            <label className="form-label mb-1">Klasifikasi<span className="text-red-500">*</span></label>
                             <Controller
                                 name="klasifikasi"
                                 control={control}
@@ -646,7 +660,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.klasifikasi && <p className="text-red-500 text-sm mt-1">{errors.klasifikasi.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Superior</label>
+                            <label className="form-label mb-1">Superior<span className="text-red-500">*</span></label>
                             <Controller
                                 name="superior"
                                 control={control}
@@ -677,7 +691,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.superior && <p className="text-red-500 text-sm mt-1">{errors.superior.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Department</label>
+                            <label className="form-label mb-1">Department<span className="text-red-500">*</span></label>
                             <Controller
                                 name="department"
                                 control={control}
@@ -707,7 +721,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.section && <p className="text-red-500 text-sm mt-1">{errors.section.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Division</label>
+                            <label className="form-label mb-1">Division<span className="text-red-500">*</span></label>
                             <Controller
                                 name="division"
                                 control={control}
@@ -722,7 +736,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             {errors.division && <p className="text-red-500 text-sm mt-1">{errors.division.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Title</label>
+                            <label className="form-label mb-1">Title<span className="text-red-500">*</span></label>
                             <Controller
                                 name="title"
                                 control={control}
@@ -741,7 +755,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
                             {loading ? (

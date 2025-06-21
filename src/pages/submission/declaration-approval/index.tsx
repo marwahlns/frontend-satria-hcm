@@ -1,39 +1,149 @@
 import Main from "../../../main-layouts/main";
 import DataTable from "../../../components/Datatables";
-import clsx from "clsx";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FilterData from "@/components/FilterData";
-import Swal from "sweetalert2";
 import axios from "axios";
-import * as yup from "yup";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { useForm } from "react-hook-form";
 import Cookies from "js-cookie";
 import DeclarationModal from "@/components/Modals/DeclarationModal";
-import { IoMdPaper } from "react-icons/io";
+import Swal from "sweetalert2";
+import { useForm } from "react-hook-form";
 
 export default function Home() {
+  const [loading, setLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>("");
   const [isDeclarationModalOpen, setIsDeclarationModalOpen] = useState(false);
   const [declarationData, setDeclarationData] = useState(null);
   const [declarationType, setDeclarationType] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
+  const [filter, setFilter] = useState<{
+    month: string;
+    year: string;
+    status?: number;
+  }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+
+  const { reset } = useForm({
+    defaultValues: {
+      start_date: "",
+      end_date: "",
+      destination_city: [],
+      purpose: "",
+      canceled_remark: "",
+      type: "",
+      symbol_currency: [],
+      currency: [],
+      destination_place: "",
+      transportation: "",
+      lodging: "",
+      work_status: "",
+      office_activities: "",
+      taxi_cost: null,
+      hotel_cost: null,
+      rent_cost: null,
+      upd_cost: null,
+      fiskal_cost: null,
+      other_cost: null,
+      total_cost: null,
+      activity_agenda: "",
+      date_range: [null, null],
+    },
+  });
+
+  useEffect(() => {
+    const handleRefetch = () => {
+      setIsRefetch((prev) => !prev);
+    };
+
+    window.addEventListener("refetchDeclarationTable", handleRefetch);
+
+    return () => {
+      window.removeEventListener("refetchDeclarationTable", handleRefetch);
+    };
+  }, []);
 
   const handleSearchChange = (value) => {
     setSearchValue(value);
   };
 
   const handleOpenDeclarationModal = async (data) => {
-    console.log("data", data);
-    setDeclarationData(data);
-    setIsDeclarationModalOpen(true);
+    setLoading(true);
+    try {
+      setDeclarationData(data);
+      reset(data);
+      setIsDeclarationModalOpen(true);
+    } catch (error) {
+      console.error("Error opening declaration modal:", error);
+      setDeclarationData(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleShowFile = (fileUrl: string) => {
     window.open(fileUrl, "_blank");
+  };
+
+  const handleExportPDF = async (searchId) => {
+    const token = Cookies.get("token");
+    try {
+      setLoading(true);
+      setLoadingId(searchId);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            type: "declaration",
+            exportData: true,
+            status: filter.status,
+            month: filter.month,
+            year: filter.year,
+            search: searchId,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to export PDF file");
+      }
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Data_Declaration_${yyyy}-${mm}-${dd}.pdf`;
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export PDF`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
+      setLoadingId(null);
+    }
   };
 
   const handleExportExcel = async () => {
@@ -87,6 +197,7 @@ export default function Home() {
   };
 
   type ITrDeclaration = {
+    code: string;
     user_name: string;
     user_departement: string;
     status_id: number;
@@ -114,11 +225,11 @@ export default function Home() {
     },
     {
       accessorKey: "code",
-      header: "Code Official Travel",
+      header: "Declaration Code",
       enableSorting: true,
     },
     {
-      accessorKey: "total_cost_detail",
+      accessorKey: "total_detail_cost",
       header: "Total Cost Detail",
       enableSorting: true,
     },
@@ -127,37 +238,32 @@ export default function Home() {
       header: "Down Payment",
       enableSorting: true,
     },
-    {
-      accessorKey: "total_money_change",
-      header: "Money Change",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "evidence_file",
-      header: "File",
-      cell: ({ row }) => {
-        const file = row.original.evidence_file;
-        if (file) {
-          const fileUrl = `http://localhost:3000/uploads/file_declaration/${file}`;
-          return (
-            <div className="flex justify-center cursor-pointer">
-              <IoMdPaper
-                size={24}
-                color="#E53E3E"
-                onClick={() => handleShowFile(fileUrl)}
-                title="View PDF"
-              />
-            </div>
-          );
-        } else {
-          return <span>No File</span>;
-        }
-      },
-    },
+    // {
+    //   accessorKey: "evidence_file",
+    //   header: "File",
+    //   cell: ({ row }) => {
+    //     const file = row.original.evidence_file;
+    //     if (file) {
+    //       const fileUrl = `http://localhost:3000/uploads/file_declaration/${file}`;
+    //       return (
+    //         <div className="flex justify-center cursor-pointer">
+    //           <IoMdPaper
+    //             size={24}
+    //             color="#E53E3E"
+    //             onClick={() => handleShowFile(fileUrl)}
+    //             title="View PDF"
+    //           />
+    //         </div>
+    //       );
+    //     } else {
+    //       return <span>No File</span>;
+    //     }
+    //   },
+    // },
     {
       accessorKey: "status_submittion",
       header: "Status",
-      enableSorting: true,
+      enableSorting: false,
       cell: ({ row }) => {
         const statusId = row.original.status_id;
         const statusSubmittion = row.original.status_submittion;
@@ -198,15 +304,31 @@ export default function Home() {
         return (
           <div className="flex space-x-1 justify-center">
             {(data.modalType === "detail" || data.modalType === "action") && (
-              <button
-                className="btn btn-sm btn-outline btn-primary"
-                onClick={async () => {
-                  handleOpenDeclarationModal(data);
-                  setDeclarationType("Detail");
-                }}
-              >
-                <i className="ki-outline ki-eye text-white"></i>
-              </button>
+              <>
+                <button
+                  className="btn btn-sm btn-outline btn-primary"
+                  onClick={async () => {
+                    handleOpenDeclarationModal(data);
+                    setDeclarationType("Detail");
+                  }}
+                >
+                  <i className="ki-outline ki-eye text-white"></i>
+                </button>
+                <button
+                  className="btn btn-sm btn-outline btn-danger"
+                  onClick={() => handleExportPDF(data.code)}
+                  disabled={loadingId === data.code}
+                >
+                  {loadingId === data.code ? (
+                    <span className="flex items-center gap-1">
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Exporting...
+                    </span>
+                  ) : (
+                    <i className="ki-filled ki-file-down"></i>
+                  )}
+                </button>
+              </>
             )}
 
             {data.modalType === "action" && (
@@ -248,55 +370,65 @@ export default function Home() {
 
   return (
     <Main>
-      <div className="mb-6">
-        <div className="flex flex-col gap-4 mt-4">
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
           <h1 className="text-3xl font-bold text-gray-800">
-            Declaration submission data list
+            Declaration Submissions
           </h1>
-
-          <div className="flex justify-between items-center">
-            <div></div>
-            <div className="flex gap-3 items-center">
-              <button
-                onClick={() => setShowFilter((prev) => !prev)}
-                className="btn btn-filled btn-primary"
-              >
-                <i className="ki-filled ki-filter-tablet mr-1" />
-                Filter
-              </button>
-              {showFilter && (
-                <FilterData
-                  onSelect={(selectedFilter) => {
-                    setFilter(selectedFilter);
-                    setShowFilter(false);
-                  }}
+        </div>
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative">
+            <button
+              onClick={() => setShowFilter((prev) => !prev)}
+              className="btn btn-filled btn-primary"
+            >
+              <i className="ki-filled ki-filter-tablet mr-1" />
+              Filter
+            </button>
+            {showFilter && (
+              <FilterData
+                onSelect={(selectedFilter) => {
+                  setFilter(selectedFilter);
+                  setShowFilter(false);
+                }}
+              />
+            )}
+          </div>
+          {/* <button
+            className="btn btn-filled btn-success"
+            onClick={handleExportExcel}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
                 />
-              )}{" "}
-              <button
-                className="btn btn-filled btn-success"
-                onClick={() => handleExportExcel()}
-              >
+                Exporting...
+              </>
+            ) : (
+              <>
                 <i className="ki-filled ki-file-down"></i>
                 Export to Excel
-              </button>
-            </div>
-          </div>
-
-          <DeclarationModal
-            isOpen={isDeclarationModalOpen}
-            onClose={() => {
-              setIsDeclarationModalOpen(false);
-              setDeclarationData(null);
-              setDeclarationType(null);
-            }}
-            declarationData={declarationData}
-            type={declarationType}
-          />
+              </>
+            )}
+          </button> */}
         </div>
       </div>
 
+      <DeclarationModal
+        isOpen={isDeclarationModalOpen}
+        onClose={() => {
+          setIsDeclarationModalOpen(false);
+          setDeclarationData(null);
+          setDeclarationType(null);
+        }}
+        declarationData={declarationData}
+        type={declarationType}
+      />
+
       <DataTable
-        title="Declaration Submission"
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=declaration&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}

@@ -23,11 +23,6 @@ const Main: React.FC<CardProps> = ({ children, isSidebar = true, isWrapper = tru
     router.push("/auth/login");
   };
 
-  useEffect(() => {
-    const role = Cookies.get("role");
-    console.log("Role from cookies:", role);
-  }, []);
-
   return (
     <>
       <div className="flex grow">

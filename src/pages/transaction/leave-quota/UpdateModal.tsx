@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch }) => {
+    const [loading, setLoading] = useState(false);
     const schema = yup.object().shape({
         name: yup
             .string(),
@@ -48,9 +49,11 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         resolver: yupResolver(schema),
         defaultValues: {
             id_user: "",
-            id_leave_type: {},
+            name: "",
+            id_leave_type: null,
             valid_from: "",
             valid_to: "",
+            leaves_quota: 0,
         },
     });
 
@@ -64,27 +67,28 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         if (selectedData) {
             reset({
                 id_user: selectedData.id_user,
-                name: selectedData.MsUser.name,
+                name: selectedData.MsUser?.name || "",
                 valid_from: formatDate(selectedData.valid_from),
                 valid_to: formatDate(selectedData.valid_to),
                 id_leave_type: selectedData.leaves_type_id
                     ? {
                         value: selectedData.leaves_type_id,
-                        label: selectedData.MsLeaveType.title
+                        label: selectedData.MsLeaveType?.title || ""
                     }
                     : null,
-                leaves_quota: selectedData.leaves_quota,
+                leaves_quota: Number(selectedData.leaves_quota) || 0,
             });
         }
     }, [selectedData, reset]);
 
     const onSubmit = async (data) => {
+        setLoading(true);
         try {
             const token = Cookies.get("token");
             const response = await axios.put(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota/${selectedData.id}`,
                 {
-                    ...data,
+                    id_user: data.id_user,
                     id_leave_type: data.id_leave_type?.value,
                     valid_from: data.valid_from,
                     valid_to: data.valid_to,
@@ -97,7 +101,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 }
             );
 
-            if (response.status == 201) {
+            if (response.status === 200) {
                 Swal.fire({
                     text: "Leave quota updated successfully",
                     icon: "success",
@@ -105,13 +109,29 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 });
                 setRefetch(!isRefetch);
                 onClose();
-                reset();
             } else {
-                onClose();
-                reset();
+                Swal.fire({
+                    icon: "error",
+                    title: "Update Failed",
+                    text: response.data?.message || "Failed to update leave quota. Please try again.",
+                });
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error updating leave quota:", error);
+            let errorMessage = "An unexpected error occurred.";
+            if (error.response) {
+                errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+            } else if (error.request) {
+                errorMessage = "Network error. Please check your connection.";
+            }
+            Swal.fire({
+                title: "Error",
+                text: errorMessage,
+                icon: "error",
+            });
+            return;
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -144,7 +164,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         <Modal isModalOpen={isModalOpen}>
             <div className="modal-header">
                 <h3 className="modal-title">Update Transaction Leave Quota</h3>
-                <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
+                <button type="button" className="btn btn-xs btn-icon btn-light" onClick={onClose}>
                     <i className="ki-outline ki-cross"></i>
                 </button>
             </div>
@@ -277,10 +297,36 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            Submit
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 mr-3 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                "Submit"
+                            )}
                         </button>
                     </div>
                 </div>

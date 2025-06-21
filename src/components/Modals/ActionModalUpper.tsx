@@ -14,15 +14,12 @@ const ActionModal = ({
   if (!isModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl mx-4 md:mx-8">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button
-            className="text-gray-500 hover:text-gray-700"
-            onClick={onClose}
-          >
-            <i className="ki-outline ki-cross text-xl"></i>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-[95vw] max-w-[1200px] bg-white rounded-xl shadow-lg p-6">
+        <div className="flex justify-between items-center border-b pb-4 mb-4">
+          <h3 className="text-xl font-bold text-gray-800">{title}</h3>
+          <button className="btn btn-xs btn-icon btn-light" onClick={onClose}>
+            <i className="ki-outline ki-cross"></i>
           </button>
         </div>
 
@@ -31,7 +28,7 @@ const ActionModal = ({
         <div className="border-t px-6 py-4 flex justify-end gap-2">
           {showCancel && (
             <button className="btn btn-light" onClick={onClose}>
-              Cancel
+              Discard
             </button>
           )}
           {showSubmit && (
@@ -40,6 +37,8 @@ const ActionModal = ({
                 "btn flex items-center text-white",
                 submitText === "Rejected" || submitText === "Canceled"
                   ? "bg-red-500 hover:bg-red-600"
+                  : submitText === "Accepted"
+                  ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-green-500 hover:bg-green-600"
               )}
               onClick={onSubmit}

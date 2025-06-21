@@ -1,4 +1,4 @@
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch, useFieldArray } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import clsx from "clsx";
@@ -82,6 +82,8 @@ export default function ModalDeclaration({
   type,
 }: Props) {
   const data = declarationData ?? officialTravelData;
+  const [loading, setLoading] = useState(false);
+
   const [rows, setRows] = useState([
     {
       date_activity: "",
@@ -98,6 +100,7 @@ export default function ModalDeclaration({
   ]);
 
   interface FormValues {
+    id?: string;
     code_trx?: string;
     user?: string;
     start_date_actual?: Date | null;
@@ -139,6 +142,7 @@ export default function ModalDeclaration({
   } = useForm<FormValues>({
     resolver: yupResolver(schema as any),
     defaultValues: {
+      id: null,
       code_trx: officialTravelData?.code ?? "",
       user: officialTravelData?.user ?? "",
       start_date_actual: new Date(),
@@ -165,7 +169,73 @@ export default function ModalDeclaration({
     },
   });
 
+  useEffect(() => {
+    if (!data) {
+      reset({
+        id: null,
+        date_range: [null, null],
+        start_date_actual: null,
+        end_date_actual: null,
+        details: [
+          {
+            date_activity: null,
+            location_activity: "",
+            hotel_cost: null,
+            taxi_cost: null,
+            upd_cost: null,
+            ticket_cost: null,
+            consume_cost: null,
+            other_cost: null,
+            total_cost: "",
+            explanation: "",
+          },
+        ],
+      });
+      return;
+    }
+
+    reset({
+      id: data.id ?? null,
+      date_range: [
+        data.start_date_actual ? new Date(data.start_date_actual) : null,
+        data.end_date_actual ? new Date(data.end_date_actual) : null,
+      ],
+      start_date_actual: data.start_date_actual
+        ? new Date(data.start_date_actual)
+        : null,
+      end_date_actual: data.end_date_actual
+        ? new Date(data.end_date_actual)
+        : null,
+      details:
+        Array.isArray(data.details) && data.details.length > 0
+          ? data.details.map((item: any) => ({
+              ...item,
+              total_cost:
+                item.total_cost != null ? parseFloat(item.total_cost) : 0,
+            }))
+          : [
+              {
+                date_activity: "",
+                location_activity: "",
+                hotel_cost: 0,
+                consume_cost: 0,
+                upd_cost: 0,
+                taxi_cost: 0,
+                ticket_cost: 0,
+                other_cost: 0,
+                total_cost: 0,
+                explanation: "",
+              },
+            ],
+    });
+  }, [data, reset]);
+
   const watchedDetails = useWatch({
+    control,
+    name: "details",
+  });
+
+  const { fields, append, remove } = useFieldArray({
     control,
     name: "details",
   });
@@ -248,43 +318,24 @@ export default function ModalDeclaration({
   };
 
   const addRow = () => {
-    setRows([
-      ...rows,
-      {
-        date_activity: "",
-        location_activity: "",
-        hotel_cost: 0,
-        consume_cost: 0,
-        upd_cost: 0,
-        taxi_cost: 0,
-        ticket_cost: 0,
-        other_cost: 0,
-        total_cost: 0,
-        explanation: "",
-      },
-    ]);
+    append({
+      date_activity: null,
+      location_activity: "",
+      hotel_cost: null,
+      taxi_cost: null,
+      upd_cost: null,
+      ticket_cost: null,
+      consume_cost: null,
+      other_cost: null,
+      total_cost: "",
+      explanation: "",
+    });
   };
 
-  const removeRow = (index) => {
-    const newRows = rows.filter((_, i) => i !== index);
-    setRows(
-      newRows.length === 0
-        ? [
-            {
-              date_activity: "",
-              location_activity: "",
-              hotel_cost: 0,
-              consume_cost: 0,
-              upd_cost: 0,
-              taxi_cost: 0,
-              ticket_cost: 0,
-              other_cost: 0,
-              total_cost: 0,
-              explanation: "",
-            },
-          ]
-        : newRows
-    );
+  const removeRow = (index: number) => {
+    if (fields.length > 0) {
+      remove(index);
+    }
   };
 
   const formatRupiahLive = (value: string): string => {
@@ -307,10 +358,10 @@ export default function ModalDeclaration({
 
   const keterangan =
     selisih > 0
-      ? "Kembali ke Karyawan"
+      ? "Reimbursed to the employee"
       : selisih < 0
-      ? "Kembali ke Perusahaan"
-      : "Tidak ada pengembalian";
+      ? "Repaid to the company"
+      : "No reimbursement";
 
   const color =
     selisih > 0
@@ -320,6 +371,7 @@ export default function ModalDeclaration({
       : "text-gray-600";
 
   const onSubmit = async (data) => {
+    setLoading(true);
     try {
       const token = Cookies.get("token");
 
@@ -337,6 +389,7 @@ export default function ModalDeclaration({
           data.end_date_actual?.toISOString() ?? ""
         );
         formData.append("total_money_change", data.total_money_change ?? "0");
+        formData.append("total_detail_cost", totalCost.toString());
 
         if (data.pdfFile) {
           formData.append("file", data.pdfFile || new Blob());
@@ -376,7 +429,6 @@ export default function ModalDeclaration({
           Swal.fire({
             text: "Declaration added successfully",
             icon: "success",
-            timer: 1500,
           });
           window.dispatchEvent(new CustomEvent("refetchDeclarationTable"));
           handleClose();
@@ -408,7 +460,6 @@ export default function ModalDeclaration({
           Swal.fire({
             text: `${type} successfully`,
             icon: "success",
-            timer: 1500,
           });
           window.dispatchEvent(new CustomEvent("refetchDeclarationTable"));
           handleClose();
@@ -421,6 +472,8 @@ export default function ModalDeclaration({
       }
     } catch (error) {
       Swal.fire({ text: "Operation failed", icon: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -455,12 +508,16 @@ export default function ModalDeclaration({
               style={{ maxHeight: "60vh" }}
             >
               <div
-                className={`grid grid-cols-1 md:grid-cols-${
-                  type === "Create" ? 3 : 4
+                className={`grid grid-cols-1 ${
+                  type === "Create" ? "md:grid-cols-1" : "md:grid-cols-4"
                 } gap-x-12 gap-y-6 text-left`}
               >
+                {/* Approval Stage */}
                 {type !== "Create" && (
-                  <div className="w-full md:w-60">
+                  <div className="md:col-span-1 w-full">
+                    <h3 className="font-bold border-b pb-2 text-gray-700">
+                      Approval Stage
+                    </h3>
                     <StatusStepper
                       statusId={data?.status_id ?? 1}
                       createdDate={data?.created_at}
@@ -477,132 +534,161 @@ export default function ModalDeclaration({
                     />
                   </div>
                 )}
-                <div className="space-y-2 border-r pr-6">
-                  <Controller
-                    name="code_trx"
-                    control={control}
-                    render={() => (
+
+                {/* General Information */}
+                <section
+                  className={`${
+                    type !== "Create" ? "md:col-span-3" : "md:col-span-1"
+                  } w-full space-y-4`}
+                >
+                  <h3 className="font-bold border-b pb-2 text-gray-700">
+                    General Information
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                    {/* Column 1 */}
+                    <div className="space-y-2">
+                      <Controller
+                        name="code_trx"
+                        control={control}
+                        render={() => (
+                          <p>
+                            <span className="font-semibold">ST Number</span>:{" "}
+                            {data?.code_trx || "-"}
+                          </p>
+                        )}
+                      />
                       <p>
-                        <span className="font-semibold">ST Number</span>:{" "}
-                        {data?.code_trx || "-"}
+                        <span className="font-semibold">Name</span>:{" "}
+                        {data?.user_name ?? ""}
                       </p>
-                    )}
-                  />
-
-                  <p>
-                    <span className="font-semibold">Name</span>:{" "}
-                    {data?.user_name ?? ""}
-                  </p>
-                  <Controller
-                    name="user"
-                    control={control}
-                    render={() => (
+                      <Controller
+                        name="user"
+                        control={control}
+                        render={() => (
+                          <p>
+                            <span className="font-semibold">NRP</span>:{" "}
+                            {data?.user || "-"}
+                          </p>
+                        )}
+                      />
                       <p>
-                        <span className="font-semibold">NRP</span>:{" "}
-                        {data?.user || "-"}
+                        <span className="font-semibold">
+                          Department/Division
+                        </span>
+                        : {data?.user_department ?? ""} /{" "}
+                        {data?.user_division ?? ""}
                       </p>
-                    )}
-                  />
-                  <p>
-                    <span className="font-semibold">Department/Division</span>:{" "}
-                    {data?.user_department ?? ""} / {data?.user_division ?? ""}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Position</span>:{" "}
-                    {data?.user_position ?? ""}
-                  </p>
-                </div>
+                      <p>
+                        <span className="font-semibold">Position</span>:{" "}
+                        {data?.user_position ?? ""}
+                      </p>
+                    </div>
 
-                <div className="space-y-2 border-r pr-6">
-                  <p>
-                    <span className="font-semibold">Cost Center</span>: Rp{" "}
-                    {data?.total_cost ?? ""}
-                  </p>
-                  <p>
-                    <span className="font-semibold">
-                      {data?.symbol_currency ?? ""} Mid Rate
-                    </span>
-                    : 1 {data?.symbol_currency ?? ""}= Rp {data?.currency ?? ""}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Job Type</span>:{" "}
-                    {data?.work_status ?? ""}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Travel Type</span>:{" "}
-                    {data?.lodging ?? ""}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Travel To</span>:{" "}
-                    {data?.destination_city ?? ""}
-                  </p>
-                </div>
+                    {/* Column 2 */}
+                    <div className="space-y-2">
+                      <p>
+                        <span className="font-semibold">Cost Center</span>: Rp{" "}
+                        {data?.total_cost ?? ""}
+                      </p>
+                      <p>
+                        <span className="font-semibold">
+                          {data?.symbol_currency ?? ""} Mid Rate
+                        </span>
+                        : 1 {data?.symbol_currency ?? ""}= Rp{" "}
+                        {data?.currency ?? ""}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Job Type</span>:{" "}
+                        {data?.work_status ?? ""}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Travel Type</span>:{" "}
+                        {data?.lodging ?? ""}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Travel To:</span>{" "}
+                        {[
+                          data?.destination_place1,
+                          data?.destination_place2,
+                          data?.destination_place3,
+                        ]
+                          .filter(Boolean)
+                          .map((place) => `${place}`)
+                          .join("; ")}
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <p>
-                    <span className="font-semibold">Travel From</span>:{" "}
-                    {data?.worklocation_name ?? ""}
-                  </p>
-
-                  <p>
-                    <span className="font-semibold">Departure Date</span>:{" "}
-                    {data?.start_date ?? ""}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Return Date</span>:{" "}
-                    {data?.end_date ?? ""}
-                  </p>
-                  <div>
-                    <label className="form-label">
-                      Start Date - End Date Actual
-                      <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-                    </label>
-                    <Controller
-                      control={control}
-                      name="date_range"
-                      render={({ field }) => (
-                        <DatePicker
-                          selectsRange
-                          startDate={field.value?.[0] || null}
-                          endDate={field.value?.[1] || null}
-                          onChange={(dates: [Date | null, Date | null]) => {
-                            const [start, end] = dates;
-                            field.onChange(dates);
-                            setValue("start_date_actual", start ?? null);
-                            setValue("end_date_actual", end ?? null);
-                          }}
-                          className={clsx(
-                            "input w-full text-sm py-2 px-3 rounded-md border",
-                            errors.start_date_actual || errors.end_date_actual
-                              ? "border-red-500"
-                              : "border-gray-300"
+                    {/* Column 3 */}
+                    <div className="space-y-2">
+                      <p>
+                        <span className="font-semibold">Travel From</span>:{" "}
+                        {data?.worklocation_name ?? ""}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Departure Date</span>:{" "}
+                        {data?.start_date ?? ""}
+                      </p>
+                      <p>
+                        <span className="font-semibold">Return Date</span>:{" "}
+                        {data?.end_date ?? ""}
+                      </p>
+                      <div>
+                        <label className="form-label">
+                          Start Date - End Date Actual
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <Controller
+                          control={control}
+                          name="date_range"
+                          render={({ field }) => (
+                            <DatePicker
+                              selectsRange
+                              startDate={field.value?.[0] || null}
+                              endDate={field.value?.[1] || null}
+                              onChange={(dates: [Date | null, Date | null]) => {
+                                const [start, end] = dates;
+                                field.onChange(dates);
+                                setValue("start_date_actual", start ?? null);
+                                setValue("end_date_actual", end ?? null);
+                              }}
+                              className={clsx(
+                                "input w-full text-sm py-2 px-3 rounded-md border",
+                                errors.start_date_actual ||
+                                  errors.end_date_actual
+                                  ? "border-red-500"
+                                  : "border-gray-300"
+                              )}
+                              placeholderText="Pick a date"
+                              dateFormat="dd-MMM-yyyy"
+                              isClearable={!data || data !== declarationData}
+                              locale={enGB}
+                              disabled={data === declarationData}
+                              minDate={
+                                new Date(
+                                  new Date().setDate(new Date().getDate() + 5)
+                                )
+                              }
+                            />
                           )}
-                          placeholderText="Pick a date"
-                          dateFormat="dd-MMM-yyyy"
-                          isClearable={!data || data !== declarationData}
-                          locale={enGB}
-                          disabled={data === declarationData}
-                          minDate={
-                            new Date(
-                              new Date().setDate(new Date().getDate() + 5)
-                            )
-                          }
                         />
-                      )}
-                    />
-                    {(errors.start_date_actual || errors.end_date_actual) && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.start_date_actual?.message ||
-                          errors.end_date_actual?.message}
-                      </p>
-                    )}
+                        {(errors.start_date_actual ||
+                          errors.end_date_actual) && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.start_date_actual?.message ||
+                              errors.end_date_actual?.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </section>
               </div>
+
               <div className="mt-10">
-                <h4 className="text-md font-bold mb-4">
+                <h3 className="font-bold border-b pb-2 text-gray-700">
                   Travel Expense Details
-                </h4>
+                </h3>
                 <div className="overflow-x-auto">
                   <table className="table-auto w-full text-sm text-left border-collapse min-w-[900px]">
                     <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
@@ -623,8 +709,8 @@ export default function ModalDeclaration({
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((row, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
+                      {fields.map((field, i) => (
+                        <tr key={field.id} className="hover:bg-gray-50">
                           <td className="border p-2 h-10">
                             <Controller
                               control={control}
@@ -856,7 +942,7 @@ export default function ModalDeclaration({
                                 onClick={() => removeRow(i)}
                                 title="Delete Row"
                               >
-                                &times;
+                                <i className="ki-outline ki-cross-circle"></i>
                               </button>
                             </td>
                           )}
@@ -870,8 +956,9 @@ export default function ModalDeclaration({
                   <button
                     type="button"
                     onClick={addRow}
-                    className="mt-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="mt-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-500"
                   >
+                    <i className="ki-outline ki-plus-circle mr-3"></i>
                     Add Row
                   </button>
                 )}
@@ -957,7 +1044,7 @@ export default function ModalDeclaration({
 
                     <div className="flex justify-between items-center mt-6 mb-4">
                       <span className="font-semibold text-gray-700">
-                        Selisih:
+                        Balance:
                       </span>
                       <span className={`font-medium ${color}`}>
                         {keterangan} - Rp {selisih.toLocaleString("id-ID")}
@@ -967,59 +1054,92 @@ export default function ModalDeclaration({
                 </div>
               </div>
               {type === "Canceled" && (
-                <div className="mt-6 mb-4 max-w-full">
-                  <label className="form-label">
-                    Canceled Remark <span className="text-red-500">*</span>
-                  </label>
-                  <Controller
-                    name="canceled_remark"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        {...field}
-                        type="text"
-                        className={clsx(
-                          "input w-full",
-                          errors.canceled_remark && "border-red-500"
+                <section className="bg-gray-50 rounded-xl shadow-md p-6 mt-8">
+                  <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+                    Remark
+                  </h3>
+                  <div className="grid grid-cols-1 gap-5">
+                    <div>
+                      <label className="form-label mb-2">
+                        Canceled Remark
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <Controller
+                        name="canceled_remark"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            className={clsx(
+                              "input",
+                              errors.canceled_remark
+                                ? "border-red-500 hover:border-red-500"
+                                : ""
+                            )}
+                          />
                         )}
-                        placeholder="Enter cancellation remark..."
                       />
-                    )}
-                  />
-                  {errors.canceled_remark && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.canceled_remark.message}
-                    </p>
-                  )}
-                </div>
+                      {errors.canceled_remark && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.canceled_remark.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </section>
               )}
 
-              {(type === "Approved" || type === "Accepted") && (
-                <div className="mt-6 mb-4 max-w-full">
-                  <label className="form-label">
-                    Remark <span className="text-red-500">*</span>
-                  </label>
-                  <Controller
-                    name="remark"
-                    control={control}
-                    render={({ field }) => (
-                      <input
-                        {...field}
-                        type="text"
-                        className={clsx(
-                          "input w-full",
-                          errors.remark && "border-red-500"
-                        )}
-                        placeholder="Enter remark..."
-                      />
-                    )}
-                  />
-                  {errors.remark && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.remark.message}
-                    </p>
+              {(type === "Approved" ||
+                type === "Accepted" ||
+                type === "Rejected") && (
+                <section
+                  className={clsx(
+                    "rounded-xl shadow-md p-6 mt-8",
+                    type === "Approved" && "bg-green-100",
+                    type === "Rejected" && "bg-red-100",
+                    type === "Accepted" && "bg-blue-100"
                   )}
-                </div>
+                >
+                  <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+                    Remarks
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-5">
+                    <div>
+                      <label className="form-label mb-2">
+                        {type === "Approved" && type?.status_id === 1
+                          ? "Approved Remark"
+                          : `${type} Remark`}
+                        <span style={{ color: "red", marginLeft: "5px" }}>
+                          *
+                        </span>
+                      </label>
+                      <Controller
+                        name="remark"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            autoFocus
+                            className={clsx(
+                              "input",
+                              errors.remark
+                                ? "border-red-500 hover:border-red-500"
+                                : ""
+                            )}
+                          />
+                        )}
+                      />
+                      {errors.remark && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.remark.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </section>
               )}
             </div>
 
@@ -1039,33 +1159,57 @@ export default function ModalDeclaration({
                   </button>
                 )}
 
-                {type === "Create" && (
-                  <button type="submit" className="btn btn-primary">
-                    Submit
-                  </button>
-                )}
-
-                {type === "Accepted" && (
-                  <button type="submit" className="btn btn-primary">
-                    Accepted
-                  </button>
-                )}
-
-                {type === "Approved" && (
-                  <button type="submit" className="btn btn-primary">
-                    Approved
-                  </button>
-                )}
-
-                {type === "Rejected" && (
-                  <button type="submit" className="btn btn-danger">
-                    Rejected
-                  </button>
-                )}
-
-                {type === "Canceled" && (
-                  <button type="submit" className="btn btn-danger">
-                    Canceled
+                {(type === "Create" ||
+                  type === "Accepted" ||
+                  type === "Approved" ||
+                  type === "Rejected" ||
+                  type === "Canceled") && (
+                  <button
+                    type="submit"
+                    className={`btn ${
+                      type === "Rejected" || type === "Canceled"
+                        ? "btn-danger"
+                        : "btn-primary"
+                    } flex justify-center grow`}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5 mr-3 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Loading...
+                      </>
+                    ) : type === "Create" ? (
+                      "Submit"
+                    ) : type === "Accepted" ? (
+                      "Accepted"
+                    ) : type === "Approved" ? (
+                      "Approved"
+                    ) : type === "Rejected" ? (
+                      "Rejected"
+                    ) : type === "Canceled" ? (
+                      "Canceled"
+                    ) : (
+                      ""
+                    )}
                   </button>
                 )}
 

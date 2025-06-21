@@ -15,8 +15,8 @@ import * as XLSX from "xlsx";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     const [loading, setLoading] = useState(false);
-    const [inputMethod, setInputMethod] = useState<"excel" | "table">("excel");
     const [searchValue, setSearchValue] = useState("");
+    const [file, setFile] = useState<File | null>(null);
 
     const handleSearchChange = (value) => {
         setSearchValue(value);
@@ -43,6 +43,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             .string()
             .required("Valid To is required"),
 
+        inputMethod: yup.string().required(),
         file: yup
             .mixed()
             .when("inputMethod", {
@@ -60,6 +61,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         getValues,
         reset,
         watch,
+        register,
     } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
@@ -68,8 +70,11 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             valid_from: "",
             valid_to: "",
             file: null,
+            inputMethod: "excel"
         },
     });
+
+    const currentInputMethod = watch("inputMethod");
 
     type IEmployee = {
         email: string;
@@ -146,17 +151,13 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     useEffect(() => {
         if (isModalOpen === false) {
             reset();
-        }
-        if (inputMethod === "excel") {
-            setValue("id_user", []);
-        } else {
-            setValue("file", null);
             setFile(null);
+            setValue("inputMethod", "excel");
         }
-    }, [isModalOpen, reset, inputMethod]);
+    }, [isModalOpen, reset, setValue]);
+
 
     const onSubmit = async (data) => {
-        setLoading(true);
         if (new Date(data.valid_from) > new Date(data.valid_to)) {
             Swal.fire({
                 icon: "error",
@@ -166,26 +167,24 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             return;
         }
 
+        setLoading(true);
         try {
-            if (!data.id_user || data.id_user.length === 0) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Select User",
-                    text: "Please select at least 1 user!",
-                });
-                return;
-            }
-
             const payload = {
-                id_user: watch("id_user") || [],
+                id_user: data.id_user,
                 id_shift_group: data.id_shift_group?.value,
                 valid_from: data.valid_from,
                 valid_to: data.valid_to,
             };
 
+            const token = Cookies.get("token");
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/trx/shift-employee`,
-                payload
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
             );
 
             if (response.status == 201) {
@@ -199,12 +198,25 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 setFile(null);
                 reset();
             } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: response.data.message || "Failed to add transaction shift",
+                });
                 onClose();
                 reset();
+                setFile(null);
             }
-        } catch (error) {
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error.message || "Something went wrong";
+            Swal.fire({
+                title: "Error",
+                text: message,
+                icon: "error",
+            });
             console.error("Error:", error);
-            alert("Terjadi kesalahan, silakan coba lagi.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -233,14 +245,12 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         }
     };
 
-    const [file, setFile] = useState<File | null>(null);
-
     const { getRootProps, getInputProps } = useDropzone({
         accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [] },
         onDrop: (acceptedFiles) => {
-            const file = acceptedFiles[0];
-            if (file) {
-                handleFileUpload(file);
+            const droppedFile = acceptedFiles[0];
+            if (droppedFile) {
+                handleFileUpload(droppedFile);
             }
         },
     });
@@ -254,33 +264,31 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         document.body.removeChild(link);
     };
 
-    const handleFileUpload = (file: File) => {
-        setFile(file);
-        setValue("file", file);
+    const handleFileUpload = (uploadedFile: File) => {
+        setFile(uploadedFile);
+        setValue("file", uploadedFile);
 
         const reader = new FileReader();
         reader.onload = (e) => {
             const data = e.target?.result;
-            const workbook = XLSX.read(data, { type: "binary" });
+            if (data) {
+                const workbook = XLSX.read(data, { type: "binary" });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const jsonData: { NRP: string; Nama: string }[] = XLSX.utils.sheet_to_json(sheet);
 
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-
-            const jsonData: { NRP: string; Nama: string }[] = XLSX.utils.sheet_to_json(sheet);
-
-            // Ambil NRP
-            const nrpList = jsonData.map((row) => row.NRP).filter((nrp) => !!nrp);
-
-            setValue("id_user", nrpList);
+                const nrpList = jsonData.map((row) => String(row.NRP)).filter((nrp) => !!nrp);
+                setValue("id_user", nrpList);
+            }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsBinaryString(uploadedFile);
     };
 
     return (
         <Modal isModalOpen={isModalOpen}>
             <div className="modal-header">
                 <h3 className="modal-title">Add Transaction Shift</h3>
-                <button className="btn btn-xs btn-icon btn-light" onClick={() => { setFile(null); onClose(); }}>
+                <button type="button" className="btn btn-xs btn-icon btn-light" onClick={() => { setFile(null); onClose(); }}>
                     <i className="ki-outline ki-cross"></i>
                 </button>
             </div>
@@ -288,7 +296,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Valid From</label>
+                            <label className="form-label mb-1">Valid From<span className="text-red-500">*</span></label>
                             <Controller
                                 name="valid_from"
                                 control={control}
@@ -308,7 +316,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Valid To</label>
+                            <label className="form-label mb-1">Valid To<span className="text-red-500">*</span></label>
                             <Controller
                                 name="valid_to"
                                 control={control}
@@ -328,7 +336,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Shift Group</label>
+                            <label className="form-label mb-1">Shift Group<span className="text-red-500">*</span></label>
                             <Controller
                                 name="id_shift_group"
                                 control={control}
@@ -360,31 +368,40 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         <div className="flex gap-12">
                             <label className="form-label flex items-center gap-2.5 text-nowrap">
                                 <input
+                                    {...register("inputMethod")}
                                     className="radio"
                                     name="radio2"
                                     type="radio"
                                     value="excel"
-                                    checked={inputMethod === "excel"}
-                                    onChange={() => setInputMethod("excel")}
+                                    checked={currentInputMethod === "excel"}
+                                    onChange={(e) => {
+                                        setValue("inputMethod", e.target.value);
+                                        setValue("id_user", []);
+                                    }}
                                 />
                                 Upload Excel
                             </label>
                             <label className="form-label flex items-center gap-2.5 text-nowrap">
                                 <input
+                                    {...register("inputMethod")}
                                     className="radio"
                                     name="radio2"
                                     type="radio"
                                     value="table"
-                                    checked={inputMethod === "table"}
-                                    onChange={() => setInputMethod("table")}
+                                    checked={currentInputMethod === "table"}
+                                    onChange={(e) => {
+                                        setValue("inputMethod", e.target.value);
+                                        setValue("file", null);
+                                        setFile(null);
+                                    }}
                                 />
                                 Checklist Table
                             </label>
                         </div>
-                        {inputMethod === "excel" ? (
+                        {currentInputMethod === "excel" ? (
                             <div className="form-group col-span-2">
                                 <label className="form-label mb-1">Upload Excel</label>
-                                <button className="btn btn-link mb-2" onClick={handleDownloadTemplate}>
+                                <button type="button" className="btn btn-link mb-2" onClick={handleDownloadTemplate}>
                                     Download Template Excel
                                 </button>
                                 <Controller
@@ -392,15 +409,19 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     control={control}
                                     render={({ field }) => (
                                         <div
-                                            {...field}
-                                            {...getRootProps()}
-                                            className="border-2 border-dashed border-gray-300 p-4 text-center cursor-pointer"
+                                            {...getRootProps({
+                                                className: clsx(
+                                                    "border-2 border-dashed border-gray-300 p-4 text-center cursor-pointer",
+                                                    errors.file ? "border-red-500" : ""
+                                                )
+                                            })}
                                         >
                                             <input
                                                 {...getInputProps()}
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
                                                     if (file) handleFileUpload(file);
+                                                    field.onChange(file);
                                                 }}
                                             />
                                             <p className="text-sm text-gray-600">
@@ -426,6 +447,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     isRefetch={isRefetch}
                                     onSearchChange={handleSearchChange}
                                 />
+                                {errors.id_user && (<p className="text-red-500 text-sm mt-1">{errors.id_user.message}</p>)}
                             </div>
                         )}
                     </div>
@@ -433,7 +455,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={() => { setFile(null); onClose(); }}>
-                            Cancel
+                            Discard
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
                             {loading ? (

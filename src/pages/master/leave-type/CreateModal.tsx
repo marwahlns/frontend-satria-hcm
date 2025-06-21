@@ -108,7 +108,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="form-group mb-2">
-                        <label className="form-label mb-1">Title</label>
+                        <label className="form-label mb-1">Title <span className="text-red-500">*</span></label>
                         <Controller
                             name="title"
                             control={control}
@@ -131,7 +131,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
                             {loading ? (

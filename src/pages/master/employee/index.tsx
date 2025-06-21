@@ -58,7 +58,8 @@ export default function Home() {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
+      cancelButtonText: "Discard",
+      reverseButtons: true,
     });
 
     if (result.isConfirmed) {
@@ -153,7 +154,7 @@ export default function Home() {
     <Main>
       <div className="mb-6">
         <div className="flex items-center justify-between mt-4">
-          <h1 className="text-3xl font-bold text-gray-800">Master User</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Master Employee</h1>
           {/* Button */}
           <button
             className="btn btn-filled btn-primary"

@@ -36,8 +36,6 @@ export default function Home() {
   const [clockOut, setClockOut] = useState("");
   const [clockInFullStr, setClockInFullStr] = useState("");
   const [clockOutFullStr, setClockOutFullStr] = useState("");
-  const [canCheckIn, setCanCheckIn] = useState(false);
-  const [canCheckOut, setCanCheckOut] = useState(false);
   const [totalPresence, setTotalPresence] = useState("0");
   const [totalLateIn, setTotalLateIn] = useState("0");
   const [totalLeave, setTotalLeave] = useState("0");
@@ -49,15 +47,42 @@ export default function Home() {
   const openAsCheckIn = () => { setAbsenMode("checkin"); setModalOpen(true); };
   const openAsCheckOut = () => { setAbsenMode("checkout"); setModalOpen(true); };
 
-  // Function to get current time status and styling
   const getTimeStatusAndStyling = () => {
     const now = new Date();
-    // Buat datetime dalam timezone Jakarta
-    const jakartaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    const currentTimeStr = jakartaTime.toISOString();
+    const currentTimeStr = now.toLocaleString('sv-SE').replace(' ', 'T') + '.000Z';
+    const dateStr = now.toLocaleString('sv-SE').split(' ')[0];
+    const inTimeStr = `${dateStr}T${inTime}:00.000Z`;
 
     // DALAM RANGE CHECK IN
-    if (currentTimeStr > startIn && currentTimeStr <= endIn) {
+    if (currentTimeStr > startIn && currentTimeStr < startOut) {
+      if (currentTimeStr >= startIn && currentTimeStr <= endIn && !clockIn) {
+        if (currentTimeStr >= startIn && currentTimeStr <= inTimeStr && !clockIn) {
+          return {
+            status: 'on-time-check-in',
+            borderColor: 'border-blue-500',
+            bgColor: 'bg-blue-100',
+            iconClass: 'ki-solid ki-user text-blue-500 text-3xl',
+            statusText: '- In',
+            buttonColor: 'bg-blue-600 hover:bg-blue-700',
+            displayTime: '',
+            checkIn: true,
+            checkOut: false,
+          };
+        }
+
+        return {
+          status: 'can-check-in',
+          borderColor: 'border-red-500',
+          bgColor: 'bg-red-100',
+          iconClass: 'ki-solid ki-user text-red-500 text-3xl',
+          statusText: '- In',
+          buttonColor: 'bg-red-600 hover:bg-red-700',
+          displayTime: '',
+          checkIn: true,
+          checkOut: false,
+        };
+      }
+
       if (clockIn) {
         return {
           status: 'checked-in',
@@ -66,7 +91,9 @@ export default function Home() {
           iconClass: 'ki-solid ki-user-tick text-success text-3xl',
           statusText: '- In',
           buttonColor: 'bg-green-600 hover:bg-green-700',
-          displayTime: clockIn
+          displayTime: clockIn,
+          checkIn: false,
+          checkOut: false,
         };
       }
 
@@ -77,7 +104,9 @@ export default function Home() {
         iconClass: 'ki-solid ki-user text-red-500 text-3xl',
         statusText: '- In',
         buttonColor: 'bg-red-600 hover:bg-red-700',
-        displayTime: ''
+        displayTime: '',
+        checkIn: false,
+        checkOut: false,
       };
     }
 
@@ -91,7 +120,9 @@ export default function Home() {
           iconClass: 'ki-solid ki-user-tick text-success text-3xl',
           statusText: '- Out',
           buttonColor: 'bg-green-600 hover:bg-green-700',
-          displayTime: clockOut
+          displayTime: clockOut,
+          checkIn: false,
+          checkOut: true,
         };
       }
 
@@ -100,9 +131,11 @@ export default function Home() {
         borderColor: 'border-blue-500',
         bgColor: 'bg-blue-100',
         iconClass: 'ki-solid ki-user text-blue-500 text-3xl',
-        statusText: '- Out',
+        statusText: '- In',
         buttonColor: 'bg-blue-600 hover:bg-blue-700',
-        displayTime: ''
+        displayTime: clockIn,
+        checkIn: false,
+        checkOut: true,
       };
     }
 
@@ -114,12 +147,16 @@ export default function Home() {
       iconClass: 'ki-solid ki-user text-slate-400 text-3xl',
       statusText: '- Waiting for In Time',
       buttonColor: 'bg-slate-500 hover:bg-slate-600',
-      displayTime: ''
+      displayTime: '',
+      checkIn: false,
+      checkOut: false,
     };
   };
 
   const timeStatus = getTimeStatusAndStyling();
   const currentStatus = timeStatus.status;
+  const isCanCheckIn = timeStatus.checkIn;
+  const isCanCheckOut = timeStatus.checkOut;
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -172,8 +209,6 @@ export default function Home() {
           setClockOut(formatTime(result.data.clock_out_today));
           setClockInFullStr(formatDateTime(result.data.clock_in_today));
           setClockOutFullStr(formatDateTime(result.data.clock_out_today));
-          setCanCheckIn(result.data.canCheckIn);
-          setCanCheckOut(result.data.canCheckOut);
           setTotalPresence(result.data.total_data_in);
           setTotalLateIn(result.data.total_data_late_in);
           setTotalLeave(result.data.total_data_leave);
@@ -251,7 +286,7 @@ export default function Home() {
               showControls={false}
             />
             <div className="mt-4">
-              {canCheckIn && (
+              {isCanCheckIn && (
                 <button
                   className={`text-white px-4 py-2 rounded shadow transition-colors duration-300 ${timeStatus.buttonColor}`}
                   onClick={openAsCheckIn}
@@ -260,7 +295,7 @@ export default function Home() {
                 </button>
               )}
 
-              {canCheckOut && (
+              {isCanCheckOut && (
                 <button
                   className={`text-white px-4 py-2 rounded shadow transition-colors duration-300 ${timeStatus.buttonColor}`}
                   onClick={openAsCheckOut}
@@ -358,6 +393,7 @@ export default function Home() {
         inTime={inTime}
         startIn={startIn}
         endIn={endIn}
+        outTime={outTime}
         startOut={startOut}
         endOut={endOut}
         type={absenMode}

@@ -5,7 +5,12 @@ import { useRouter } from "next/router";
 import Cookies from "js-cookie";
 import clsx from "clsx";
 
-const SidebarMenuItems = ({ href, title, icon, isActive }: {
+const SidebarMenuItems = ({
+  href,
+  title,
+  icon,
+  isActive,
+}: {
   href: string;
   title: string;
   icon: string;
@@ -15,14 +20,19 @@ const SidebarMenuItems = ({ href, title, icon, isActive }: {
     <div className="menu-item">
       <Link href={href} passHref>
         <div
-          className={`menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px] ${isActive ? 'menu-item-active' : ''
-            }`}
+          className={`menu-link flex items-center grow cursor-pointer border border-transparent gap-[10px] pl-[10px] pr-[10px] py-[6px] ${
+            isActive ? "menu-item-active" : ""
+          }`}
           tabIndex={0}
         >
           <span className="menu-icon items-start text-gray-500 dark:text-gray-400 w-[20px]">
             <i className={`${icon} text-lg`}></i>
           </span>
-          <span className={`menu-title text-sm font-semibold ${isActive ? 'text-primary' : 'text-gray-700'}`}>
+          <span
+            className={`menu-title text-sm font-semibold ${
+              isActive ? "text-primary" : "text-gray-700"
+            }`}
+          >
             {title}
           </span>
         </div>
@@ -32,7 +42,14 @@ const SidebarMenuItems = ({ href, title, icon, isActive }: {
 };
 
 // Komponen Dropdown
-const SidebarAccordion = ({ label, icon, open, toggle, menus, pathname }: {
+const SidebarAccordion = ({
+  label,
+  icon,
+  open,
+  toggle,
+  menus,
+  pathname,
+}: {
   label: string;
   icon: string;
   open: boolean;
@@ -61,11 +78,15 @@ const SidebarAccordion = ({ label, icon, open, toggle, menus, pathname }: {
           {label}
         </span>
         <span className="menu-arrow text-gray-400 w-[20px] shrink-0 justify-end ml-1 mr-[-10px]">
-          <i className={`ki-filled ${open ? 'ki-minus' : 'ki-plus'} text-2xs`}></i>
+          <i
+            className={`ki-filled ${open ? "ki-minus" : "ki-plus"} text-2xs`}
+          ></i>
         </span>
       </div>
       <div
-        className={`menu-accordion ${open ? "show" : ""} gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+        className={`menu-accordion ${
+          open ? "show" : ""
+        } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
       >
         {menus.map((menu, index) => (
           <div
@@ -112,12 +133,12 @@ function Sidebar() {
     { href: "/master/shift", title: "Master Shift" },
     { href: "/master/shift-group", title: "Master Shift Group" },
     { href: "/master/employee", title: "Master User" },
-    { href: "/master/worklocation", title: "Master Worklocation" }
+    { href: "/master/worklocation", title: "Master Worklocation" },
   ];
 
   const transactionMenus = [
     { href: "/transaction/shift-emp", title: "Transaction Shift" },
-    { href: "/transaction/leave-quota", title: "Transaction Leave Quota" }
+    { href: "/transaction/leave-quota", title: "Transaction Leave Quota" },
   ];
 
   const submissionMenus = [
@@ -126,6 +147,7 @@ function Sidebar() {
     { href: "/submission/officialTravel-approval", title: "Official Travel" },
     { href: "/submission/mutation-approval", title: "Mutation" },
     { href: "/submission/resign-approval", title: "Resign" },
+    { href: "/submission/declaration-approval", title: "Declaration" },
   ];
 
   return (
@@ -144,24 +166,24 @@ function Sidebar() {
           <img
             alt=""
             className="default-logo min-h-[22px] max-w-150px"
-            src="/media/app/logo_image.png"
+            src="/media/app/default-logo.png"
           />
           <img
             alt=""
             className="small-logo min-h-[22px] max-w-150px"
-            src="/media/app/logo_image.png"
+            src="/media/app/mini-logo.png"
           />
         </a>
         <a className="hidden dark:block" href="html/demo1.html">
           <img
             alt=""
             className="default-logo min-h-[22px] max-w-150px"
-            src="/media/app/logo_image.png"
+            src="/media/app/default-logo.png"
           />
           <img
             alt=""
             className="small-logo min-h-[22px] max-w-150px"
-            src="/media/app/logo_image.png"
+            src="/media/app/mini-logo.png"
           />
         </a>
         <button
@@ -199,7 +221,6 @@ function Sidebar() {
               isActive={pathname === "/dashboard"}
             />
 
-
             {nrp === "P0120001" && (
               <>
                 <SidebarMenuItems
@@ -208,7 +229,7 @@ function Sidebar() {
                   icon="ki-filled ki-user-square"
                   isActive={pathname === "/attendance/attendance-employee"}
                 />
-                
+
                 <SidebarAccordion
                   label="Master Data"
                   icon="ki-filled ki-data"
@@ -226,18 +247,16 @@ function Sidebar() {
                   menus={transactionMenus}
                   pathname={pathname}
                 />
-
-                <SidebarAccordion
-                  label="Submission"
-                  icon="ki-filled ki-directbox-default"
-                  open={submissionOpen || pathname.includes("/submission")}
-                  toggle={() => setSubmissionOpen(!submissionOpen)}
-                  menus={submissionMenus}
-                  pathname={pathname}
-                />
               </>
             )}
-
+            <SidebarAccordion
+              label="Submission"
+              icon="ki-filled ki-directbox-default"
+              open={submissionOpen || pathname.includes("/submission")}
+              toggle={() => setSubmissionOpen(!submissionOpen)}
+              menus={submissionMenus}
+              pathname={pathname}
+            />
             {deptHead === "1" && (
               <div
                 className="menu-item"
@@ -261,14 +280,16 @@ function Sidebar() {
                 </div>
 
                 <div
-                  className={`menu-accordion ${pathname.includes("/transaction") ? "show" : ""
-                    } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
+                  className={`menu-accordion ${
+                    pathname.includes("/transaction") ? "show" : ""
+                  } gap-0.5 pl-[10px] relative before:absolute before:left-[20px] before:top-0 before:bottom-0 before:border-l before:border-gray-200`}
                 >
                   <div
-                    className={`menu-item ${pathname === "/transaction/mutation-submit"
-                      ? "active"
-                      : ""
-                      }`}
+                    className={`menu-item ${
+                      pathname === "/transaction/mutation-submit"
+                        ? "active"
+                        : ""
+                    }`}
                   >
                     <Link
                       className="menu-link gap-[14px] pl-[10px] pr-[10px] py-[8px] border border-transparent items-center grow menu-item-active:bg-secondary-active dark:menu-item-active:bg-coal-300 dark:menu-item-active:border-gray-100 menu-item-active:rounded-lg hover:bg-secondary-active dark:hover:bg-coal-300 dark:hover:border-gray-100 hover:rounded-lg"

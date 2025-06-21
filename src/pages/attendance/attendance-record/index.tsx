@@ -5,7 +5,7 @@ import { useState } from "react";
 import FsLightbox from 'fslightbox-react';
 import Cookies from "js-cookie";
 import axios from "axios";
-import Datepicker from "@/components/Calender";
+import Image from "next/image";
 
 export default function Home() {
     const [isRefetch, setIsRefetch] = useState(false);
@@ -22,7 +22,6 @@ export default function Home() {
     const openLightbox = (src: string) => {
         setLightboxSrc(src);
         setLightboxToggler(!lightboxToggler);
-        console.log("Lightbox Source:", lightboxSrc);
     };
 
     const handleSearchChange = (value) => {
@@ -113,6 +112,7 @@ export default function Home() {
         out_time: string;
         foto_in: string;
         foto_out: string;
+        is_late: number;
     };
 
     const columns: ColumnDef<IAttendance>[] = [
@@ -125,18 +125,21 @@ export default function Home() {
             accessorKey: "",
             header: "Clock In",
             cell: ({ row }) => {
-                const { in_time, foto_in } = row.original;
+                const { in_time, foto_in, is_late } = row.original;
                 const imageUrl =
                     !foto_in || foto_in === "-"
                         ? "/no-profile-2.png"
                         : `${process.env.NEXT_PUBLIC_API_URL}/uploads/${foto_in}`;
                 const formattedTime = formatDateTime(in_time);
+                const isLate = is_late === 1;
 
                 return (
                     <div className="flex items-center space-x-3 min-w-[150px]">
-                        <img
+                        <Image
                             src={imageUrl}
                             alt="Clock In"
+                            width={48}
+                            height={48}
                             onClick={() => openLightbox(imageUrl)}
                             className="w-12 h-12 rounded object-cover"
                         />
@@ -146,7 +149,7 @@ export default function Home() {
                             ) : (
                                 <>
                                     <p className="font-bold text-sm">{formattedTime.date}</p>
-                                    <span className="badge badge-outline badge-success">
+                                    <span className={`badge badge-outline ${isLate ? 'badge-danger' : 'badge-success'}`}>
                                         {formattedTime.day}, {formattedTime.time}
                                     </span>
                                 </>
@@ -170,9 +173,11 @@ export default function Home() {
 
                 return (
                     <div className="flex items-center space-x-3 min-w-[150px]">
-                        <img
+                        <Image
                             src={imageUrl}
                             alt="Clock Out"
+                            width={48}
+                            height={48}
                             onClick={() => openLightbox(imageUrl)}
                             className="w-12 h-12 rounded object-cover cursor-pointer"
                         />
