@@ -17,7 +17,10 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 return value?.trim().length > 0;
             })
             .required("Title is required"),
-
+        is_quota_needed: yup
+            .number()
+            .oneOf([0, 1], "Please select a quota option")
+            .required("Quota selection is required"),
         days: yup
             .number()
             .required("Days is required"),
@@ -32,6 +35,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         resolver: yupResolver(schema),
         defaultValues: {
             title: "",
+            is_quota_needed: undefined,
             days: 0,
         },
     });
@@ -40,6 +44,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
         if (selectedData) {
             reset({
                 title: selectedData.title,
+                is_quota_needed: selectedData.is_quota_needed,
                 days: selectedData.days,
             });
         }
@@ -52,8 +57,8 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
             const response = await axios.put(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type/${selectedData.id}`,
                 {
-                    ...data,
                     title: data.title,
+                    is_quota_needed: data.is_quota_needed,
                     days: data.days,
                 },
                 {
@@ -63,7 +68,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 }
             );
 
-            if (response.status == 201) {
+            if (response.status === 200) {
                 Swal.fire({
                     text: "Leave type updated successfully",
                     icon: "success",
@@ -73,11 +78,40 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 onClose();
                 reset();
             } else {
-                onClose();
-                reset();
+                Swal.fire({
+                    text: "Failed to update leave type",
+                    icon: "error",
+                    timer: 1500,
+                });
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error:", error);
+            
+            if (error.response?.status === 400) {
+                Swal.fire({
+                    text: error.response.data.message || "Invalid input data",
+                    icon: "error",
+                    timer: 2000,
+                });
+            } else if (error.response?.status === 404) {
+                Swal.fire({
+                    text: "Leave type not found",
+                    icon: "error",
+                    timer: 2000,
+                });
+            } else if (error.response?.status === 500) {
+                Swal.fire({
+                    text: "Server error. Please try again later.",
+                    icon: "error",
+                    timer: 2000,
+                });
+            } else {
+                Swal.fire({
+                    text: "Network error. Please check your connection.",
+                    icon: "error",
+                    timer: 2000,
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -111,6 +145,39 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                         />
                         {errors.title && (
                             <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+                        )}
+                    </div>
+
+                    <div className="form-group mb-2">
+                        <label className="form-label mb-2">Quota Setting<span className="text-red-500">*</span></label>
+                        <Controller
+                            name="is_quota_needed"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex gap-12">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox checkbox-sm mr-2"
+                                            checked={field.value === 0}
+                                            onChange={() => field.onChange(0)}
+                                        />
+                                        <span className="text-sm">Subject to Quota Limit</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox checkbox-sm mr-2"
+                                            checked={field.value === 1}
+                                            onChange={() => field.onChange(1)}
+                                        />
+                                        <span className="text-sm">Unlimited (No Quota)</span>
+                                    </label>
+                                </div>
+                            )}
+                        />
+                        {errors.is_quota_needed && (
+                            <p className="text-red-500 text-sm mt-1">{errors.is_quota_needed.message}</p>
                         )}
                     </div>
                 </div>

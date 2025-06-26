@@ -175,12 +175,12 @@ export default function Home() {
     <Main>
       <div className="mb-6">
         {/* Title */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-800">
             Transaction Shift
           </h1>
           {/* Button */}
-          <div className="flex justify-start mt-4">
+          <div className="flex justify-start">
             <button
               className="btn btn-filled btn-primary"
               onClick={() => handleOpenCreateModal()}

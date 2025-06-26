@@ -18,6 +18,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 return value?.trim().length > 0;
             })
             .required("Title is required"),
+        is_quota_needed: yup
+            .number()
+            .oneOf([0, 1], "Please select a quota option")
+            .required("Quota selection is required"),
     });
 
     const {
@@ -29,6 +33,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         resolver: yupResolver(schema),
         defaultValues: {
             title: "",
+            is_quota_needed: undefined,
         },
     });
 
@@ -46,6 +51,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type`,
                 {
                     title: data.title,
+                    is_quota_needed: data.is_quota_needed,
                 },
                 {
                     headers: {
@@ -125,6 +131,39 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         />
                         {errors.title && (
                             <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+                        )}
+                    </div>
+
+                    <div className="form-group mb-2">
+                        <label className="form-label mb-2">Quota Setting<span className="text-red-500">*</span></label>
+                        <Controller
+                            name="is_quota_needed"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="flex gap-12">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox checkbox-sm mr-2"
+                                            checked={field.value === 0}
+                                            onChange={() => field.onChange(0)}
+                                        />
+                                        <span className="text-sm">Subject to Quota Limit</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="checkbox checkbox-sm mr-2"
+                                            checked={field.value === 1}
+                                            onChange={() => field.onChange(1)}
+                                        />
+                                        <span className="text-sm">Unlimited (No Quota)</span>
+                                    </label>
+                                </div>
+                            )}
+                        />
+                        {errors.is_quota_needed && (
+                            <p className="text-red-500 text-sm mt-1">{errors.is_quota_needed.message}</p>
                         )}
                     </div>
                 </div>

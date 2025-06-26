@@ -1,9 +1,12 @@
 import Main from "../../../main-layouts/main";
 import DataTable from "../../../components/Datatables";
 import { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { enGB } from "date-fns/locale";
 import FsLightbox from 'fslightbox-react';
 import Link from "next/link";
 import Image from "next/image";
@@ -12,40 +15,43 @@ import Swal from 'sweetalert2';
 export default function Home() {
   const [isRefetch, setIsRefetch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [startDate, setStartDate] = useState<Date | null>(new Date());
+  const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [showMonthlyInput, setShowMonthlyInput] = useState(false);
   const [showDailyInput, setShowDailyInput] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    return `${year}-${month}`;
+  });
+  const [exportDailyDate, setExportDailyDate] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
 
-  const handleSearchChange = (value) => {
+  const handleSearchChange = (value: string) => {
     setSearchValue(value);
   };
 
   function formatDateTime(dateString: string): string {
+    if (!dateString || dateString === "-") return "-";
     const date = new Date(dateString);
-
     const pad = (n: number) => n.toString().padStart(2, "0");
-
     const day = pad(date.getUTCDate());
     const month = pad(date.getUTCMonth() + 1);
     const year = date.getUTCFullYear();
     const hours = pad(date.getUTCHours());
     const minutes = pad(date.getUTCMinutes());
     const seconds = pad(date.getUTCSeconds());
-
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
   }
 
   function formatTime(dateString: string): string {
+    if (!dateString || dateString === "-") return "-";
     const date = new Date(dateString);
-
     const pad = (n: number) => n.toString().padStart(2, "0");
-
     const hours = pad(date.getUTCHours());
     const minutes = pad(date.getUTCMinutes());
-
     return `${hours}:${minutes}`;
   }
 
@@ -62,7 +68,7 @@ export default function Home() {
     let fileName = "Attendance_Report";
 
     if (exportType === "daily") {
-      if (!selectedDate) {
+      if (!exportDailyDate) {
         Swal.fire({
           icon: 'warning',
           title: 'Warning',
@@ -70,8 +76,8 @@ export default function Home() {
         });
         return;
       }
-      params = { date: selectedDate, export: "daily" };
-      fileName = `Attendance_Report_${selectedDate}.xlsx`;
+      params = { startDate: exportDailyDate, export: "daily" };
+      fileName = `Daily_Attendance_Report_${exportDailyDate}.xlsx`;
     } else if (exportType === "monthly") {
       if (!selectedMonth) {
         Swal.fire({
@@ -81,8 +87,8 @@ export default function Home() {
         });
         return;
       }
-      params = { date: `${selectedMonth}-01`, export: "monthly" };
-      fileName = `Attendance_Report_${selectedMonth}.xlsx`;
+      params = { month: selectedMonth, export: "monthly" };
+      fileName = `Monthly_Attendance_Report_${selectedMonth}.xlsx`;
     } else {
       Swal.fire({
         icon: 'error',
@@ -130,25 +136,30 @@ export default function Home() {
       link.remove();
 
       window.URL.revokeObjectURL(url);
+      Swal.fire({
+        icon: 'success',
+        title: 'Export Success',
+        text: 'Excel file exported successfully!'
+      });
     } catch (error) {
       console.error("Error exporting EXCEL:", error);
-      console.warn("Gagal mengekspor Excel.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Export Failed',
+        text: 'Failed to export Excel file. Please try again.'
+      });
     }
   };
-
-  useEffect(() => {
-    setIsRefetch(true);
-  }, [selectedDate]);
 
   type ITrLeave = {
     in_time: string;
     out_time: string;
     foto_in: string;
     foto_out: string;
-    longitude_in: string;
     latitude_in: string;
-    longitude_out: string;
+    longitude_in: string;
     latitude_out: string;
+    longitude_out: string;
     is_late: number;
     MsUser: {
       id: number,
@@ -167,7 +178,7 @@ export default function Home() {
     };
   };
 
-  const columns: ColumnDef<ITrLeave>[] = [
+  const columns: ColumnDef<ITrLeave>[] = useMemo(() => [
     {
       accessorKey: "number",
       header: "No",
@@ -264,7 +275,8 @@ export default function Home() {
                 <p className="font-bold text-sm">-</p>
               ) : (
                 <div className="flex flex-col gap-1">
-                  <span className={`badge badge-pill badge-outline ${is_late === 1 ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200'}`}>
+                  <span className={`badge badge-pill badge-outline ${is_late === 1 ?
+                    'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200'}`}>
                     {formatDateTime(in_time)}
                   </span>
                   <span className="badge badge-pill badge-outline badge-warning">
@@ -333,9 +345,13 @@ export default function Home() {
       cell: ({ row }) => {
         const data = row.original;
         const userId = data.MsUser?.personal_number;
+        const formattedStartDate = startDate ? startDate.toISOString().split("T")[0] : '';
+        const formattedEndDate = endDate ? endDate.toISOString().split("T")[0] : '';
+
         return (
           <div className="flex space-x-1 justify-center">
-            <Link href={`/attendance/attendance-detail?date=${selectedDate}&user_id=${userId}`}>
+            {/* Updated link to detail page with startDate and endDate */}
+            <Link href={`/attendance/attendance-detail?user_id=${userId}`}>
               <button className="btn btn-sm btn-outline btn-primary">
                 <i className="ki-outline ki-eye text-white"></i>
               </button>
@@ -347,7 +363,13 @@ export default function Home() {
         );
       },
     },
-  ];
+  ], [startDate, endDate]);
+
+  const formatDateForApi = (date: Date | null): string => {
+    return date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+  };
+
+  const attendanceApiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/trx/attendance/daily?startDate=${formatDateForApi(startDate)}&endDate=${formatDateForApi(endDate)}`;
 
   return (
     <Main>
@@ -356,12 +378,27 @@ export default function Home() {
           <h1 className="text-3xl font-bold text-gray-800">Attendance List</h1>
         </div>
         <div className="flex gap-3 items-center">
-          <input
-            type="date"
-            className="px-3 py-2 bg-blue-100 border border-gray-300 rounded-lg text-sm"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+          {/* Date Range Picker for main table filtering */}
+          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden bg-blue-100">
+            <DatePicker
+              selected={startDate}
+              onChange={(dates: [Date | null, Date | null]) => {
+                const [start, end] = dates;
+                setStartDate(start);
+                setEndDate(end);
+              }}
+              startDate={startDate}
+              endDate={endDate}
+              selectsRange
+              dateFormat="dd-MMM-yyyy"
+              placeholderText="Select Date Range"
+              className="px-3 py-2 text-sm focus:outline-none bg-blue-100"
+              isClearable={true}
+              locale={enGB}
+              popperClassName="react-datepicker-popper-custom"
+            />
+          </div>
+
           <div className="dropdown" data-dropdown="true" data-dropdown-trigger="click">
             <button className="dropdown-toggle btn btn-filled btn-success">
               <i className="ki-filled ki-file-down"></i>
@@ -392,8 +429,8 @@ export default function Home() {
                     <input
                       type="date"
                       className="form-input border border-gray-300 rounded px-2 py-1"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
+                      value={exportDailyDate}
+                      onChange={(e) => setExportDailyDate(e.target.value)}
                     />
                     <button
                       onClick={() => handleExportExcel("daily")}
@@ -447,12 +484,17 @@ export default function Home() {
 
       <DataTable
         columns={columns}
-        url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx/attendance/daily?date=${selectedDate}`}
+        url={attendanceApiUrl}
         isRefetch={isRefetch}
         onSearchChange={handleSearchChange}
       />
 
       <FsLightbox toggler={lightboxToggler} sources={[lightboxSrc]} />
+      <style jsx global>{`
+        .react-datepicker-popper-custom {
+          z-index: 9999 !important; /* Ensure date picker is above other elements */
+        }
+      `}</style>
     </Main>
   );
 }

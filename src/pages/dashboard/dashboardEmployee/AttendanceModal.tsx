@@ -45,7 +45,7 @@ const AttendanceModal = ({
         const personal_number = Cookies.get("nrp") || "";
         setNrp(personal_number);
         console.log("nrp 123: ", nrp);
-    }, []);
+    }, [nrp]);
 
     useEffect(() => {
         if (!isModalOpen) {

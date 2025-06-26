@@ -8,6 +8,7 @@ import { useState } from "react";
 import CreateModal from "./CreateModal";
 import UpdateModal from "./UpdateModal";
 import DetailModal from "./DetailModal";
+import Cookies from "js-cookie";
 
 export default function Home() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -63,13 +64,20 @@ export default function Home() {
     });
 
     if (result.isConfirmed) {
+      const token = Cookies.get("token");
       try {
         const response = await axios.delete(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/master/user/${id}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/master/user/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         Swal.fire("Deleted!", "The employee has been deleted.", "success");
       } catch (error) {
         Swal.fire("Error!", "Failed to delete the employee.", "error");
+        console.log("ERROR : ", error);
       }
       setIsRefetch(!isRefetch);
     }
@@ -153,7 +161,7 @@ export default function Home() {
   return (
     <Main>
       <div className="mb-6">
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-800">Master Employee</h1>
           {/* Button */}
           <button

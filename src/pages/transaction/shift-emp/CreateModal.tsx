@@ -16,7 +16,7 @@ import * as XLSX from "xlsx";
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     const [loading, setLoading] = useState(false);
     const [searchValue, setSearchValue] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    const [file, setFile] = useState(null);
 
     const handleSearchChange = (value) => {
         setSearchValue(value);
@@ -187,11 +187,12 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 }
             );
 
-            if (response.status == 201) {
+            if (response.status === 201) {
                 Swal.fire({
-                    text: "Transaction shift added successfully",
                     icon: "success",
-                    timer: 1500,
+                    title: "Success",
+                    text: response.data.message,
+                    html: response.data.message.replace(/\n/g, "<br>"),
                 });
                 setRefetch(!isRefetch);
                 onClose();
@@ -265,20 +266,102 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     };
 
     const handleFileUpload = (uploadedFile: File) => {
+        const acceptedMimeTypes = ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+
+        if (!acceptedMimeTypes.includes(uploadedFile.type)) {
+            Swal.fire({
+                icon: "error",
+                title: "Invalid Excel File",
+                text: "The Excel file is empty or has an invalid format!",
+            });
+            setFile(null);
+            setValue("file", null);
+            setValue("id_user", []);
+            return;
+        }
+
         setFile(uploadedFile);
         setValue("file", uploadedFile);
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            const data = e.target?.result;
-            if (data) {
+            try {
+                const data = e.target?.result;
+                if (!data) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Empty Excel File",
+                        text: "The Excel file has no content. Please upload a file that contains data.",
+                    });
+                    setFile(null);
+                    setValue("file", null);
+                    setValue("id_user", []);
+                    return;
+                }
+
                 const workbook = XLSX.read(data, { type: "binary" });
                 const sheetName = workbook.SheetNames[0];
                 const sheet = workbook.Sheets[sheetName];
+
                 const jsonData: { NRP: string; Nama: string }[] = XLSX.utils.sheet_to_json(sheet);
 
+                if (!jsonData || jsonData.length === 0) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Excel File is Empty or Invalid Format",
+                        text: "The Excel file is empty or cannot be processed. Please make sure the format is correct and there is data.",
+                    });
+                    setFile(null);
+                    setValue("file", null);
+                    setValue("id_user", []);
+                    return;
+                }
+
+                const firstRow = jsonData[0];
+                if (!firstRow || !firstRow.hasOwnProperty('NRP')) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Incorrect Column Format",
+                        text: "Column 'NRP' is not found in your Excel file. Make sure the file uses the correct template.",
+                    });
+                    setFile(null);
+                    setValue("file", null);
+                    setValue("id_user", []);
+                    return;
+                }
+
                 const nrpList = jsonData.map((row) => String(row.NRP)).filter((nrp) => !!nrp);
+
+                if (nrpList.length === 0) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "NRP Data Not Found",
+                        text: "No valid NRP found in Excel file. Make sure 'NRP' column is filled correctly.",
+                    });
+                    setFile(null);
+                    setValue("file", null);
+                    setValue("id_user", []);
+                    return;
+                }
+
                 setValue("id_user", nrpList);
+                Swal.fire({
+                    icon: "success",
+                    title: "Excel Imported Successfully",
+                    text: `${nrpList.length} employees successfully imported from Excel.`,
+                    timer: 2000,
+                });
+
+            } catch (error) {
+                console.error("Error parsing Excel:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Error Parsing Excel",
+                    text: "Failed to read Excel file. Please check the file format and make sure it is not corrupted.",
+                });
+                setFile(null);
+                setValue("file", null);
+                setValue("id_user", []);
             }
         };
         reader.readAsBinaryString(uploadedFile);
@@ -377,6 +460,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                     onChange={(e) => {
                                         setValue("inputMethod", e.target.value);
                                         setValue("id_user", []);
+                                        setFile(null);
+                                        setValue("file", null);
                                     }}
                                 />
                                 Upload Excel
@@ -393,6 +478,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                         setValue("inputMethod", e.target.value);
                                         setValue("file", null);
                                         setFile(null);
+                                        setValue("id_user", []);
                                     }}
                                 />
                                 Checklist Table
@@ -419,9 +505,9 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                             <input
                                                 {...getInputProps()}
                                                 onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) handleFileUpload(file);
-                                                    field.onChange(file);
+                                                    const uploadedFile = e.target.files?.[0];
+                                                    if (uploadedFile) handleFileUpload(uploadedFile);
+                                                    field.onChange(uploadedFile);
                                                 }}
                                             />
                                             <p className="text-sm text-gray-600">
@@ -435,7 +521,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                                 )}
                                 {watch("id_user")?.length > 0 && (
                                     <p className="text-green-600 text-sm mt-1">
-                                        {watch("id_user").length} user berhasil diimport dari Excel.
+                                        {watch("id_user").length} employees successfully imported from Excel.
                                     </p>
                                 )}
                             </div>

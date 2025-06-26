@@ -209,7 +209,7 @@ export default function Home() {
                 </div>
                 <div className="flex gap-3 items-center">
                     <button
-                        className="btn btn-outline btn-primary"
+                        className="btn btn-outline btn-success"
                         onClick={() => handleExportExcel()}
                     >
                         <i className="ki-filled ki-file-down"></i>

@@ -129,10 +129,10 @@ function Sidebar() {
   }, []);
 
   const masterDataMenus = [
+    { href: "/master/employee", title: "Master Employee" },
     { href: "/master/leave-type", title: "Master Leave Type" },
     { href: "/master/shift", title: "Master Shift" },
     { href: "/master/shift-group", title: "Master Shift Group" },
-    { href: "/master/employee", title: "Master User" },
     { href: "/master/worklocation", title: "Master Worklocation" },
   ];
 

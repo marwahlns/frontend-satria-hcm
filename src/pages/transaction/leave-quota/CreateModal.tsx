@@ -302,7 +302,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     try {
       const token = Cookies.get("token");
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type?trx_quota=true`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -348,6 +348,21 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
   };
 
   const handleFileUpload = (uploadedFile: File) => {
+    const acceptedMimeTypes = ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+
+    if (!acceptedMimeTypes.includes(uploadedFile.type)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid File Type",
+        text: "Only .xlsx Excel files are allowed.",
+      });
+      setFile(null);
+      setValue("file", null);
+      setValue("id_user", []);
+      setValue("leave_quota", []);
+      return;
+    }
+
     setFile(uploadedFile);
     setValue("file", uploadedFile);
 
@@ -367,7 +382,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
           Swal.fire({
             icon: "error",
             title: "Invalid Excel File",
-            text: "Excel file is empty or invalid format!",
+            text: "The Excel file is empty or has an invalid format!",
           });
           setFile(null);
           setValue("file", null);
@@ -381,7 +396,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
           Swal.fire({
             icon: "error",
             title: "Invalid Data",
-            text: "No valid NRP found in Excel file!",
+            text: "No valid NRP found in the Excel file!",
           });
           setFile(null);
           setValue("file", null);
@@ -396,22 +411,19 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         jsonData.forEach((row, index) => {
           const quota = row.Quota;
 
-          // Check if quota exists
           if (quota === undefined || quota === null) {
-            invalidQuotaRows.push(`Row ${index + 2}: Quota is empty`);
+            invalidQuotaRows.push(`Row ${index + 2}: Quota is missing`);
             return;
           }
 
-          // Check if quota is a valid number
           const numericQuota = Number(quota);
           if (isNaN(numericQuota) || numericQuota < 0) {
             invalidQuotaRows.push(`Row ${index + 2}: "${quota}" is not a valid number`);
             return;
           }
 
-          // Check if quota is integer
           if (!Number.isInteger(numericQuota)) {
-            invalidQuotaRows.push(`Row ${index + 2}: "${quota}" must be a whole number`);
+            invalidQuotaRows.push(`Row ${index + 2}: "${quota}" must be an integer`);
             return;
           }
 
@@ -423,19 +435,19 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             icon: "error",
             title: "Invalid Quota Data",
             html: `
-                        <div style="text-align: left;">
-                            <p>The following rows have invalid quota values:</p>
-                            <ul style="margin: 10px 0; padding-left: 20px;">
-                                ${invalidQuotaRows.map(error => `<li>${error}</li>`).join('')}
-                            </ul>
-                            <p><strong>Requirements:</strong></p>
-                            <ul style="margin: 10px 0; padding-left: 20px;">
-                                <li>Quota must be a number</li>
-                                <li>Quota must be 0 or positive</li>
-                                <li>Quota must be a whole number</li>
-                            </ul>
-                        </div>
-                    `,
+          <div style="text-align: left;">
+            <p>The following rows contain invalid quota values:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              ${invalidQuotaRows.map(error => `<li>${error}</li>`).join('')}
+            </ul>
+            <p><strong>Requirements:</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Quota must be a number</li>
+              <li>Quota must be 0 or positive</li>
+              <li>Quota must be an integer</li>
+            </ul>
+          </div>
+          `,
             width: 500,
           });
           setFile(null);
@@ -449,7 +461,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
           Swal.fire({
             icon: "error",
             title: "Data Mismatch",
-            text: `Number of NRP (${nrpList.length}) doesn't match number of valid quotas (${quotaList.length})!`,
+            text: `Number of NRPs (${nrpList.length}) does not match the number of valid quotas (${quotaList.length})!`,
           });
           setFile(null);
           setValue("file", null);
@@ -472,8 +484,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         console.error("Error parsing Excel:", error);
         Swal.fire({
           icon: "error",
-          title: "Excel Parse Error",
-          text: "Failed to read Excel file. Please check the file format.",
+          title: "Excel Parsing Error",
+          text: "Failed to read the Excel file. Please check the file format.",
         });
         setFile(null);
         setValue("file", null);

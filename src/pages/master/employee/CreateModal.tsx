@@ -409,7 +409,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[400px] max-h-[65vh]">
+                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group col-span-2">
                             <label className="form-label mb-1">Full Name<span className="text-red-500">*</span></label>

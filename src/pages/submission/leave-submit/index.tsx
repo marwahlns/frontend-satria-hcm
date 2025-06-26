@@ -158,10 +158,12 @@ export default function Home() {
           },
         }
       );
+
       if (response.data.success) {
         return response.data.data.data.map((leave_quota) => ({
           value: leave_quota.leaves_type_id,
-          label: `${leave_quota.MsLeaveType.title} - Quota: ${leave_quota.leave_balance}`,
+          label: `${leave_quota.MsLeaveType.title}${leave_quota.leave_balance != null ? ` - Quota: ${leave_quota.leave_balance}` : ""
+            }`,
         }));
       } else {
         return [];
@@ -589,7 +591,7 @@ export default function Home() {
                       className={clsx(
                         "w-full text-sm",
                         errors.leave_type_id &&
-                          "border border-red-500 rounded-md"
+                        "border border-red-500 rounded-md"
                       )}
                       styles={{
                         control: (base, state) => ({
@@ -602,8 +604,8 @@ export default function Home() {
                             borderColor: state.isFocused
                               ? "#A1A9B8"
                               : errors.leave_type_id
-                              ? "#EF4444"
-                              : "#DBDFE9",
+                                ? "#EF4444"
+                                : "#DBDFE9",
                           },
                         }),
                       }}
@@ -640,20 +642,20 @@ export default function Home() {
                           "start_date",
                           start
                             ? new Date(start).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
                             : ""
                         );
                         setValue(
                           "end_date",
                           end
                             ? new Date(end).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
                             : ""
                         );
                       }}
@@ -723,7 +725,7 @@ export default function Home() {
                         "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
                         errors.leave_reason &&
-                          "border-red-500 focus:border-red-500 focus:ring-red-500"
+                        "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
                       placeholder="Your reason"
                       rows={4}

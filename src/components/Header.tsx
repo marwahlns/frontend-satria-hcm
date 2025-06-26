@@ -47,7 +47,7 @@ function Header({ onLogout, isFixed = true }: HeaderProps) {
           </div>
         </div>
         {!isFixed && (
-          <div className="flex items-center">
+          <div className="hidden lg:flex items-center">
             <img
               alt=""
               className="default-logo max-h-[100px] max-w-[200px]"

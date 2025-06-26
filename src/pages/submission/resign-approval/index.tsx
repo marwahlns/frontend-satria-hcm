@@ -23,6 +23,7 @@ export default function Home() {
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
   const [filter, setFilter] = useState<{
     month: string;
     year: string;
@@ -133,6 +134,61 @@ export default function Home() {
     }
   };
 
+  const handleExportPDF = async (searchId) => {
+    const token = Cookies.get("token");
+    try {
+      setLoadingId(searchId);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            type: "resign",
+            exportData: true,
+            status: filter.status,
+            month: filter.month,
+            year: filter.year,
+            search: searchId,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to export PDF file");
+      }
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Resign_Form_${yyyy}-${mm}-${dd}.pdf`;
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export pdf`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   const handleExportExcel = async () => {
     const token = Cookies.get("token");
     try {
@@ -191,6 +247,7 @@ export default function Home() {
   };
 
   type ITrResign = {
+    id: number;
     user_name: number;
     user_departement: number;
     effective_date: string;
@@ -228,29 +285,6 @@ export default function Home() {
     //   header: "Reason",
     //   enableSorting: true,
     // },
-    {
-      accessorKey: "file_upload",
-      header: "Resign Attachment",
-      cell: ({ row }) => {
-        const file = row.original.file_upload;
-        if (file) {
-          const fileUrl = `http://localhost:3000/uploads/file_resign/${file}`;
-          return (
-            <div className="flex justify-center cursor-pointer">
-              <IoMdPaper
-                size={24}
-                color="#E53E3E"
-                onClick={() => handleShowFile(fileUrl)}
-                title="View PDF"
-              />
-            </div>
-          );
-        } else {
-          return <span>No File</span>;
-        }
-      },
-      enableSorting: false,
-    },
     {
       accessorKey: "status_submittion",
       header: "Status",
@@ -295,12 +329,28 @@ export default function Home() {
         return (
           <div className="flex space-x-1 justify-center">
             {(data.modalType === "detail" || data.modalType === "action") && (
-              <button
-                className="btn btn-sm btn-outline btn-primary"
-                onClick={() => handleOpenDetailModal(data)}
-              >
-                <i className="ki-outline ki-eye text-white"></i>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-sm btn-outline btn-primary"
+                  onClick={() => handleOpenDetailModal(data)}
+                >
+                  <i className="ki-outline ki-eye text-white"></i>
+                </button>
+                <button
+                  className="btn btn-sm btn-outline btn-danger"
+                  onClick={() => handleExportPDF(data.id)}
+                  disabled={loadingId === data.id}
+                >
+                  {loadingId === data.id ? (
+                    <span className="flex items-center gap-1">
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Exporting...
+                    </span>
+                  ) : (
+                    <i className="ki-filled ki-file-down"></i>
+                  )}
+                </button>
+              </div>
             )}
 
             {data.modalType === "action" && (

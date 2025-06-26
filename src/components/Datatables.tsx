@@ -129,7 +129,6 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
             </div>
           </div>
           <div className="card-body">
-            {/* Table Container with Fixed Height and Scroll */}
             <div className="relative">
               {isLoading && (
                 <div className="absolute top-0 left-0 w-full h-full bg-white bg-opacity-70 z-10 flex items-center justify-center">
@@ -140,24 +139,17 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                 </div>
               )}
 
-              {/* Table Container with Scrollable Body */}
-              <div
-                className="overflow-hidden"
-                style={{ maxHeight: '500px' }} // Total container height
-              >
+              <div className="overflow-hidden max-h-[65vh]">
                 <div className="overflow-x-auto">
-                  <div
-                    className="overflow-y-auto"
-                    style={{ maxHeight: '300px' }} // Scrollable area height
-                  >
+                  <div className="max-h-[50vh] overflow-y-auto">
                     <table className="table table-border w-full border-collapse min-w-full">
-                      <thead className="sticky top-0">
+                      <thead className="sticky top-0 bg-gray-50 z-10">
                         {table.getHeaderGroups().map((headerGroup) => (
                           <tr key={headerGroup.id}>
                             {headerGroup.headers.map((header) => (
                               <th
                                 key={header.id}
-                                className="border border-gray-300 p-2 cursor-pointer select-none bg-gray-50"
+                                className="border border-gray-300 p-2 cursor-pointer select-none"
                                 onClick={() => {
                                   if (!header.column.getCanSort()) return;
                                   setSort(header.column.id);
@@ -195,20 +187,14 @@ const DataTable = ({ columns, url, isRefetch, onSearchChange }) => {
                             <tr key={row.id} className="font-normal hover:bg-gray-50">
                               {row.getVisibleCells().map((cell) => (
                                 <td key={cell.id} className="border border-gray-300 p-2">
-                                  {flexRender(
-                                    cell.column.columnDef.cell,
-                                    cell.getContext()
-                                  )}
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </td>
                               ))}
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td
-                              colSpan={columns.length}
-                              className="text-center p-4 border border-gray-300"
-                            >
+                            <td colSpan={columns.length} className="text-center p-4 border border-gray-300">
                               No results found.
                             </td>
                           </tr>

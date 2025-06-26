@@ -27,6 +27,7 @@ export default function Home() {
   const [selectedData, setSelectedData] = useState(null);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [isRefetch, setIsRefetch] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedSuperior, setSelectedSuperior] = useState(null);
   const [selectedDivisionLabel, setSelectedDivisionLabel] = useState("");
@@ -407,6 +408,61 @@ export default function Home() {
     return "white";
   };
 
+  const handleExportPDF = async (searchId) => {
+    const token = Cookies.get("token");
+    try {
+      setLoadingId(searchId);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            type: "mutation",
+            exportData: "pdf",
+            status: filter.status,
+            month: filter.month,
+            year: filter.year,
+            search: searchId,
+          },
+          responseType: "blob",
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to export PDF file");
+      }
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const fileName = `Data_Mutation_${yyyy}-${mm}-${dd}.pdf`;
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export pdf`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   const handleExportExcel = async () => {
     setLoading(true);
     const token = Cookies.get("token");
@@ -465,6 +521,7 @@ export default function Home() {
   };
 
   type ITrMutation = {
+    id: number;
     user_name: number;
     user_departement: number;
     effective_date: string;
@@ -566,6 +623,20 @@ export default function Home() {
                   onClick={() => handleOpenDetailModal(data)}
                 >
                   <i className="ki-outline ki-eye text-white"></i>
+                </button>
+                <button
+                  className="btn btn-sm btn-outline btn-danger"
+                  onClick={() => handleExportPDF(data.id)}
+                  disabled={loadingId === data.id}
+                >
+                  {loadingId === data.id ? (
+                    <span className="flex items-center gap-1">
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Exporting...
+                    </span>
+                  ) : (
+                    <i className="ki-filled ki-file-down"></i>
+                  )}
                 </button>
 
                 {data.status_id === 1 && isDeptHead && (

@@ -7,9 +7,19 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import dynamic from "next/dynamic";
+
+// Dynamic import untuk MapPicker (menghindari SSR issues)
+const MapPicker = dynamic(() => import("@/components/MapPicker"), {
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-64 bg-gray-100 rounded">Loading map...</div>
+});
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     const [loading, setLoading] = useState(false);
+    const [showMap, setShowMap] = useState(false);
+    const [selectedPosition, setSelectedPosition] = useState(null);
+
     const schema = yup.object().shape({
         location_code: yup
             .string()
@@ -46,6 +56,8 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         handleSubmit,
         formState: { errors },
         reset,
+        setValue,
+        watch
     } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
@@ -55,24 +67,45 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         },
     });
 
+    const watchedLatLong = watch("location_lat_long");
+
     useEffect(() => {
         if (isModalOpen === false) {
             reset();
+            setSelectedPosition(null);
+            setShowMap(false);
         }
     }, [isModalOpen, reset]);
+
+    useEffect(() => {
+        if (watchedLatLong && watchedLatLong.includes(',')) {
+            const [lat, lng] = watchedLatLong.split(',').map(coord => parseFloat(coord.trim()));
+            if (!isNaN(lat) && !isNaN(lng)) {
+                setSelectedPosition({ lat, lng });
+            }
+        }
+    }, [watchedLatLong]);
+
+    const handleMapSelect = (position) => {
+        setSelectedPosition(position);
+        setValue("location_lat_long", `${position.lat}, ${position.lng}`);
+    };
+
+    const toggleMap = () => {
+        setShowMap(!showMap);
+    };
 
     const onSubmit = async (data) => {
         setLoading(true);
         try {
             const token = Cookies.get("token");
+            
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/master/worklocation`,
                 {
-                    ...data,
                     location_code: data.location_code,
                     location_name: data.location_name,
-                    location_lat: data.location_lat,
-                    location_long: data.location_long,
+                    location_lat_long: data.location_lat_long,
                 },
                 {
                     headers: {
@@ -96,6 +129,11 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             }
         } catch (error) {
             console.error(error);
+            Swal.fire({
+                text: "Failed to add worklocation",
+                icon: "error",
+                timer: 1500,
+            });
         } finally {
             setLoading(false);
         }
@@ -156,25 +194,54 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                         </div>
                         <div className="form-group col-span-2">
                             <label className="form-label mb-1">Latitude, Longitude<span className="text-red-500">*</span></label>
-                            <Controller
-                                name="location_lat_long"
-                                control={control}
-                                render={({ field }) => (
-                                    <input
-                                        {...field}
-                                        type="text"
-                                        className={clsx(
-                                            "input",
-                                            errors.location_lat_long ? "border-red-500 hover:border-red-500" : ""
-                                        )}
-                                        placeholder="Latitude, Longitude"
-                                    />
-                                )}
-                            />
+                            <div className="flex gap-2">
+                                <Controller
+                                    name="location_lat_long"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            {...field}
+                                            type="text"
+                                            className={clsx(
+                                                "input flex-1",
+                                                errors.location_lat_long ? "border-red-500 hover:border-red-500" : ""
+                                            )}
+                                            placeholder="Latitude, Longitude"
+                                        />
+                                    )}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={toggleMap}
+                                    className="btn btn-outline btn-primary whitespace-nowrap"
+                                >
+                                    <i className="ki-outline ki-map mr-1"></i>
+                                    {showMap ? "Hide Map" : "Choose on Map"}
+                                </button>
+                            </div>
                             {errors.location_lat_long && (
                                 <p className="text-red-500 text-sm mt-1">{errors.location_lat_long.message}</p>
                             )}
                         </div>
+                        
+                        {/* Map Section */}
+                        {showMap && (
+                            <div className="col-span-2">
+                                <div className="border border-gray-300 rounded p-4">
+                                    <h4 className="text-sm font-medium mb-3">Click on the map to select location</h4>
+                                    <MapPicker
+                                        onLocationSelect={handleMapSelect}
+                                        selectedPosition={selectedPosition}
+                                        height="400px"
+                                    />
+                                    {selectedPosition && (
+                                        <div className="mt-2 text-sm text-gray-600">
+                                            Selected: {selectedPosition.lat.toFixed(6)}, {selectedPosition.lng.toFixed(6)}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="modal-footer justify-end flex-shrink-0">

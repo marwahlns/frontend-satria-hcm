@@ -272,9 +272,10 @@ export default function Home() {
                     {timeStatus.displayTime} {timeStatus.statusText}
                   </span>
 
-                  <div className="flex space-x-2 text-sm text-gray-700">
+                  <div className="flex space-x-2 items-center text-sm text-gray-700">
                     <i className="ki-solid ki-sun text-warning"></i>
                     <p className="font-semibold text-xs">{shiftName}</p>
+                    <p className="font-semibold text-xs">{inTime}-{outTime}</p>
                   </div>
                 </div>
               </div>

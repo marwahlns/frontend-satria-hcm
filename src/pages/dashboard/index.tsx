@@ -1,5 +1,5 @@
 import Main from "@/main-layouts/main";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
 import axios from "axios";
@@ -239,30 +239,30 @@ export default function Home() {
       .join("");
   };
 
-  const fetchDataTrendSubmission = async () => {
-    setIsLoading(true);
-    try {
-      const typeParam = toCamelCase(activeTab);
-      const token = Cookies.get("token");
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/tren-submission`,
-        {
-          params: { type: typeParam, year: selectedYear },
-          headers: { Authorization: `Bearer ${token}` },
+  const fetchDataTrendSubmission = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const typeParam = toCamelCase(activeTab);
+            const token = Cookies.get("token");
+            const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/trx/tren-submission`,
+                {
+                    params: { type: typeParam, year: selectedYear },
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            setSeriesData(response.data.data.data);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            setSeriesData(Array(12).fill(0));
+        } finally {
+            setIsLoading(false);
         }
-      );
-      setSeriesData(response.data.data.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setSeriesData(Array(12).fill(0));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }, [activeTab, selectedYear]);
 
-  useEffect(() => {
-    fetchDataTrendSubmission();
-  }, [activeTab, selectedYear]);
+    useEffect(() => {
+        fetchDataTrendSubmission();
+    }, [activeTab, selectedYear, fetchDataTrendSubmission]);
 
   //CARD
   const fetchAttendanceStats = async (month: string) => {

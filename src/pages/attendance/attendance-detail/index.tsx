@@ -152,7 +152,7 @@ export default function AttendanceDetail() {
           params: {
             detail: true,
             user_id: user_id,
-            date: monthParam,
+            month: monthParam,
           }
         }
       );
@@ -189,7 +189,6 @@ export default function AttendanceDetail() {
           params: {
             detail: true,
             user_id: user_id,
-            date: date,
           }
         }
       );
@@ -373,10 +372,7 @@ export default function AttendanceDetail() {
           <div className="col-span-1 lg:col-span-2 bg-white shadow-lg rounded-2xl border border-gray-100">
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="flex items-center gap-3 font-bold text-xl text-gray-900">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i className="ki-duotone ki-calendar text-3xl"></i>
-                  </div>
+                <h3 className="flex items-center gap-3 font-bold text-xl text-gray-900">                  
                   User Attendances
                 </h3>
 
@@ -415,7 +411,7 @@ export default function AttendanceDetail() {
                   <span className="ml-2">Loading attendance data...</span>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                <div className="space-y-4 overflow-y-auto max-h-[65vh]">
                   {attendanceData.length > 0 ? (
                     attendanceData.map((attendance) => {
                       const status = getAttendanceStatus(attendance);

@@ -7,6 +7,7 @@ import { useState } from "react";
 import CreateModal from "./CreateModal";
 import UpdateModal from "./UpdateModal";
 import DetailModal from "./DetailModal";
+import Cookies from "js-cookie";
 
 export default function Home() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -62,9 +63,16 @@ export default function Home() {
     });
 
     if (result.isConfirmed) {
+      const token = Cookies.get("token");
+
       try {
         const response = await axios.delete(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota/${id}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/trx/leave-quota/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         Swal.fire(
           "Deleted!",
@@ -126,6 +134,9 @@ export default function Home() {
       accessorKey: "leaves_quota",
       header: "Leave Quota",
       enableSorting: true,
+      cell: ({ getValue }) => (
+        <div className="text-right">{getValue() as number}</div>
+      ),
     },
     {
       accessorKey: "",
@@ -174,12 +185,12 @@ export default function Home() {
     <Main>
       <div className="mb-6">
         {/* Title */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-800">
             Transaction Leave Quota
           </h1>
           {/* Button */}
-          <div className="flex justify-start mt-4">
+          <div className="flex justify-start">
             <button
               className="btn btn-filled btn-primary"
               onClick={() => handleOpenCreateModal()}
