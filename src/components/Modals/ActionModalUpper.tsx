@@ -39,7 +39,7 @@ const ActionModal = ({
                   ? "bg-red-500 hover:bg-red-600"
                   : submitText === "Accepted"
                   ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-green-500 hover:bg-green-600"
+                  : "bg-blue-500 hover:bg-blue-600"
               )}
               onClick={onSubmit}
               disabled={loading}

@@ -1,5 +1,5 @@
 import Main from "@/main-layouts/main";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
 import axios from "axios";
@@ -57,11 +57,11 @@ interface AttendanceStats {
         total: number;
         percentage_value: number;
       };
-    },
-    total_employees: string,
-    working_days: string,
-    expected_attendance: string,
-    actual_attendance: string,
+    };
+    total_employees: string;
+    working_days: string;
+    expected_attendance: string;
+    actual_attendance: string;
   };
 }
 
@@ -95,10 +95,14 @@ export default function Home() {
   const [seriesData, setSeriesData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [attendanceStats, setAttendanceStats] = useState<AttendanceStats | null>(null);
+  const [selectedYearAttendance, setSelectedYearAttendance] = useState(
+    new Date().getFullYear()
+  );
+  const [barCategoriesState, setBarCategoriesState] = useState<string[]>([]);
+  const [attendanceStats, setAttendanceStats] =
+    useState<AttendanceStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const today = new Date();
-
 
   const currentMonth = `${today.getFullYear()}-${String(
     today.getMonth() + 1
@@ -239,40 +243,40 @@ export default function Home() {
       .join("");
   };
 
-  const fetchDataTrendSubmission = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const typeParam = toCamelCase(activeTab);
-            const token = Cookies.get("token");
-            const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/trx/tren-submission`,
-                {
-                    params: { type: typeParam, year: selectedYear },
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            setSeriesData(response.data.data.data);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            setSeriesData(Array(12).fill(0));
-        } finally {
-            setIsLoading(false);
+  const fetchDataTrendSubmission = async () => {
+    setIsLoading(true);
+    try {
+      const typeParam = toCamelCase(activeTab);
+      const token = Cookies.get("token");
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trx/tren-submission`,
+        {
+          params: { type: typeParam, year: selectedYear },
+          headers: { Authorization: `Bearer ${token}` },
         }
-    }, [activeTab, selectedYear]);
+      );
+      setSeriesData(response.data.data.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setSeriesData(Array(12).fill(0));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchDataTrendSubmission();
-    }, [activeTab, selectedYear, fetchDataTrendSubmission]);
+  useEffect(() => {
+    fetchDataTrendSubmission();
+  }, [activeTab, selectedYear]);
 
   //CARD
-  const fetchAttendanceStats = async (month: string) => {
+  const fetchAttendanceStats = async () => {
     setStatsLoading(true);
     try {
       const token = Cookies.get("token");
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/attendance/summary-by-month`,
         {
-          params: { month },
+          params: { year: selectedYearAttendance },
           headers: { Authorization: `Bearer ${token}` },
         }
       );
@@ -286,8 +290,8 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchAttendanceStats(selectedMonth);
-  }, [selectedMonth]);
+    fetchAttendanceStats();
+  }, [selectedYearAttendance]);
 
   const defaultCardData = [
     {
@@ -297,7 +301,7 @@ export default function Home() {
       year: "2024",
       bgColor: "bg-[#2780e3]",
       icon: <i className="ki-solid ki-user-tick text-2xl"></i>,
-      trend: "up"
+      trend: "up",
     },
     {
       title: "Loading...",
@@ -306,7 +310,7 @@ export default function Home() {
       year: "2024",
       bgColor: "bg-[#3fb618]",
       icon: <i className="ki-solid ki-time text-2xl"></i>,
-      trend: "neutral"
+      trend: "neutral",
     },
     {
       title: "Loading...",
@@ -315,7 +319,7 @@ export default function Home() {
       year: "2024",
       bgColor: "bg-[#fe7418]",
       icon: <i className="ki-solid ki-exit-right text-2xl"></i>,
-      trend: "down"
+      trend: "down",
     },
     {
       title: "Loading...",
@@ -324,7 +328,7 @@ export default function Home() {
       year: "2024",
       bgColor: "bg-[#ff0039]",
       icon: <i className="ki-solid ki-information text-2xl"></i>,
-      trend: "down"
+      trend: "down",
     },
     {
       title: "Loading...",
@@ -333,52 +337,54 @@ export default function Home() {
       year: "2024",
       bgColor: "bg-[#6c757d]",
       icon: <i className="ki-solid ki-cross-circle text-2xl"></i>,
-      trend: "up"
-    }
+      trend: "up",
+    },
   ];
 
-  const cardData = attendanceStats ? [
-    {
-      title: attendanceStats.summary.statsData.onTime.title,
-      subtitle: attendanceStats.summary.statsData.onTime.subtitle,
-      percentage: attendanceStats.summary.statsData.onTime.percentage,
-      bgColor: "bg-[#2780e3]",
-      icon: <i className="ki-solid ki-user-tick text-2xl"></i>,
-      trend: "up"
-    },
-    {
-      title: attendanceStats.summary.statsData.late.title,
-      subtitle: attendanceStats.summary.statsData.late.subtitle,
-      percentage: attendanceStats.summary.statsData.late.percentage,
-      bgColor: "bg-[#3fb618]",
-      icon: <i className="ki-solid ki-time text-2xl"></i>,
-      trend: "neutral"
-    },
-    {
-      title: attendanceStats.summary.statsData.earlyOut.title,
-      subtitle: attendanceStats.summary.statsData.earlyOut.subtitle,
-      percentage: attendanceStats.summary.statsData.earlyOut.percentage,
-      bgColor: "bg-[#fe7418]",
-      icon: <i className="ki-solid ki-exit-right text-2xl"></i>,
-      trend: "down"
-    },
-    {
-      title: attendanceStats.summary.statsData.lateAndEarly.title,
-      subtitle: attendanceStats.summary.statsData.lateAndEarly.subtitle,
-      percentage: attendanceStats.summary.statsData.lateAndEarly.percentage,
-      bgColor: "bg-[#ff0039]",
-      icon: <i className="ki-solid ki-information text-2xl"></i>,
-      trend: "up"
-    },
-    {
-      title: attendanceStats.summary.statsData.absent.title,
-      subtitle: attendanceStats.summary.statsData.absent.subtitle,
-      percentage: attendanceStats.summary.statsData.absent.percentage,
-      bgColor: "bg-[#6c757d]",
-      icon: <i className="ki-solid ki-cross-circle text-2xl"></i>,
-      trend: "up"
-    }
-  ] : defaultCardData;
+  const cardData = attendanceStats
+    ? [
+        {
+          title: attendanceStats.summary.statsData.onTime.title,
+          subtitle: attendanceStats.summary.statsData.onTime.subtitle,
+          percentage: attendanceStats.summary.statsData.onTime.percentage,
+          bgColor: "bg-[#2780e3]",
+          icon: <i className="ki-solid ki-user-tick text-2xl"></i>,
+          trend: "up",
+        },
+        {
+          title: attendanceStats.summary.statsData.late.title,
+          subtitle: attendanceStats.summary.statsData.late.subtitle,
+          percentage: attendanceStats.summary.statsData.late.percentage,
+          bgColor: "bg-[#3fb618]",
+          icon: <i className="ki-solid ki-time text-2xl"></i>,
+          trend: "neutral",
+        },
+        {
+          title: attendanceStats.summary.statsData.earlyOut.title,
+          subtitle: attendanceStats.summary.statsData.earlyOut.subtitle,
+          percentage: attendanceStats.summary.statsData.earlyOut.percentage,
+          bgColor: "bg-[#fe7418]",
+          icon: <i className="ki-solid ki-exit-right text-2xl"></i>,
+          trend: "down",
+        },
+        {
+          title: attendanceStats.summary.statsData.lateAndEarly.title,
+          subtitle: attendanceStats.summary.statsData.lateAndEarly.subtitle,
+          percentage: attendanceStats.summary.statsData.lateAndEarly.percentage,
+          bgColor: "bg-[#ff0039]",
+          icon: <i className="ki-solid ki-information text-2xl"></i>,
+          trend: "up",
+        },
+        {
+          title: attendanceStats.summary.statsData.absent.title,
+          subtitle: attendanceStats.summary.statsData.absent.subtitle,
+          percentage: attendanceStats.summary.statsData.absent.percentage,
+          bgColor: "bg-[#6c757d]",
+          icon: <i className="ki-solid ki-cross-circle text-2xl"></i>,
+          trend: "up",
+        },
+      ]
+    : defaultCardData;
 
   const getTrendIcon = (trend: string, percentage: string) => {
     if (trend === "neutral" || percentage === "0%") {
@@ -388,7 +394,8 @@ export default function Home() {
   };
 
   //TREND ATTENDANCE
-  const [attendanceBarSeries, setAttendanceBarSeries] = useState<ApexAxisChartSeries>([]);
+  const [attendanceBarSeries, setAttendanceBarSeries] =
+    useState<ApexAxisChartSeries>([]);
   const attendanceChartOptions: ApexOptions = {
     chart: {
       type: "bar",
@@ -403,18 +410,18 @@ export default function Home() {
           total: {
             enabled: false,
             style: {
-              fontSize: '13px',
-              fontWeight: 900
-            }
-          }
-        }
+              fontSize: "13px",
+              fontWeight: 900,
+            },
+          },
+        },
       },
     },
     dataLabels: { enabled: false },
     stroke: {
       show: true,
       width: 1,
-      colors: ['#fff']
+      colors: ["#fff"],
     },
     xaxis: {
       categories: barCategories,
@@ -438,33 +445,27 @@ export default function Home() {
           colors: "#A1A5B7",
           fontSize: "12px",
         },
-        formatter: (val) => val.toFixed(0)
+        formatter: (val) => val.toFixed(0),
       },
       forceNiceScale: false,
     },
     fill: {
       opacity: 1,
     },
-    colors: [
-      "#2780e3",
-      "#3fb618",
-      "#fe7418",
-      "#ff0039",
-      "#6c757d"
-    ],
+    colors: ["#2780e3", "#3fb618", "#fe7418", "#ff0039", "#6c757d"],
     legend: {
-      position: 'top',
+      position: "top",
       height: 20,
-      horizontalAlign: 'center',
+      horizontalAlign: "center",
       itemMargin: {
         horizontal: 10,
-        vertical: 0
+        vertical: 0,
       },
       onItemClick: {
-        toggleDataSeries: true
+        toggleDataSeries: true,
       },
       onItemHover: {
-        highlightDataSeries: true
+        highlightDataSeries: true,
       },
     },
     tooltip: {
@@ -476,7 +477,7 @@ export default function Home() {
         const seriesName = w.globals.seriesNames[seriesIndex];
         const value = series[seriesIndex][dataPointIndex];
 
-        let color = '';
+        let color = "";
         switch (seriesName) {
           case "On Time":
             color = "#2780e3";
@@ -499,7 +500,7 @@ export default function Home() {
 
         return `
         <div style="padding: 8px;">
-          <div style="font-weight: bold; margin-bottom: 4px;">${monthName}, ${new Date().getFullYear()}</div>
+          <div style="font-weight: bold; margin-bottom: 4px;">${monthName}, ${selectedYearAttendance}</div>
           <div style="display: flex; align-items: center; white-space: nowrap;">
             <span style="color:${color}; margin-right: 4px;">&#9632;</span>
             <span>${seriesName}: <strong>${value}</strong></span>
@@ -529,20 +530,28 @@ export default function Home() {
 
       const apiData = res.data.data.data.chart;
 
-      const onTimeData = apiData.map(item => item.onTime || 0);
-      const lateData = apiData.map(item => item.late || 0);
-      const earlyOutData = apiData.map(item => item.earlyOut || 0);
-      const lateAndEarlyData = apiData.map(item => item.lateAndEarly || 0);
-      const absentData = apiData.map(item => item.absent || 0);
+      const onTimeData = apiData.map((item) => item.onTime || 0);
+      const lateData = apiData.map((item) => item.late || 0);
+      const earlyOutData = apiData.map((item) => item.earlyOut || 0);
+      const lateAndEarlyData = apiData.map((item) => item.lateAndEarly || 0);
+      const absentData = apiData.map((item) => item.absent || 0);
+
+      const currentYear = new Date().getFullYear();
+      const currentMonthIndex = new Date().getMonth(); // 0-based index
+      const limitMonth = year === currentYear ? currentMonthIndex + 1 : 12;
+
+      // Potong sesuai bulan saat ini
+      const limitedBarCategories = barCategories.slice(0, limitMonth);
+
+      setBarCategoriesState(limitedBarCategories); // simpan kategori bulan yang ditampilkan
 
       setAttendanceBarSeries([
-        { name: "On Time", data: onTimeData },
-        { name: "Late In", data: lateData },
-        { name: "Early Out", data: earlyOutData },
-        { name: "Late & Early", data: lateAndEarlyData },
-        { name: "Absence", data: absentData },
+        { name: "On Time", data: onTimeData.slice(0, limitMonth) },
+        { name: "Late In", data: lateData.slice(0, limitMonth) },
+        { name: "Early Out", data: earlyOutData.slice(0, limitMonth) },
+        { name: "Late & Early", data: lateAndEarlyData.slice(0, limitMonth) },
+        { name: "Absence", data: absentData.slice(0, limitMonth) },
       ]);
-
     } catch (err) {
       console.error("Failed to fetch attendance bar data:", err);
       setAttendanceBarSeries([
@@ -552,14 +561,15 @@ export default function Home() {
         { name: "Late & Early", data: Array(12).fill(0) },
         { name: "Absence", data: Array(12).fill(0) },
       ]);
+      setBarCategoriesState(barCategories);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAttendanceBarData(selectedYear);
-  }, [selectedYear]);
+    fetchAttendanceBarData(selectedYearAttendance);
+  }, [selectedYearAttendance]);
 
   return (
     <Main>
@@ -567,18 +577,23 @@ export default function Home() {
         {cardData.map((card, index) => (
           <div
             key={index}
-            className={`${card.bgColor} card text-white shadow-lg hover:shadow-xl transition-shadow duration-300 ${statsLoading ? 'animate-pulse' : ''
-              }`}
+            className={`${
+              card.bgColor
+            } card text-white shadow-lg hover:shadow-xl transition-shadow duration-300 ${
+              statsLoading ? "animate-pulse" : ""
+            }`}
           >
             <div className="card-body card-stats p-4 flex justify-between">
               <div className="description">
                 <h3 className="text-lg font-bold mb-1">{card.title}</h3>
-                <p className="text-white/90 text-sm font-medium">{card.subtitle}</p>
+                <p className="text-white/90 text-sm font-medium">
+                  {card.subtitle}
+                </p>
               </div>
               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                 {card.icon}
               </div>
-            </div>            
+            </div>
           </div>
         ))}
       </div>
@@ -587,6 +602,22 @@ export default function Home() {
       <div className="card mt-6">
         <div className="card-header flex items-center justify-between">
           <h3 className="card-title">Employee Attendance Trends</h3>
+          <select
+            className="select select-sm select-bordered w-32"
+            value={selectedYearAttendance}
+            onChange={(e) =>
+              setSelectedYearAttendance(parseInt(e.target.value))
+            }
+          >
+            {Array.from({ length: 5 }, (_, i) => {
+              const year = new Date().getFullYear() - i;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
+            })}
+          </select>
         </div>
         <div className="px-3 pt-3">
           {isLoading ? (
@@ -597,14 +628,14 @@ export default function Home() {
               </div>
             </div>
           ) : (
-              <div>
-                <Chart
-                  options={attendanceChartOptions}
-                  series={attendanceBarSeries}
-                  type="bar"
-                  height={400}
-                />
-              </div>
+            <div>
+              <Chart
+                options={attendanceChartOptions}
+                series={attendanceBarSeries}
+                type="bar"
+                height={400}
+              />
+            </div>
           )}
         </div>
       </div>

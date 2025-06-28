@@ -433,9 +433,10 @@ export default function Home() {
           <section
             className={clsx(
               "rounded-xl shadow-md p-6 mt-8",
-              selectedActionType === "Approved" && "bg-green-100",
-              selectedActionType === "Rejected" && "bg-red-100",
-              selectedActionType === "Accepted" && "bg-blue-100"
+              (selectedActionType === "Approved" ||
+                selectedActionType === "Accepted") &&
+                "bg-blue-100",
+              selectedActionType === "Rejected" && "bg-red-100"
             )}
           >
             <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">

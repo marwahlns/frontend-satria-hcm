@@ -1098,7 +1098,7 @@ export default function ModalDeclaration({
                     "rounded-xl shadow-md p-6 mt-8",
                     type === "Approved" && "bg-green-100",
                     type === "Rejected" && "bg-red-100",
-                    type === "Accepted" && "bg-blue-100"
+                    type === "Accepted" && "bg-green-100"
                   )}
                 >
                   <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
@@ -1169,7 +1169,9 @@ export default function ModalDeclaration({
                     className={`btn ${
                       type === "Rejected" || type === "Canceled"
                         ? "btn-danger"
-                        : "btn-primary"
+                        : type === "Accepted" || type === "Approved"
+                        ? "btn-success"
+                        : "btn-secondary"
                     } flex justify-center grow`}
                     disabled={loading}
                   >
