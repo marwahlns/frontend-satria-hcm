@@ -1,4 +1,3 @@
-import Main from "../../../main-layouts/layout-employee";
 import DataTable from "../../../components/Datatables";
 import clsx from "clsx";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -14,12 +13,11 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { enGB } from "date-fns/locale";
 import Modal from "@/components/Modal";
-import ActionModal from "@/components/Modals/ActionModal";
-import DetailModal from "@/components/Modals/DetailModal";
+import ActionModal from "@/components/Modals/ActionModalUpper";
+import DetailModal from "@/components/Modals/DetailModalUpper";
 import StatusStepper from "@/components/StatusStepper";
 import AsyncSelect from "react-select/async";
 import { useLeaveStore } from "../../../stores/submitStore";
-import { IoMdPaper } from "react-icons/io";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -28,7 +26,15 @@ export default function Home() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedActionType, setSelectedActionType] = useState("");
   const [selectedData, setSelectedData] = useState(null);
-  const [filter, setFilter] = useState({ month: "", year: "", status: 0 });
+  const [filter, setFilter] = useState<{
+    month: string;
+    year: string;
+    status?: number;
+  }>({
+    month: "",
+    year: "",
+    status: 0,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const [isRefetch, setIsRefetch] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -50,13 +56,19 @@ export default function Home() {
       .nullable()
       .test(
         "is-valid-file",
-        "Only PDF files under 2MB are allowed",
+        "Only PDF or image files (max 2MB) are allowed",
         (value) => {
           if (!value) return true;
           const file = value as File;
-          const isPDF = file.type === "application/pdf";
+          const isAllowedType = [
+            "application/pdf",
+            "image/jpeg",
+            "image/png",
+            "image/jpg",
+            "image/webp",
+          ].includes(file.type);
           const isSmallEnough = file.size <= 2 * 1024 * 1024;
-          return isPDF && isSmallEnough;
+          return isAllowedType && isSmallEnough;
         }
       ),
   });
@@ -146,10 +158,12 @@ export default function Home() {
           },
         }
       );
+
       if (response.data.success) {
         return response.data.data.data.map((leave_quota) => ({
           value: leave_quota.leaves_type_id,
-          label: `${leave_quota.MsLeaveType.title} - Quota: ${leave_quota.leave_balance}`,
+          label: `${leave_quota.MsLeaveType.title}${leave_quota.leave_balance != null ? ` - Quota: ${leave_quota.leave_balance}` : ""
+            }`,
         }));
       } else {
         return [];
@@ -162,6 +176,7 @@ export default function Home() {
 
   const onCancel = async (data) => {
     try {
+      setLoading(true);
       const result = await Swal.fire({
         title: `Are you sure?`,
         text: `Do you want to ${selectedActionType} this leave request?`,
@@ -170,7 +185,8 @@ export default function Home() {
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
         confirmButtonText: `Yes, ${selectedActionType} it!`,
-        cancelButtonText: "Cancel",
+        cancelButtonText: "Discard",
+        reverseButtons: true,
       });
 
       if (!result.isConfirmed) {
@@ -213,13 +229,31 @@ export default function Home() {
         icon: "error",
         confirmButtonText: "OK",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const onSubmit = async (data) => {
     try {
-      const token = Cookies.get("token");
+      setLoading(true);
+      const result = await Swal.fire({
+        title: `Are you sure?`,
+        text: `Do you want to submit this leave request?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: `Yes, submit it!`,
+        cancelButtonText: "Discard",
+        reverseButtons: true,
+      });
 
+      if (!result.isConfirmed) {
+        setLoading(false);
+        return;
+      }
+      const token = Cookies.get("token");
       const formData = new FormData();
       formData.append(
         "leave_type_id",
@@ -231,6 +265,7 @@ export default function Home() {
       if (data.support_document) {
         formData.append("file", data.support_document);
       }
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/?type=leave`,
         formData,
@@ -242,44 +277,43 @@ export default function Home() {
         }
       );
 
-      if (response.status === 201) {
+      const resData = response.data;
+
+      if (resData.success === false) {
         Swal.fire({
-          title: "Success",
-          text: "Leave added successfully",
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        setIsRefetch(!isRefetch);
-        onClose();
-        reset();
-      } else {
-        Swal.fire({
-          title: "Unexpected Response",
-          text: "Server returned unexpected status.",
+          title: "Submission Failed",
+          text: resData.message,
           icon: "warning",
         });
-        onClose();
-        reset();
+        return;
       }
-    } catch (error) {
-      console.error("Error submitting leave:", error);
-
-      const errorMessage =
-        error.response?.data?.message ||
-        "Terjadi kesalahan saat mengirim data.";
 
       Swal.fire({
-        title: "Submission Failed",
-        text: errorMessage,
-        icon: "error",
+        title: "Success",
+        text: "Leave added successfully",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
       });
+      setIsRefetch(!isRefetch);
+      onClose();
+      reset();
+    } catch (error) {
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to submit leave. Please try again.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleExportExcel = async () => {
     const token = Cookies.get("token");
     try {
+      setLoading(true);
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/api/trx/`,
         {
@@ -322,8 +356,14 @@ export default function Home() {
 
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error exporting EXCEL:", error);
-      alert("Failed to export Excel.");
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to export excel`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -347,45 +387,48 @@ export default function Home() {
     {
       accessorKey: "start_date",
       header: "Start Date",
-      enableSorting: true,
+      enableSorting: false,
     },
     {
       accessorKey: "end_date",
       header: "End Date",
-      enableSorting: true,
+      enableSorting: false,
     },
     {
       accessorKey: "total_leave_days",
       header: "Total Days",
       enableSorting: true,
+      cell: ({ getValue }) => (
+        <div className="text-right">{getValue() as number}</div>
+      ),
     },
-    {
-      accessorKey: "leave_reason",
-      header: "Reason",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "file_upload",
-      header: "File",
-      cell: ({ row }) => {
-        const file = row.original.support_document;
-        if (file) {
-          const fileUrl = `http://localhost:3000/uploads/file_leave/${file}`;
-          return (
-            <div className="flex justify-center cursor-pointer">
-              <IoMdPaper
-                size={24}
-                color="#E53E3E"
-                onClick={() => handleShowFile(fileUrl)}
-                title="View PDF"
-              />
-            </div>
-          );
-        } else {
-          return <span>No File</span>;
-        }
-      },
-    },
+    // {
+    //   accessorKey: "leave_reason",
+    //   header: "Reason",
+    //   enableSorting: true,
+    // },
+    // {
+    //   accessorKey: "file_upload",
+    //   header: "File",
+    //   cell: ({ row }) => {
+    //     const file = row.original.support_document;
+    //     if (file) {
+    //       const fileUrl = `http://localhost:3000/uploads/file_leave/${file}`;
+    //       return (
+    //         <div className="flex justify-center cursor-pointer">
+    //           <IoMdDocument
+    //             size={24}
+    //             color="#E53E3E"
+    //             onClick={() => handleShowFile(fileUrl)}
+    //             title="View Attachment"
+    //           />
+    //         </div>
+    //       );
+    //     } else {
+    //       return <span>No File</span>;
+    //     }
+    //   },
+    // },
     {
       accessorKey: "status_submittion",
       header: "Status",
@@ -444,7 +487,7 @@ export default function Home() {
                   className="btn btn-sm btn-outline btn-danger"
                   onClick={() => handleOpenActionModal(data, "Canceled")}
                 >
-                  <i className="ki-outline ki-trash text-white"></i>
+                  <i className="ki-outline ki-arrow-circle-left text-white"></i>
                 </button>
                 <div className="tooltip" id="delete_tooltip">
                   Cancel
@@ -458,13 +501,50 @@ export default function Home() {
   ];
 
   return (
-    <Main>
-      <div className="mb-6 flex justify-between items-start">
+    <div>
+      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Leave</h1>
           <p className="text-gray-500 text-sm">Your Leave Record</p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            className="btn btn-outline btn-success"
+            onClick={() => handleExportExcel()}
+          >
+            {loading ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <i className="ki-filled ki-file-down"></i>
+                Export
+              </>
+            )}
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowFilter((prev) => !prev)}
+              className="btn btn-outline btn-primary"
+            >
+              <i className="ki-filled ki-filter-tablet mr-1" />
+              Filter
+            </button>
+
+            {showFilter && (
+              <FilterData
+                onSelect={(selectedFilter) => {
+                  setFilter(selectedFilter);
+                  setShowFilter(false);
+                }}
+              />
+            )}
+          </div>
           <button
             className="btn btn-filled btn-primary"
             onClick={() => handleOpenAddModal()}
@@ -472,36 +552,10 @@ export default function Home() {
             <i className="ki-outline ki-plus-squared"></i>
             Add Data
           </button>
-
-          <button
-            onClick={() => setShowFilter((prev) => !prev)}
-            className="btn btn-filled btn-primary"
-          >
-            <i className="ki-filled ki-filter-tablet mr-1" />
-            Filter
-          </button>
-
-          {showFilter && (
-            <FilterData
-              onSelect={(selectedFilter) => {
-                setFilter(selectedFilter);
-                setShowFilter(false);
-              }}
-            />
-          )}
-
-          <button
-            className="btn btn-filled btn-success"
-            onClick={() => handleExportExcel()}
-          >
-            <i className="ki-filled ki-file-down"></i>
-            Export to Excel
-          </button>
         </div>
       </div>
 
       <DataTable
-        title={"Leave Submittion List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/trx?type=leave&status=${filter.status}&month=${filter.month}&year=${filter.year}&`}
         isRefetch={isRefetch}
@@ -518,7 +572,7 @@ export default function Home() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="modal-body max-h-[65vh] overflow-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="form-group mb-2">
                 <label className="form-label">
                   Leave Type
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
@@ -537,7 +591,7 @@ export default function Home() {
                       className={clsx(
                         "w-full text-sm",
                         errors.leave_type_id &&
-                          "border border-red-500 rounded-md"
+                        "border border-red-500 rounded-md"
                       )}
                       styles={{
                         control: (base, state) => ({
@@ -550,8 +604,8 @@ export default function Home() {
                             borderColor: state.isFocused
                               ? "#A1A9B8"
                               : errors.leave_type_id
-                              ? "#EF4444"
-                              : "#DBDFE9",
+                                ? "#EF4444"
+                                : "#DBDFE9",
                           },
                         }),
                       }}
@@ -568,7 +622,7 @@ export default function Home() {
                 )}
               </div>
 
-              <div>
+              <div className="form-group mb-2">
                 <label className="form-label">
                   Leave Date
                   <span style={{ color: "red", marginLeft: "5px" }}>*</span>
@@ -588,20 +642,20 @@ export default function Home() {
                           "start_date",
                           start
                             ? new Date(start).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
                             : ""
                         );
                         setValue(
                           "end_date",
                           end
                             ? new Date(end).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
                             : ""
                         );
                       }}
@@ -629,22 +683,25 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-5 mt-6">
               <div>
-                <label className="form-label">Upload PDF</label>
+                <label className="form-label">Leave Attachment</label>
                 <Controller
                   name="support_document"
                   control={control}
                   render={({ field }) => (
                     <input
                       type="file"
-                      accept="application/pdf"
+                      accept="application/pdf,image/*"
                       onChange={(e) => field.onChange(e.target.files?.[0])}
                       className={clsx(
-                        "block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100",
+                        "file-input",
                         errors.support_document && "border-red-500"
                       )}
                     />
                   )}
                 />
+                <p className="text-red-500 text-xs mt-1">
+                  Maximum upload file size is 2MB.
+                </p>
                 {errors.support_document && (
                   <p className="text-red-500 text-sm mt-1">
                     {errors.support_document.message}
@@ -668,7 +725,7 @@ export default function Home() {
                         "focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
                         "placeholder:text-gray-500",
                         errors.leave_reason &&
-                          "border-red-500 focus:border-red-500 focus:ring-red-500"
+                        "border-red-500 focus:border-red-500 focus:ring-red-500"
                       )}
                       placeholder="Your reason"
                       rows={4}
@@ -687,10 +744,40 @@ export default function Home() {
           <div className="modal-footer justify-end flex-shrink-0">
             <div className="flex gap-2">
               <button type="button" className="btn btn-light" onClick={onClose}>
-                Cancel
+                Discard
               </button>
-              <button type="submit" className="btn btn-primary">
-                Submit
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4l3.536-3.536a9 9 0 10-12.728 12.728L4 12z"
+                      />
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit"
+                )}
               </button>
             </div>
           </div>
@@ -704,6 +791,9 @@ export default function Home() {
       >
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-60">
+            <h3 className="font-bold border-b pb-2 text-gray-700">
+              Approval Stage
+            </h3>
             <StatusStepper
               statusId={selectedData?.status_id ?? 1}
               createdDate={selectedData?.created_at}
@@ -719,34 +809,50 @@ export default function Home() {
               approveTo={selectedData?.approve_to}
             />
           </div>
-          <div className="flex-1">
-            <form>
-              <div className="flex flex-col gap-4 text-sm text-gray-700">
-                <div>
-                  <div className="font-semibold text-gray-600">Start Date</div>
-                  <p>{selectedData?.start_date ?? "-"}</p>
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-600">End Date</div>
-                  <p>{selectedData?.end_date ?? "-"}</p>
-                </div>
+          <div className="flex-1 space-y-8">
+            <form className="text-sm text-gray-700 space-y-8">
+              <section>
+                <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
+                  General Information
+                </h3>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  {[
+                    ["Leave Type", selectedData?.leave_type_name],
+                    ["Purpose", selectedData?.leave_reason],
+                    [
+                      "Total Leave Days",
+                      `${selectedData?.total_leave_days ?? "-"} days`,
+                    ],
+                    ["Start Date", selectedData?.start_date],
+                    ["End Date", selectedData?.end_date],
+                    ["Leave Attachment", selectedData?.support_document],
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="w-full md:w-[30%]">
+                      <div className="font-semibold text-gray-600">{label}</div>
 
-                <div>
-                  <div className="font-semibold text-gray-600">Leave Type</div>
-                  <p>{selectedData?.leave_type_name ?? "-"}</p>
+                      {label === "Leave Attachment" ? (
+                        value ? (
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/file_leave/${value}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Click to open PDF"
+                            className="text-red-600 hover:text-red-800 flex items-center gap-2 truncate max-w-full font-bold"
+                          >
+                            <span>{value}</span>
+                          </a>
+                        ) : (
+                          <p className="text-gray-500 italic">
+                            No file leave attachment
+                          </p>
+                        )
+                      ) : (
+                        <p className="font-bold">{value ?? "-"}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-600">
-                    Total Leave Days
-                  </div>
-                  <p>{selectedData?.total_leave_days ?? "-"} days</p>
-                </div>
-
-                <div>
-                  <div className="font-semibold text-gray-600">Note</div>
-                  <p>{selectedData?.leave_reason ?? "-"}</p>
-                </div>
-              </div>
+              </section>
             </form>
           </div>
         </div>
@@ -761,84 +867,106 @@ export default function Home() {
         submitText={selectedActionType}
       >
         <form onSubmit={handleSubmit(onCancel)}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Start Date Leave</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.start_date ?? ""}
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-60">
+              <h3 className="font-bold border-b pb-2 text-gray-700">
+                Approval Stage
+              </h3>
+              <StatusStepper
+                statusId={selectedData?.status_id ?? 1}
+                createdDate={selectedData?.created_at}
+                acceptedDate={selectedData?.accepted_date}
+                approvedDate={selectedData?.approved_date}
+                rejectedDate={selectedData?.rejected_date}
+                canceledDate={selectedData?.canceled_date}
+                acceptedRemark={selectedData?.accepted_remark}
+                approvedRemark={selectedData?.approved_remark}
+                rejectedRemark={selectedData?.rejected_remark}
+                canceledRemark={selectedData?.canceled_remark}
+                acceptTo={selectedData?.accept_to}
+                approveTo={selectedData?.approve_to}
               />
             </div>
-            <div>
-              <label className="form-label">End Date Leave</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.end_date ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Leave Type Name</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.leave_type_name ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Leave Reason</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.leave_reason ?? ""}
-              />
-            </div>
-            <div>
-              <label className="form-label">Total Leave Days</label>
-              <input
-                className="input w-full"
-                type="text"
-                readOnly
-                value={selectedData?.total_leave_days ?? ""}
-              />
+            <div className="flex-1 space-y-8">
+              <section className="text-sm text-gray-700 space-y-8">
+                <h3 className="text-lg font-bold border-b pb-2 text-gray-700">
+                  General Information
+                </h3>
+                <div className="flex flex-wrap gap-6 mt-4">
+                  {[
+                    ["Leave Type", selectedData?.leave_type_name],
+                    ["Purpose", selectedData?.leave_reason],
+                    [
+                      "Total Leave Days",
+                      `${selectedData?.total_leave_days ?? "-"} days`,
+                    ],
+                    ["Start Date", selectedData?.start_date],
+                    ["End Date", selectedData?.end_date],
+                    ["Leave Attachment", selectedData?.support_document],
+                  ].map(([label, value], idx) => (
+                    <div key={idx} className="w-full md:w-[30%]">
+                      <div className="font-semibold text-gray-600">{label}</div>
+                      {label === "Leave Attachment" ? (
+                        value ? (
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/file_leave/${value}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Click to open PDF"
+                            className="text-red-600 hover:text-red-800 flex items-center gap-2 truncate max-w-full font-bold"
+                          >
+                            <span>{value}</span>
+                          </a>
+                        ) : (
+                          <p className="text-gray-500 italic">
+                            No file leave attachment
+                          </p>
+                        )
+                      ) : (
+                        <p className="font-bold">{value ?? "-"}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-5 mt-6">
-            <div>
-              <label className="form-label">
-                Canceled Remark{" "}
-                <span style={{ color: "red", marginLeft: "5px" }}>*</span>
-              </label>
-              <Controller
-                name="canceled_remark"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className={clsx(
-                      "input",
-                      errors.canceled_remark
-                        ? "border-red-500 hover:border-red-500"
-                        : ""
-                    )}
-                  />
+          <section className="bg-gray-50 rounded-xl shadow-md p-6 mt-8">
+            <h3 className="text-lg font-bold border-b pb-3 mb-4 text-gray-800">
+              Remark
+            </h3>
+            <div className="grid grid-cols-1 gap-5">
+              <div>
+                <label className="form-label mb-2">
+                  Canceled Remark
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <Controller
+                  name="canceled_remark"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className={clsx(
+                        "input",
+                        errors.canceled_remark
+                          ? "border-red-500 hover:border-red-500"
+                          : ""
+                      )}
+                    />
+                  )}
+                />
+                {errors.canceled_remark && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.canceled_remark.message}
+                  </p>
                 )}
-              />
-              {errors.canceled_remark && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.canceled_remark.message}
-                </p>
-              )}
+              </div>
             </div>
-          </div>
+          </section>
         </form>
       </ActionModal>
-    </Main>
+    </div>
   );
 }

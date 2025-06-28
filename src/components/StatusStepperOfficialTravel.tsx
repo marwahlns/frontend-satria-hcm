@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 
 interface StatusStepperProps {
+  code: string;
   statusId: number;
   createdDate?: string;
   acceptedDeptHeadDate?: string;
@@ -92,6 +93,7 @@ const CustomStepIcon: React.FC<CustomStepIconProps> = ({
 };
 
 const StatusStepper: React.FC<StatusStepperProps> = ({
+  code,
   statusId,
   createdDate,
   acceptedDeptHeadDate,
@@ -120,6 +122,7 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
   approveToDicDivHC,
   approveToPresdir,
 }) => {
+  const isDomestic = code.startsWith("TRF2");
   const formattedDateTime = (dateString?: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -140,69 +143,49 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
 
   const stepsByStatus = {
     7: ["Submitted", "Cancelled"],
-    8: ["Submitted", "Accepted By Dept. Head"],
-    9: ["Submitted", "Accepted By Dept. Head", "Approved By Div. Head"],
-    10: [
-      "Submitted",
-      "Accepted By Dept. Head",
-      "Approved By Div. Head",
-      "Approved By DIC Division",
-    ],
-    11: [
-      "Submitted",
-      "Accepted By Dept. Head",
-      "Approved By Div. Head",
-      "Approved By DIC Division",
-      "Approved By Dept. Head HC",
-    ],
-    12: [
-      "Submitted",
-      "Accepted By Dept. Head",
-      "Approved By Div. Head",
-      "Approved By DIC Division",
-      "Approved By Dept. Head HC",
-      "Approved By Div. Head HC",
-    ],
-    13: [
-      "Submitted",
-      "Accepted By Dept. Head",
-      "Approved By Div. Head",
-      "Approved By DIC Division",
-      "Approved By Dept. Head HC",
-      "Approved By Div. Head HC",
-      "Approved By DIC HC",
-    ],
-    14: [
-      "Submitted",
-      "Accepted By Dept. Head",
-      "Approved By Div. Head",
-      "Approved By DIC Division",
-      "Approved By Dept. Head HC",
-      "Approved By Div. Head HC",
-      "Approved By DIC HC",
-      "Approved By President Director",
-    ],
   };
 
-  const defaultSteps = skipAcceptStep
-    ? ["Submitted", "Approved"]
-    : ["Submitted", "Accepted", "Approved"];
+  const defaultSteps = [
+    "Submitted",
+    "Accepted by Dept. Head",
+    "Approved by Div. Head",
+    "Approved by DIC Division",
+    "Approved by Dept. Head HC",
+    "Approved by Div. Head HC",
+    "Approved by DIC Division HC",
+    "Approved by President Director",
+  ];
 
-  const steps = stepsByStatus[statusId] || defaultSteps;
+  let steps;
+
+  if (stepsByStatus[statusId]) {
+    steps = stepsByStatus[statusId];
+  } else if (isDomestic) {
+    steps = [
+      "Submitted",
+      "Approved By Dept. Head",
+      "Approved By Div. Head",
+      "Approved By Dept. Head HC",
+    ];
+  } else {
+    steps = defaultSteps;
+  }
 
   const getActiveStep = () => {
     if (statusId === 7) return 1;
 
     if (statusId === 6 && rejectedDate) {
-      const steps = [
-        acceptedDeptHeadDate,
-        approvedDivHeadDate,
-        approvedDicDivDate,
-        approvedDeptHeadHCDate,
-        approvedDivHeadHCDate,
-        approvedDicHCDate,
-        approvedPresdirDate,
-      ];
+      const steps = isDomestic
+        ? [acceptedDeptHeadDate, approvedDivHeadDate, approvedDeptHeadHCDate]
+        : [
+            acceptedDeptHeadDate,
+            approvedDivHeadDate,
+            approvedDicDivDate,
+            approvedDeptHeadHCDate,
+            approvedDivHeadHCDate,
+            approvedDicHCDate,
+            approvedPresdirDate,
+          ];
 
       let count = 0;
       for (const step of steps) {
@@ -211,6 +194,61 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       }
 
       return skipAcceptStep ? 1 : count + 1;
+    }
+    const stepsByStatus = isDomestic
+      ? {
+          8: [acceptedDeptHeadDate],
+          9: [acceptedDeptHeadDate, approvedDivHeadDate],
+          11: [
+            acceptedDeptHeadDate,
+            approvedDivHeadDate,
+            approvedDeptHeadHCDate,
+          ],
+        }
+      : {
+          8: [acceptedDeptHeadDate],
+          9: [acceptedDeptHeadDate, approvedDivHeadDate],
+          10: [acceptedDeptHeadDate, approvedDivHeadDate, approvedDicDivDate],
+          11: [
+            acceptedDeptHeadDate,
+            approvedDivHeadDate,
+            approvedDicDivDate,
+            approvedDeptHeadHCDate,
+          ],
+          12: [
+            acceptedDeptHeadDate,
+            approvedDivHeadDate,
+            approvedDicDivDate,
+            approvedDeptHeadHCDate,
+            approvedDivHeadHCDate,
+          ],
+          13: [
+            acceptedDeptHeadDate,
+            approvedDivHeadDate,
+            approvedDicDivDate,
+            approvedDeptHeadHCDate,
+            approvedDivHeadHCDate,
+            approvedDicHCDate,
+          ],
+          14: [
+            acceptedDeptHeadDate,
+            approvedDivHeadDate,
+            approvedDicDivDate,
+            approvedDeptHeadHCDate,
+            approvedDivHeadHCDate,
+            approvedDicHCDate,
+            approvedPresdirDate,
+          ],
+        };
+
+    if (stepsByStatus[statusId]) {
+      const steps = stepsByStatus[statusId];
+      let count = 0;
+      for (const step of steps) {
+        if (step) count++;
+        else break;
+      }
+      return count;
     }
 
     if (skipAcceptStep) {
@@ -243,19 +281,7 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       )
         return "Rejected";
       if (
-        !approvedDivHeadDate &&
-        rejectedDate &&
-        index === (skipAcceptStep ? 1 : 2)
-      )
-        return "Rejected";
-      if (
         approvedDivHeadDate &&
-        rejectedDate &&
-        index === (skipAcceptStep ? 1 : 3)
-      )
-        return "Rejected";
-      if (
-        !approvedDicDivDate &&
         rejectedDate &&
         index === (skipAcceptStep ? 1 : 3)
       )
@@ -267,19 +293,7 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       )
         return "Rejected";
       if (
-        !approvedDeptHeadHCDate &&
-        rejectedDate &&
-        index === (skipAcceptStep ? 1 : 4)
-      )
-        return "Rejected";
-      if (
         approvedDeptHeadHCDate &&
-        rejectedDate &&
-        index === (skipAcceptStep ? 1 : 5)
-      )
-        return "Rejected";
-      if (
-        !approvedDivHeadHCDate &&
         rejectedDate &&
         index === (skipAcceptStep ? 1 : 5)
       )
@@ -291,19 +305,7 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       )
         return "Rejected";
       if (
-        !approvedDicHCDate &&
-        rejectedDate &&
-        index === (skipAcceptStep ? 1 : 5)
-      )
-        return "Rejected";
-      if (
         approvedDicHCDate &&
-        rejectedDate &&
-        index === (skipAcceptStep ? 1 : 7)
-      )
-        return "Rejected";
-      if (
-        !approvedPresdirDate &&
         rejectedDate &&
         index === (skipAcceptStep ? 1 : 7)
       )
@@ -317,32 +319,46 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
     }
 
     if (!skipAcceptStep) {
-      if (index === 1 && !acceptedDeptHeadDate)
+      if (index === 1 && !acceptedDeptHeadDate) {
+        if (rejectedDate) return "Approval Bypassed";
         return "Waiting Accepted by Dept. Head";
-      if (index === 2 && !approvedDivHeadDate && rejectedDate)
-        return "Approval Bypassed";
-      if (index === 2 && !approvedDivHeadDate)
-        return "Waiting Approval Div. Head";
-      if (index === 3 && !approvedDicDivDate && rejectedDate)
-        return "Approval Bypassed";
-      if (index === 3 && !approvedDicDivDate)
-        return "Waiting Approval DIC Division";
-      if (index === 4 && !approvedDeptHeadHCDate && rejectedDate)
-        return "Approval Bypassed";
-      if (index === 4 && !approvedDeptHeadHCDate)
-        return "Waiting Approval Dept. Head HC";
-      if (index === 5 && !approvedDivHeadDate && rejectedDate)
-        return "Approval Bypassed";
-      if (index === 5 && !approvedDivHeadDate)
-        return "Waiting Approval Div. Head HC";
-      if (index === 6 && !approvedDicDivDate && rejectedDate)
-        return "Approval Bypassed";
-      if (index === 6 && !approvedDicDivDate)
-        return "Waiting Approval DIC Division HC";
-      if (index === 7 && !approvedPresdirDate && rejectedDate)
-        return "Approval Bypassed";
-      if (index === 7 && !approvedPresdirDate)
-        return "Waiting Approval President Director";
+      }
+
+      if (isDomestic) {
+        if (index === 2 && !approvedDivHeadDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval Div. Head";
+        }
+        if (index === 3 && !approvedDeptHeadHCDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval Dept. Head HC";
+        }
+      } else {
+        if (index === 2 && !approvedDivHeadDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval Div. Head";
+        }
+        if (index === 3 && !approvedDicDivDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval DIC Division";
+        }
+        if (index === 4 && !approvedDeptHeadHCDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval Dept. Head HC";
+        }
+        if (index === 5 && !approvedDivHeadHCDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval Div. Head HC";
+        }
+        if (index === 6 && !approvedDicHCDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval DIC Division HC";
+        }
+        if (index === 7 && !approvedPresdirDate) {
+          if (rejectedDate) return "Approval Bypassed";
+          return "Waiting Approval President Director";
+        }
+      }
     } else {
       if (index === 1 && !approvedDivHeadDate) return "Waiting Approval";
     }
@@ -364,31 +380,15 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       if (index === 2) {
         if (statusId === 6 && acceptedDeptHeadDate && rejectedDate)
           return formattedDateTime(rejectedDate);
-        if (approvedDivHeadDate) return formattedDateTime(approvedDivHeadDate);
-      }
-      if (index === 2) {
-        if (statusId === 6 && !approvedDivHeadDate && rejectedDate)
-          return formattedDateTime(rejectedDate);
-        if (approvedDivHeadDate) return formattedDateTime(approvedDivHeadDate);
+        if (acceptedDeptHeadDate) return formattedDateTime(approvedDivHeadDate);
       }
       if (index === 3) {
         if (statusId === 6 && approvedDivHeadDate && rejectedDate)
           return formattedDateTime(rejectedDate);
         if (approvedDicDivDate) return formattedDateTime(approvedDicDivDate);
       }
-      if (index === 3) {
-        if (statusId === 6 && !approvedDicDivDate && rejectedDate)
-          return formattedDateTime(rejectedDate);
-        if (approvedDicDivDate) return formattedDateTime(approvedDicDivDate);
-      }
       if (index === 4) {
         if (statusId === 6 && approvedDicDivDate && rejectedDate)
-          return formattedDateTime(rejectedDate);
-        if (approvedDeptHeadHCDate)
-          return formattedDateTime(approvedDeptHeadHCDate);
-      }
-      if (index === 4) {
-        if (statusId === 6 && !approvedDeptHeadHCDate && rejectedDate)
           return formattedDateTime(rejectedDate);
         if (approvedDeptHeadHCDate)
           return formattedDateTime(approvedDeptHeadHCDate);
@@ -399,24 +399,13 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
         if (approvedDivHeadHCDate)
           return formattedDateTime(approvedDivHeadHCDate);
       }
-      if (index === 5) {
-        if (statusId === 6 && !approvedDivHeadHCDate && rejectedDate)
-          return formattedDateTime(rejectedDate);
-        if (approvedDivHeadHCDate)
-          return formattedDateTime(approvedDivHeadHCDate);
-      }
       if (index === 6) {
         if (statusId === 6 && approvedDivHeadHCDate && rejectedDate)
           return formattedDateTime(rejectedDate);
-        if (approvedDicDivDate) return formattedDateTime(approvedDicDivDate);
-      }
-      if (index === 6) {
-        if (statusId === 6 && !approvedDicDivDate && rejectedDate)
-          return formattedDateTime(rejectedDate);
-        if (approvedDicDivDate) return formattedDateTime(approvedDicDivDate);
+        if (approvedDicHCDate) return formattedDateTime(approvedDicHCDate);
       }
       if (index === 7) {
-        if (statusId === 6 && approvedDicDivDate && rejectedDate)
+        if (statusId === 6 && approvedDicHCDate && rejectedDate)
           return formattedDateTime(rejectedDate);
         if (approvedPresdirDate) return formattedDateTime(approvedPresdirDate);
       }
@@ -441,6 +430,7 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       }
       return acceptedDeptHeadRemark ?? "";
     }
+
     if (index === 2) {
       if (statusId === 6 && acceptedDeptHeadDate && rejectedDate) {
         return rejectedRemark ?? "";
@@ -448,64 +438,41 @@ const StatusStepper: React.FC<StatusStepperProps> = ({
       return approvedDivHeadRemark ?? "";
     }
 
-    if (index === 2) {
-      if (statusId === 6 && !approvedDivHeadDate && rejectedDate) {
-        return rejectedRemark ?? "";
-      }
-      return approvedDivHeadRemark ?? "";
-    }
     if (index === 3) {
-      if (statusId === 6 && approvedDivHeadDate && rejectedDate) {
-        return rejectedRemark ?? "";
+      if (isDomestic) {
+        if (statusId === 6 && approvedDeptHeadHCDate && rejectedDate) {
+          return rejectedRemark ?? "";
+        }
+        return approvedDeptHeadHCRemark ?? "";
+      } else {
+        if (statusId === 6 && approvedDicDivDate && rejectedDate) {
+          return rejectedRemark ?? "";
+        }
+        return approvedDicDivRemark ?? "";
       }
-      return approvedDicDivRemark ?? "";
-    }
-
-    if (index === 3) {
-      if (statusId === 6 && !approvedDicDivDate && rejectedDate) {
-        return rejectedRemark ?? "";
-      }
-      return approvedDicDivRemark ?? "";
-    }
-    if (index === 4) {
-      if (statusId === 6 && approvedDicDivDate && rejectedDate) {
-        return rejectedRemark ?? "";
-      }
-      return approvedDeptHeadHCRemark ?? "";
     }
 
     if (index === 4) {
-      if (statusId === 6 && !approvedDeptHeadHCDate && rejectedDate) {
-        return rejectedRemark ?? "";
-      }
-      return approvedDeptHeadHCRemark ?? "";
-    }
-    if (index === 5) {
       if (statusId === 6 && approvedDeptHeadHCDate && rejectedDate) {
         return rejectedRemark ?? "";
       }
-      return approvedDivHeadHCRemark ?? "";
+      return approvedDeptHeadHCRemark ?? "";
     }
 
     if (index === 5) {
-      if (statusId === 6 && !approvedDivHeadHCDate && rejectedDate) {
+      if (statusId === 6 && approvedDivHeadHCDate && rejectedDate) {
         return rejectedRemark ?? "";
       }
       return approvedDivHeadHCRemark ?? "";
     }
-    if (index === 6) {
-      if (statusId === 6 && approvedDivHeadHCDate && rejectedDate) {
-        return rejectedRemark ?? "";
-      }
-      return approvedDicDivRemark ?? "";
-    }
 
     if (index === 6) {
-      if (statusId === 6 && !approvedDicDivDate && rejectedDate) {
+      if (statusId === 6 && approvedDicHCDate && rejectedDate) {
         return rejectedRemark ?? "";
       }
-      return approvedDicDivRemark ?? "";
+      return approvedDicHCRemark ?? "";
     }
+
     if (index === 7) {
       if (statusId === 6 && approvedDicDivDate && rejectedDate) {
         return rejectedRemark ?? "";

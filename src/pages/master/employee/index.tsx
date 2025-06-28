@@ -8,6 +8,7 @@ import { useState } from "react";
 import CreateModal from "./CreateModal";
 import UpdateModal from "./UpdateModal";
 import DetailModal from "./DetailModal";
+import Cookies from "js-cookie";
 
 export default function Home() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -15,6 +16,7 @@ export default function Home() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
@@ -44,6 +46,10 @@ export default function Home() {
     setSelectedData(null);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
+
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Confirmation",
@@ -53,17 +59,25 @@ export default function Home() {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
+      cancelButtonText: "Discard",
+      reverseButtons: true,
     });
 
     if (result.isConfirmed) {
+      const token = Cookies.get("token");
       try {
         const response = await axios.delete(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/master/user/${id}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/master/user/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         Swal.fire("Deleted!", "The employee has been deleted.", "success");
       } catch (error) {
         Swal.fire("Error!", "Failed to delete the employee.", "error");
+        console.log("ERROR : ", error);
       }
       setIsRefetch(!isRefetch);
     }
@@ -78,7 +92,7 @@ export default function Home() {
   const columns: ColumnDef<IEmployee>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {
@@ -147,8 +161,8 @@ export default function Home() {
   return (
     <Main>
       <div className="mb-6">
-        <div className="flex items-center justify-between mt-4">
-          <h1 className="text-3xl font-bold text-gray-800">Master User</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-800">Master Employee</h1>
           {/* Button */}
           <button
             className="btn btn-filled btn-primary"
@@ -162,10 +176,10 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"User List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
 
       <CreateModal

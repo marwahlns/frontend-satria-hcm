@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 
 interface RoleFilterProps {
-  onSelect: (filter: { month: string; year: string; status: number }) => void;
+  onSelect: (filter: { month: string; year: string; status?: number }) => void;
   mode?: "general" | "officialTravel";
+  disableStatus?: boolean;
 }
 
 const FilterData: React.FC<RoleFilterProps> = ({
   onSelect,
   mode = "general",
+  disableStatus = false,
 }) => {
   const generalStatusMap: Record<number, string> = {
     0: "All",
@@ -44,18 +46,34 @@ const FilterData: React.FC<RoleFilterProps> = ({
   const [selectedStatus, setSelectedStatus] = useState(0);
 
   const handleApply = () => {
-    if (selectedMonthYear) {
-      const [year, month] = selectedMonthYear.split("-");
-      onSelect({ month, year, status: selectedStatus });
-    } else {
-      onSelect({ month: "", year: "", status: selectedStatus });
+    const [year = "", month = ""] = selectedMonthYear.split("-");
+
+    const filter: { month: string; year: string; status?: number } = {
+      month,
+      year,
+    };
+
+    if (!disableStatus) {
+      filter.status = selectedStatus;
     }
+
+    onSelect(filter);
   };
 
   const handleReset = () => {
     setSelectedMonthYear("");
     setSelectedStatus(0);
-    onSelect({ month: "", year: "", status: 0 });
+
+    const filter: { month: string; year: string; status?: number } = {
+      month: "",
+      year: "",
+    };
+
+    if (!disableStatus) {
+      filter.status = 0;
+    }
+
+    onSelect(filter);
   };
 
   return (
@@ -72,20 +90,22 @@ const FilterData: React.FC<RoleFilterProps> = ({
         />
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Status:</label>
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(parseInt(e.target.value))}
-          className="w-full border px-3 py-2 rounded"
-        >
-          {statusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!disableStatus && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Status:</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(parseInt(e.target.value))}
+            className="w-full border px-3 py-2 rounded"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex justify-between">
         <button onClick={handleReset} className="btn btn-filled btn-secondary">

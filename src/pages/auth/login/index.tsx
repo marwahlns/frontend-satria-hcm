@@ -7,8 +7,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 const schema = yup.object().shape({
-  email: yup.string().email("Email tidak valid").required("Email wajib diisi"),
-  password: yup.string().required("Password wajib diisi"),
+  email: yup.string().email("Invalid email address").required("Email is required"),
+  password: yup.string().required("Password is required"),
 });
 
 export default function Login() {
@@ -44,6 +44,9 @@ export default function Login() {
       Cookies.set("user_division", user.division, { expires: 1 });
       Cookies.set("dept_head", user.dept_head, { expires: 1 });
       Cookies.set("nrp", user.personal_number, { expires: 1 });
+      Cookies.set("is_dept_head", user.is_dept_head ? "true" : "false", {
+        expires: 1,
+      });
 
       const role = Cookies.get("role");
       const nrp = Cookies.get("nrp");
@@ -54,23 +57,25 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err);
-      setError("Login gagal. Periksa kembali kredensial Anda.");
+      setError("Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center grow bg-center bg-no-repeat page-bg">
+    <div className="flex items-center justify-center grow bg-center bg-no-repeat page-bg bg-[url('/media/images/2600x1200/bg-10.png')]">
       <div className="card max-w-[370px] w-full">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="card-body flex flex-col gap-5 p-10"
         >
           <div className="text-center mb-2.5">
-            <h3 className="text-lg font-medium text-gray-900 leading-none mb-2.5">
-              Sign in
-            </h3>
+            <img
+              src="/media/app/default-logo.png"
+              alt="Logo"
+              className="mx-auto w-20 h-auto"
+            />
           </div>
 
           <div className="flex flex-col gap-1">
@@ -133,7 +138,7 @@ export default function Login() {
                 Loading...
               </>
             ) : (
-              "Sign In"
+              "Login"
             )}
           </button>
           {error && <p className="text-red-500 text-center mt-2">{error}</p>}

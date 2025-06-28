@@ -1,165 +1,144 @@
-import Main from "../main-layouts/main";
-import DataTable from "../components/Datatables";
-import clsx from "clsx";
-import { ColumnDef } from "@tanstack/react-table";
+// pages/index.tsx
+import React from 'react';
+import Head from 'next/head'; // Untuk mengatur head HTML, SEO
+import Image from 'next/image'; // Jika ingin menambahkan logo atau gambar
 
 export default function Home() {
-  type IMakanan = {
-    id: string;
-    nama: string;
-    deskripsi: string;
-    harga: number;
-    stok: number;
-  };
-
-  const columns: ColumnDef<IMakanan>[] = [
-    {
-      accessorKey: "number",
-      header: "#",
-      enableSorting: false,
-    },
-    {
-      accessorKey: "id",
-      header: "ID",
-      enableSorting: false,
-    },
-    {
-      accessorKey: "nama",
-      header: "Nama",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "deskripsi",
-      header: "Deskripsi",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "harga",
-      header: "Harga",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "stok",
-      header: "Stok",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "",
-      header: "Action",
-      cell: ({ row }) => {
-        const data = row.original;
-        console.log(data);
-        return (
-          <div className="flex space-x-1 justify-center">
-            <button
-              className={clsx(
-                "btn btn-icon bg-blue-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
-            >
-              <i className="ki-outline ki-eye text-white"></i>
-            </button>
-            <button
-              className={clsx(
-                "btn btn-icon bg-orange-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
-            >
-              <i className="ki-outline ki-pencil text-white"></i>
-            </button>
-            <button
-              className={clsx(
-                "btn btn-icon bg-red-500 btn-xs transition-transform",
-                "hover:scale-[105%]",
-                "active:scale-[100%]"
-              )}
-            >
-              <i className="ki-outline ki-trash text-white"></i>
-            </button>
-          </div>
-        );
-      },
-    },
-  ];
   return (
-    <Main>
-      <form action="#" className="w-full" method="post">
-        <div data-stepper="true">
-          <div className="card">
-            <div className="card-header flex flex-col gap-y-6 py-8">
-              <div className="active flex gap-2.5 items-center" data-stepper-item="#stepper_1">
-                <div className="rounded-full size-10 flex items-center justify-center text-md font-semibold bg-primary-light text-primary stepper-item-active:bg-primary stepper-item-active:text-primary-inverse stepper-item-completed:bg-success stepper-item-completed:text-success-inverse">
-                  <span className="stepper-item-completed:hidden" data-stepper-number="true">1</span>
-                  <i className="ki-outline ki-check text-xl hidden stepper-item-completed:inline"></i>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-sm font-medium text-gray-900 stepper-item-completed:text-gray-600">Step 1</h4>
-                  <span className="text-2sm text-gray-700 stepper-item-completed:text-gray-400">Description</span>
-                </div>
-              </div>
+    <>
+      <Head>
+        <title>Selamat Datang di SATRIA HCM</title>
+        <meta name="description" content="Dashboard Sistem Manajemen Sumber Daya Manusia SATRIA HCM" />
+        {/* Anda bisa menambahkan favicon, meta tags lainnya di sini */}
+      </Head>
 
-              <div className="flex gap-2.5 items-center" data-stepper-item="#stepper_2">
-                <div className="rounded-full size-10 flex items-center justify-center text-md font-semibold bg-primary-light text-primary stepper-item-active:bg-primary stepper-item-active:text-primary-inverse stepper-item-completed:bg-success stepper-item-completed:text-success-inverse">
-                  <span className="stepper-item-completed:hidden" data-stepper-number="true">2</span>
-                  <i className="ki-outline ki-check text-xl hidden stepper-item-completed:inline"></i>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-sm font-medium text-gray-900 stepper-item-completed:text-gray-600">Step 2</h4>
-                  <span className="text-2sm text-gray-700 stepper-item-completed:text-gray-400">Description</span>
-                </div>
-              </div>
+      <div style={styles.container}>
+        <header style={styles.header}>
+          {/* Anda bisa menambahkan logo di sini */}
+          {/* <Image
+            src="/path/to/your/logo.png" // Ganti dengan path logo Anda
+            alt="SATRIA HCM Logo"
+            width={150}
+            height={50}
+            style={styles.logo}
+          /> */}
+          <h1 style={styles.appTitle}>SATRIA HCM</h1>
+        </header>
 
-              <div className="flex gap-2.5 items-center" data-stepper-item="#stepper_3">
-                <div className="rounded-full size-10 flex items-center justify-center text-md font-semibold bg-primary-light text-primary stepper-item-active:bg-primary stepper-item-active:text-primary-inverse stepper-item-completed:bg-success stepper-item-completed:text-success-inverse">
-                  <span className="stepper-item-completed:hidden" data-stepper-number="true">2</span>
-                  <i className="ki-outline ki-check text-xl hidden stepper-item-completed:inline"></i>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-sm font-medium text-gray-900 stepper-item-completed:text-gray-600">Step 2</h4>
-                  <span className="text-2sm text-gray-700 stepper-item-completed:text-gray-400">Description</span>
-                </div>
-              </div>
+        <main style={styles.mainContent}>
+          <h2 style={styles.welcomeHeading}>Selamat Datang di Portal Karyawan Anda!</h2>
+          <p style={styles.welcomeText}>
+            Kelola data presensi, pengajuan cuti, dan informasi personal Anda dengan mudah di sini.
+            SATRIA HCM hadir untuk membantu Anda dan perusahaan dalam mengoptimalkan pengelolaan Sumber Daya Manusia.
+          </p>
 
-              <div className="flex gap-2.5 items-center" data-stepper-item="#stepper_4">
-                <div className="rounded-full size-10 flex items-center justify-center text-md font-semibold bg-primary-light text-primary stepper-item-active:bg-primary stepper-item-active:text-primary-inverse stepper-item-completed:bg-success stepper-item-completed:text-success-inverse">
-                  <span className="stepper-item-completed:hidden" data-stepper-number="true">2</span>
-                  <i className="ki-outline ki-check text-xl hidden stepper-item-completed:inline"></i>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-sm font-medium text-gray-900 stepper-item-completed:text-gray-600">Step 2</h4>
-                  <span className="text-2sm text-gray-700 stepper-item-completed:text-gray-400">Description</span>
-                </div>
-              </div>
+          <div style={styles.featuresSection}>
+            <div style={styles.featureCard}>
+              <h3>Presensi</h3>
+              <p>Lihat riwayat presensi harian dan bulanan Anda.</p>
             </div>
-
-            <div className="card-body py-16">
-              <div id="stepper_1">
-                <div className="flex items-center justify-center text-3xl font-semibold text-gray-900">Step 1</div>
-              </div>
-              <div className="hidden" id="stepper_2">
-                <div className="flex items-center justify-center text-3xl font-semibold text-gray-900">Step 2</div>
-              </div>
-              <div className="hidden" id="stepper_3">
-                <div className="flex items-center justify-center text-3xl font-semibold text-gray-900">Step 3</div>
-              </div>
-              <div className="hidden" id="stepper_4">
-                <div className="flex items-center justify-center text-3xl font-semibold text-gray-900">Step 4</div>
-              </div>
+            <div style={styles.featureCard}>
+              <h3>Pengajuan</h3>
+              <p>Ajukan cuti, izin, atau perjalanan dinas dengan cepat.</p>
             </div>
-
-            <div className="card-footer py-8 flex justify-between">
-              <button className="btn btn-light stepper-first:hidden" data-stepper-back="true">Back</button>
-              <div>
-                <button className="btn btn-light stepper-last:hidden" data-stepper-next="true">Next</button>
-                <button className="btn btn-primary hidden stepper-last:inline-flex">Submit</button>
-              </div>
+            <div style={styles.featureCard}>
+              <h3>Profil</h3>
+              <p>Perbarui informasi pribadi dan kontak Anda.</p>
             </div>
           </div>
-        </div>
-      </form>
 
-    </Main>
+          <p style={styles.callToAction}>
+            Jelajahi fitur-fitur kami sekarang!
+          </p>
+        </main>
+
+        <footer style={styles.footer}>
+          <p>&copy; {new Date().getFullYear()} SATRIA HCM. All rights reserved.</p>
+        </footer>
+      </div>
+    </>
   );
 }
+
+// Styling (Contoh sederhana, Anda bisa gunakan Tailwind CSS atau modul CSS)
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    fontFamily: 'Arial, sans-serif',
+    backgroundColor: '#f4f7f6',
+    color: '#333',
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '30px',
+    padding: '20px',
+    width: '100%',
+    maxWidth: '800px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  },
+  logo: {
+    marginBottom: '10px',
+  },
+  appTitle: {
+    fontSize: '2.5em',
+    color: '#0056b3', // Warna branding Anda
+    margin: '0',
+  },
+  mainContent: {
+    textAlign: 'center',
+    width: '100%',
+    maxWidth: '800px',
+    backgroundColor: '#fff',
+    padding: '30px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    marginBottom: '20px',
+  },
+  welcomeHeading: {
+    fontSize: '2em',
+    color: '#333',
+    marginBottom: '15px',
+  },
+  welcomeText: {
+    fontSize: '1.1em',
+    lineHeight: '1.6',
+    marginBottom: '30px',
+  },
+  featuresSection: {
+    display: 'flex',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    gap: '20px',
+    marginBottom: '30px',
+  },
+  featureCard: {
+    backgroundColor: '#e6f7ff', // Warna latar belakang kartu fitur
+    padding: '20px',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    flex: '1',
+    minWidth: '200px',
+    maxWidth: '30%',
+    textAlign: 'left',
+  },
+  callToAction: {
+    fontSize: '1.2em',
+    fontWeight: 'bold',
+    color: '#0056b3',
+  },
+  footer: {
+    marginTop: '20px',
+    textAlign: 'center',
+    fontSize: '0.9em',
+    color: '#777',
+    width: '100%',
+    maxWidth: '800px',
+  },
+};

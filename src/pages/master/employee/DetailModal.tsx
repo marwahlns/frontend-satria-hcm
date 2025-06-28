@@ -21,41 +21,52 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
             vendor: "",
             join_date: "",
             end_date: "",
+            worklocation: "",
             plant: "",
             klasifikasi: "",
-            manager: "",
+            superior: "",
             department: "",
             section: "",
             division: "",
+            title: "",
         },
     });
 
     useEffect(() => {
         if (selectedData) {
+            const [userDetail] = selectedData.user_detail || [];
+
+            const formatDate = (dateString) => {
+                if (!dateString) return "";
+
+                const date = new Date(dateString);
+                return date.toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                });
+            };
+
             reset({
                 name: selectedData.name,
-                nrp: selectedData.user_detail?.nrp || "",
+                nrp: selectedData.personal_number || "",
                 email: selectedData.email,
                 phone: selectedData.phone,
-                bdate: selectedData.user_detail?.birth_date
-                    ? new Date(selectedData.user_detail.birth_date).toISOString().split("T")[0]
-                    : "",
-                gender: selectedData.user_detail?.gender,
-                marital_status: selectedData.user_detail?.marital_status,
-                address: selectedData.user_detail?.address,
-                vendor: selectedData.user_detail?.vendor,
-                join_date: selectedData.user_detail?.join_date
-                    ? new Date(selectedData.user_detail.join_date).toISOString().split("T")[0]
-                    : "",
-                end_date: selectedData.user_detail?.end_date
-                    ? new Date(selectedData.user_detail.end_date).toISOString().split("T")[0]
-                    : "",
-                plant: selectedData.user_detail?.plant,
-                klasifikasi: selectedData.user_detail?.klasifikasi,
-                manager: selectedData.user_detail?.manager,
+                bdate: formatDate(userDetail?.birth_date),
+                gender: userDetail?.gender,
+                marital_status: `${userDetail?.MsMarital.code} | ${userDetail?.MsMarital.ket}`,
+                address: userDetail?.address,
+                vendor: `${userDetail?.MsVendor.code} | ${userDetail?.MsVendor.name}`,
+                join_date: formatDate(userDetail?.join_date),
+                end_date: formatDate(userDetail?.end_date),
+                worklocation: `${selectedData.worklocation_code} | ${selectedData.worklocation_name}`,
+                plant: userDetail?.plant,
+                klasifikasi: userDetail?.MsKlasifikasi.name,
+                superior: selectedData.superior,
                 department: selectedData.department,
                 section: selectedData.section,
                 division: selectedData.division,
+                title:selectedData.title,
             });
         }
     }, [selectedData, reset]);
@@ -74,7 +85,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                 </button>
             </div>
             <form>
-                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[400px] max-h-[65vh]">
+                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group col-span-2">
                             <label className="form-label mb-1">Full Name</label>
@@ -82,7 +93,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="name"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -92,7 +103,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="nrp"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -102,7 +113,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="email"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -112,7 +123,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="phone"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="text" className={clsx("input")} />
+                                    <input {...field} type="text" className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -122,7 +133,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="bdate"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="date" className={clsx("input")} />
+                                    <input {...field} type="text" className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -132,16 +143,8 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="gender"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={genderOptions}
-                                        className="w-full text-sm"
-                                        placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption)}
-                                        value={field.value}
-                                        getOptionLabel={(e) => e.label}
-                                        getOptionValue={(e) => e.value}
-                                    />
+                                    <input {...field} type="text"
+                                        className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -151,14 +154,8 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="marital_status"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={genderOptions}
-                                        className="w-full text-sm"
-                                        placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
-                                        value={genderOptions.find((option) => option.value === field.value)}
-                                    />
+                                    <input {...field} type="text"
+                                        className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -179,17 +176,11 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                         <div className="form-group col-span-2">
                             <label className="form-label mb-1">Vendor</label>
                             <Controller
-                                name="marital_status"
+                                name="vendor"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={genderOptions}
-                                        className="w-full text-sm"
-                                        placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
-                                        value={genderOptions.find((option) => option.value === field.value)}
-                                    />
+                                    <input {...field} type="text"
+                                        className={clsx("input")} readOnly />
                                 )}
                             />
                         </div>
@@ -199,7 +190,10 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="join_date"
                                 control={control}
                                 render={({ field }) => (
-                                    <input {...field} type="date" className={clsx("input")} />
+                                    <input {...field}
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
@@ -210,8 +204,22 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 control={control}
                                 render={({ field }) => (
                                     <input {...field}
-                                        type="date"
-                                        className={clsx("input")} />
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly />
+                                )}
+                            />
+                        </div>
+                        <div className="form-group col-span-2">
+                            <label className="form-label mb-1">Worklocation</label>
+                            <Controller
+                                name="worklocation"
+                                control={control}
+                                render={({ field }) => (
+                                    <input {...field}
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
@@ -221,14 +229,10 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 name="plant"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select
-                                        {...field}
-                                        options={genderOptions}
-                                        className="w-full text-sm"
-                                        placeholder="Select..."
-                                        onChange={(selectedOption) => field.onChange(selectedOption.value)}
-                                        value={genderOptions.find((option) => option.value === field.value)}
-                                    />
+                                    <input {...field}
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
@@ -240,19 +244,21 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 render={({ field }) => (
                                     <input {...field}
                                         type="text"
-                                        className={clsx("input")} />
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Supervisor</label>
+                            <label className="form-label mb-1">Superior</label>
                             <Controller
-                                name="klasifikasi"
+                                name="superior"
                                 control={control}
                                 render={({ field }) => (
                                     <input {...field}
                                         type="text"
-                                        className={clsx("input")} />
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
@@ -264,7 +270,8 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 render={({ field }) => (
                                     <input {...field}
                                         type="text"
-                                        className={clsx("input")} />
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
@@ -276,7 +283,8 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 render={({ field }) => (
                                     <input {...field}
                                         type="text"
-                                        className={clsx("input")} />
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>
@@ -288,7 +296,21 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                                 render={({ field }) => (
                                     <input {...field}
                                         type="text"
-                                        className={clsx("input")} />
+                                        className={clsx("input")}
+                                        readOnly />
+                                )}
+                            />
+                        </div>
+                        <div className="form-group col-span-2">
+                            <label className="form-label mb-1">Title</label>
+                            <Controller
+                                name="title"
+                                control={control}
+                                render={({ field }) => (
+                                    <input {...field}
+                                        type="text"
+                                        className={clsx("input")}
+                                        readOnly />
                                 )}
                             />
                         </div>

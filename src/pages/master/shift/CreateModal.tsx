@@ -5,10 +5,11 @@ import { Controller, useForm } from "react-hook-form";
 import clsx from "clsx";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
+    const [loading, setLoading] = useState(false);
     const schema = yup.object().shape({
         code: yup
             .string()
@@ -18,6 +19,9 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         name: yup
             .string()
             .required("Name is required")
+            .test("not-empty", "Name cannot be empty or spaces only", value => {
+                return value?.trim().length > 0;
+            })
             .min(3, "Name must be at least 3 characters"),
 
         inTime: yup
@@ -81,6 +85,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     }, [isModalOpen, reset]);
 
     const onSubmit = async (data) => {
+        setLoading(true);
         try {
             const token = Cookies.get("token");
             const response = await axios.post(
@@ -117,7 +122,17 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 reset();
             }
         } catch (error) {
+            const errorMessage =
+                error?.response?.data?.message || "Something went wrong";
+
+            Swal.fire({
+                title: "Error",
+                text: errorMessage,
+                icon: "error",
+            });
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -130,10 +145,10 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[300px] max-h-[95%]">
+                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Code</label>
+                            <label className="form-label mb-1">Code<span className="text-red-500">*</span></label>
                             <Controller
                                 name="code"
                                 control={control}
@@ -154,7 +169,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Name</label>
+                            <label className="form-label mb-1">Name<span className="text-red-500">*</span></label>
                             <Controller
                                 name="name"
                                 control={control}
@@ -175,7 +190,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">In Time</label>
+                            <label className="form-label mb-1">In Time<span className="text-red-500">*</span></label>
                             <Controller
                                 name="inTime"
                                 control={control}
@@ -196,7 +211,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Out Time</label>
+                            <label className="form-label mb-1">Out Time<span className="text-red-500">*</span></label>
                             <Controller
                                 name="outTime"
                                 control={control}
@@ -217,7 +232,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Grace Time Before In (Minutes)</label>
+                            <label className="form-label mb-1">Grace Time Before In (Minutes)<span className="text-red-500">*</span></label>
                             <Controller
                                 name="graceBeforeIn"
                                 control={control}
@@ -238,7 +253,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Grace Time After In (Minutes)</label>
+                            <label className="form-label mb-1">Grace Time After In (Minutes)<span className="text-red-500">*</span></label>
                             <Controller
                                 name="graceAfterIn"
                                 control={control}
@@ -259,7 +274,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Grace Time Before Out (Minutes)</label>
+                            <label className="form-label mb-1">Grace Time Before Out (Minutes)<span className="text-red-500">*</span></label>
                             <Controller
                                 name="graceBeforeOut"
                                 control={control}
@@ -280,7 +295,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                             )}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Grace Time After Out (Minutes)</label>
+                            <label className="form-label mb-1">Grace Time After Out (Minutes)<span className="text-red-500">*</span></label>
                             <Controller
                                 name="graceAfterOut"
                                 control={control}
@@ -305,10 +320,36 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            Submit
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 mr-3 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                "Submit"
+                            )}
                         </button>
                     </div>
                 </div>

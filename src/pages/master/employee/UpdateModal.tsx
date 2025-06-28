@@ -5,12 +5,18 @@ import { Controller, useForm } from "react-hook-form";
 import clsx from "clsx";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Select from "react-select";
 import AsyncSelect from "react-select/async";
 
+const genderOptions = [
+    { value: "Laki-laki", label: "Laki-laki" },
+    { value: "Perempuan", label: "Perempuan" },
+];
+
 const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch }) => {
+    const [loading, setLoading] = useState(false);
     const schema = yup.object().shape({
         name: yup
             .string()
@@ -107,55 +113,69 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     } = useForm({
         resolver: yupResolver(schema),
         defaultValues: {
+            name: "",
+            nrp: "",
+            email: "",
+            phone: "",
+            bdate: "",
+            gender: null,
+            marital_status: null,
+            address: "",
+            vendor: null,
+            join_date: "",
+            end_date: "",
+            worklocation: null,
+            plant: null,
+            klasifikasi: null,
+            superior: null,
+            section: "",
+            department: "",
+            division: "",
+            title: "",
         },
     });
 
     useEffect(() => {
-        console.log("INI DIA :", selectedData)
         const fetchAndSet = async () => {
-            const maritalStatus = selectedData?.user_detail?.marital_status
-                ? await getSelectedMaritalStatus(selectedData.user_detail.marital_status)
-                : null;
+            const [userDetail] = selectedData.user_detail || [];
 
-            const vendor = selectedData?.user_detail?.vendor
-                ? await getSelectedVendor(selectedData.user_detail.vendor)
-                : null;
+            const formatDate = (dateString) => {
+                return dateString ? new Date(dateString).toISOString().split("T")[0] : "";
+            };
 
-            const worklocation = selectedData?.worklocation_code
-                ? await getSelectedWorklocation(selectedData.worklocation_code)
-                : null;
-
-            const plant = selectedData?.user_detail?.plant
-                ? await getSelectedPlant(selectedData.user_detail.plant)
-                : null;
-
-            const klasifikasi = selectedData?.user_detail?.klasifikasi
-                ? await getSelectedKlasifikasi(selectedData.user_detail.klasifikasi)
-                : null;
-
-            const superior = selectedData?.superior
-                ? await getSelectedSuperior(selectedData.superior)
-                : null;
+            const [maritalStatus, vendor, worklocation, plant, klasifikasi, superior] = await Promise.all([
+                userDetail?.marital_status
+                    ? getSelectedMaritalStatus(userDetail.marital_status)
+                    : null,
+                userDetail?.vendor
+                    ? getSelectedVendor(userDetail.vendor)
+                    : null,
+                selectedData?.worklocation_code
+                    ? getSelectedWorklocation(selectedData.worklocation_code)
+                    : null,
+                userDetail?.plant
+                    ? getSelectedPlant(userDetail.plant)
+                    : null,
+                userDetail?.klasifikasi
+                    ? getSelectedKlasifikasi(userDetail.klasifikasi)
+                    : null,
+                selectedData?.superior
+                    ? getSelectedSuperior(selectedData.superior)
+                    : null,
+            ]);
 
             reset({
                 name: selectedData.name,
                 nrp: selectedData.personal_number,
                 email: selectedData.email,
                 phone: selectedData.phone,
-                bdate: selectedData.user_detail?.birth_date
-                    ? new Date(selectedData.user_detail.birth_date).toISOString().split("T")[0]
-                    : "",
-                gender: genderOptions
-                    .find(opt => opt.value === selectedData.user_detail?.gender) ?? null,
+                bdate: formatDate(userDetail?.birth_date),
+                gender: genderOptions.find(opt => opt.value === userDetail?.gender) ?? null,
                 marital_status: maritalStatus,
-                address: selectedData.user_detail?.address,
+                address: userDetail?.address,
                 vendor: vendor,
-                join_date: selectedData.user_detail?.join_date
-                    ? new Date(selectedData.user_detail.join_date).toISOString().split("T")[0]
-                    : "",
-                end_date: selectedData.user_detail?.end_date
-                    ? new Date(selectedData.user_detail.end_date).toISOString().split("T")[0]
-                    : "",
+                join_date: formatDate(userDetail?.join_date),
+                end_date: formatDate(userDetail?.end_date),
                 plant: plant,
                 klasifikasi: klasifikasi,
                 superior: superior,
@@ -171,6 +191,15 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
     }, [selectedData, reset]);
 
     const onSubmit = async (data) => {
+        if (new Date(data.join_date) > new Date(data.end_date)) {
+            Swal.fire({
+                icon: "error",
+                title: "Invalid Date Range",
+                text: "Join Date cannot be later than End Date!",
+            });
+            return;
+        }
+        setLoading(true);
         try {
             const token = Cookies.get("token");
             const response = await axios.put(
@@ -211,7 +240,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 }
             );
 
-            if (response.status == 201) {
+            if (response.status == 200) {
                 Swal.fire({
                     text: "User updated successfully",
                     icon: "success",
@@ -220,19 +249,20 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 setRefetch(!isRefetch);
                 onClose();
                 reset();
-            } else {
-                onClose();
-                reset();
             }
         } catch (error) {
             console.error(error);
+            const errorMessage =
+                error?.response?.data?.message || "Something went wrong";
+            Swal.fire({
+                text: errorMessage,
+                icon: "error",
+                timer: 2000,
+            });
+        } finally {
+            setLoading(false);
         }
     };
-
-    const genderOptions = [
-        { value: "Laki-laki", label: "Laki-laki" },
-        { value: "Perempuan", label: "Perempuan" },
-    ];
 
     const maritalOptions = async (inputValue) => {
         try {
@@ -542,10 +572,10 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 </button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[400px] max-h-[65vh]">
+                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Full Name</label>
+                            <label className="form-label mb-1">Full Name<span className="text-red-500">*</span></label>
                             <Controller
                                 name="name"
                                 control={control}
@@ -556,7 +586,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">NRP</label>
+                            <label className="form-label mb-1">NRP<span className="text-red-500">*</span></label>
                             <Controller
                                 name="nrp"
                                 control={control}
@@ -567,7 +597,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.nrp && <p className="text-red-500 text-sm mt-1">{errors.nrp.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Email</label>
+                            <label className="form-label mb-1">Email<span className="text-red-500">*</span></label>
                             <Controller
                                 name="email"
                                 control={control}
@@ -578,7 +608,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Phone/WA</label>
+                            <label className="form-label mb-1">Phone/WA<span className="text-red-500">*</span></label>
                             <Controller
                                 name="phone"
                                 control={control}
@@ -589,7 +619,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Birth Date</label>
+                            <label className="form-label mb-1">Birth Date<span className="text-red-500">*</span></label>
                             <Controller
                                 name="bdate"
                                 control={control}
@@ -600,7 +630,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.bdate && <p className="text-red-500 text-sm mt-1">{errors.bdate.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Gender</label>
+                            <label className="form-label mb-1">Gender<span className="text-red-500">*</span></label>
                             <Controller
                                 name="gender"
                                 control={control}
@@ -625,7 +655,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>}
                         </div>
                         <div className="form-group mb-2">
-                            <label className="form-label mb-1">Marital Status</label>
+                            <label className="form-label mb-1">Marital Status<span className="text-red-500">*</span></label>
                             <Controller
                                 name="marital_status"
                                 control={control}
@@ -656,7 +686,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             )}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Address</label>
+                            <label className="form-label mb-1">Address<span className="text-red-500">*</span></label>
                             <Controller
                                 name="address"
                                 control={control}
@@ -672,7 +702,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Vendor</label>
+                            <label className="form-label mb-1">Vendor<span className="text-red-500">*</span></label>
                             <Controller
                                 name="vendor"
                                 control={control}
@@ -701,7 +731,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.vendor && <p className="text-red-500 text-sm mt-1">{errors.vendor.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Join Date</label>
+                            <label className="form-label mb-1">Join Date<span className="text-red-500">*</span></label>
                             <Controller
                                 name="join_date"
                                 control={control}
@@ -712,7 +742,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.join_date && <p className="text-red-500 text-sm mt-1">{errors.join_date.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">End Date</label>
+                            <label className="form-label mb-1">End Date<span className="text-red-500">*</span></label>
                             <Controller
                                 name="end_date"
                                 control={control}
@@ -725,7 +755,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Worklocation</label>
+                            <label className="form-label mb-1">Worklocation<span className="text-red-500">*</span></label>
                             <Controller
                                 name="worklocation"
                                 control={control}
@@ -750,7 +780,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.worklocation && <p className="text-red-500 text-sm mt-1">{errors.worklocation.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Plant</label>
+                            <label className="form-label mb-1">Plant<span className="text-red-500">*</span></label>
                             <Controller
                                 name="plant"
                                 control={control}
@@ -775,7 +805,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.plant && <p className="text-red-500 text-sm mt-1">{errors.plant.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Klasifikasi</label>
+                            <label className="form-label mb-1">Klasifikasi<span className="text-red-500">*</span></label>
                             <Controller
                                 name="klasifikasi"
                                 control={control}
@@ -800,7 +830,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.klasifikasi && <p className="text-red-500 text-sm mt-1">{errors.klasifikasi.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Superior</label>
+                            <label className="form-label mb-1">Superior<span className="text-red-500">*</span></label>
                             <Controller
                                 name="superior"
                                 control={control}
@@ -831,7 +861,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.superior && <p className="text-red-500 text-sm mt-1">{errors.superior.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Department</label>
+                            <label className="form-label mb-1">Department<span className="text-red-500">*</span></label>
                             <Controller
                                 name="department"
                                 control={control}
@@ -861,7 +891,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.section && <p className="text-red-500 text-sm mt-1">{errors.section.message}</p>}
                         </div>
                         <div className="form-group">
-                            <label className="form-label mb-1">Division</label>
+                            <label className="form-label mb-1">Division<span className="text-red-500">*</span></label>
                             <Controller
                                 name="division"
                                 control={control}
@@ -876,7 +906,7 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                             {errors.division && <p className="text-red-500 text-sm mt-1">{errors.division.message}</p>}
                         </div>
                         <div className="form-group col-span-2">
-                            <label className="form-label mb-1">Title</label>
+                            <label className="form-label mb-1">Title<span className="text-red-500">*</span></label>
                             <Controller
                                 name="title"
                                 control={control}
@@ -895,10 +925,36 @@ const UpdateModal = ({ isModalOpen, onClose, selectedData, setRefetch, isRefetch
                 <div className="modal-footer justify-end flex-shrink-0">
                     <div className="flex gap-2">
                         <button type="button" className="btn btn-light" onClick={onClose}>
-                            Cancel
+                            Discard
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            Submit
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 mr-3 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    Loading...
+                                </>
+                            ) : (
+                                "Submit"
+                            )}
                         </button>
                     </div>
                 </div>

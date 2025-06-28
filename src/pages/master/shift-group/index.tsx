@@ -15,6 +15,7 @@ export default function Home() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
   const [isRefetch, setIsRefetch] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
@@ -44,6 +45,10 @@ export default function Home() {
     setSelectedData(null);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
+
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: "Delete Confirmation",
@@ -53,7 +58,8 @@ export default function Home() {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
+      cancelButtonText: "Discard",
+      reverseButtons: true,
     });
 
     if (result.isConfirmed) {
@@ -80,7 +86,7 @@ export default function Home() {
   const columns: ColumnDef<IShiftGroup>[] = [
     {
       accessorKey: "number",
-      header: "#",
+      header: "No",
       enableSorting: false,
     },
     {
@@ -139,7 +145,7 @@ export default function Home() {
   return (
     <Main>
       <div className="mb-6">
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-800">Master Shift Group</h1>
           {/* Button */}
           <button
@@ -153,10 +159,10 @@ export default function Home() {
       </div>
 
       <DataTable
-        title={"Shift Group List"}
         columns={columns}
         url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/shift-group`}
         isRefetch={isRefetch}
+        onSearchChange={handleSearchChange}
       />
 
       <CreateModal

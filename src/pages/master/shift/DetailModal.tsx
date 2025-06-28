@@ -29,8 +29,8 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                 inTime: selectedData.in_time,
                 outTime: selectedData.out_time,
                 graceBeforeIn: selectedData.gt_before_in,
-                graceBeforeOut: selectedData.gt_after_in,
-                graceAfterIn: selectedData.gt_before_out,
+                graceAfterIn: selectedData.gt_after_in,
+                graceBeforeOut: selectedData.gt_before_out,
                 graceAfterOut: selectedData.gt_after_out,
             });
         }
@@ -45,7 +45,7 @@ const DetailModal = ({ isModalOpen, onClose, selectedData }) => {
                 </button>
             </div>
             <form>
-                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-[300px] max-h-[95%]">
+                <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-group mb-2">
                             <label className="form-label mb-1">Code</label>

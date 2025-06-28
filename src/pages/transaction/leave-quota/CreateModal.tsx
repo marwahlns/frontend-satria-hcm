@@ -14,8 +14,13 @@ import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
 
 const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
-  const [inputMethod, setInputMethod] = useState<"excel" | "table">("excel");
+  const [loading, setLoading] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+  };
 
   const schema = yup.object().shape({
     inputMethod: yup.string().required(),
@@ -36,11 +41,32 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
 
     valid_to: yup.string().required("Valid to is required"),
 
-    leave_quota: yup.array().required("Leave quota is required"),
+    leave_quota: yup.array().when('inputMethod', {
+      is: 'excel',
+      then: (schema) => schema
+        .min(1, "Leave quota is required")
+        .test('all-numbers', 'All quota values must be valid numbers', (value) => {
+          if (!value) return false;
+          return value.every(quota =>
+            typeof quota === 'number' &&
+            !isNaN(quota) &&
+            quota >= 0 &&
+            Number.isInteger(quota)
+          );
+        }),
+      otherwise: (schema) => schema.notRequired(),
+    }),
 
-    leave_quota_1: yup.number().required("Leave quota is required"),
+    leave_quota_1: yup.number().when('inputMethod', {
+      is: 'table',
+      then: (schema) => schema
+        .required("Leave quota is required")
+        .min(0, "Leave quota must be 0 or positive")
+        .integer("Leave quota must be a whole number"),
+      otherwise: (schema) => schema.notRequired().nullable().transform((value, originalValue) => originalValue === '' ? null : value),
+    }),
 
-    file: yup.mixed().when(inputMethod, {
+    file: yup.mixed().when('inputMethod', {
       is: "excel",
       then: (schema) => schema.required("File is required"),
       otherwise: (schema) => schema.notRequired(),
@@ -55,6 +81,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     getValues,
     reset,
     watch,
+    register,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -62,11 +89,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
       id_user: [],
       leave_type_id: null,
       leave_quota: [],
+      leave_quota_1: null,
       valid_from: "",
       valid_to: "",
       file: null,
     },
   });
+
+  const currentInputMethod = watch("inputMethod");
 
   type IEmployee = {
     email: string;
@@ -146,55 +176,76 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
   useEffect(() => {
     if (isModalOpen === false) {
       reset();
-    }
-    if (inputMethod === "excel") {
-      setValue("leave_quota", []);
-      setValue("id_user", []);
-    } else {
-      setValue("file", null);
       setFile(null);
+      setValue("inputMethod", "excel");
     }
-    setValue("inputMethod", "excel");
-  }, [isModalOpen, reset, inputMethod]);
-
-  const handleSearchChange = (value) => {
-    setSearchValue(value);
-  };
+  }, [isModalOpen, reset, setValue]);
 
   const onSubmit = async (data) => {
-    if (new Date(data.valid_from) > new Date(data.valid_to)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Date Range",
-        text: "Valid From cannot be later than Valid To!",
-      });
-      return;
-    }
+    setLoading(true);
 
     try {
-      if (!data.id_user || data.id_user.length === 0) {
+      if (new Date(data.valid_from) > new Date(data.valid_to)) {
         Swal.fire({
           icon: "error",
-          title: "Select User",
-          text: "Please select at least 1 user!",
+          title: "Invalid Date Range",
+          text: "Valid From cannot be later than Valid To!",
         });
+        setLoading(false);
         return;
       }
 
       const selectedUsers = watch("id_user") || [];
 
-      const finalQuota =
-        inputMethod === "excel"
-          ? data.leave_quota
-          : selectedUsers.map(() => Number(data.leave_quota_1));
+      let finalQuota;
+      if (currentInputMethod === "excel") {
+        finalQuota = data.leave_quota;
+        if (!finalQuota || finalQuota.length === 0) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid Quota Data",
+            text: "No valid quota data found. Please check your Excel file.",
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (finalQuota.length !== selectedUsers.length) {
+          Swal.fire({
+            icon: "error",
+            title: "Data Mismatch",
+            text: `Number of users (${selectedUsers.length}) doesn't match number of quotas (${finalQuota.length}).`,
+          });
+          setLoading(false);
+          return;
+        }
+
+        const invalidQuotas = finalQuota.filter(quota =>
+          typeof quota !== 'number' || isNaN(quota) || quota < 0 || !Number.isInteger(quota)
+        );
+
+        if (invalidQuotas.length > 0) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid Quota Values",
+            text: "Some quota values are invalid. Please check your Excel file and re-upload.",
+          });
+          setLoading(false);
+          return;
+        }
+
+      } else {
+        finalQuota = selectedUsers.map(() => Number(data.leave_quota_1));
+      }
 
       const payload = {
-        id_user: watch("id_user") || [],
+        id_user: selectedUsers,
         id_leave_type: data.leave_type_id?.value,
         leave_quota: finalQuota,
         valid_from: data.valid_from,
         valid_to: data.valid_to,
       };
+
       const token = Cookies.get("token");
 
       const response = await axios.post(
@@ -218,12 +269,32 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         setFile(null);
         reset();
       } else {
+        Swal.fire({
+          icon: "error",
+          title: "Submission Failed",
+          text: response.data.message || "Failed to submit data. Please try again.",
+        });
         onClose();
         reset();
+        setFile(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      alert("Terjadi kesalahan, silakan coba lagi.");
+      let errorMessage = "An error occurred. Please try again.";
+
+      if (error.response) {
+        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+
+      Swal.fire({
+        icon: "error",
+        title: "Something went wrong.",
+        text: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -231,7 +302,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     try {
       const token = Cookies.get("token");
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/master/leave-type?trx_quota=true`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -255,16 +326,14 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     }
   };
 
-  const [file, setFile] = useState<File | null>(null);
-
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [],
     },
     onDrop: (acceptedFiles) => {
-      const file = acceptedFiles[0];
-      if (file) {
-        handleFileUpload(file);
+      const droppedFile = acceptedFiles[0];
+      if (droppedFile) {
+        handleFileUpload(droppedFile);
       }
     },
   });
@@ -278,31 +347,151 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
     document.body.removeChild(link);
   };
 
-  const handleFileUpload = (file: File) => {
-    setFile(file);
-    setValue("file", file);
+  const handleFileUpload = (uploadedFile: File) => {
+    const acceptedMimeTypes = ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+
+    if (!acceptedMimeTypes.includes(uploadedFile.type)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid File Type",
+        text: "Only .xlsx Excel files are allowed.",
+      });
+      setFile(null);
+      setValue("file", null);
+      setValue("id_user", []);
+      setValue("leave_quota", []);
+      return;
+    }
+
+    setFile(uploadedFile);
+    setValue("file", uploadedFile);
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const data = e.target?.result;
-      const workbook = XLSX.read(data, { type: "binary" });
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
 
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
 
-      const jsonData: { NRP: string; Nama: string; Quota?: number }[] =
-        XLSX.utils.sheet_to_json(sheet);
+        const jsonData: { NRP: string; Nama: string; Quota?: number }[] =
+          XLSX.utils.sheet_to_json(sheet);
 
-      // Ambil NRP
-      const nrpList = jsonData.map((row) => row.NRP).filter((nrp) => !!nrp);
-      const quotaList = jsonData
-        .map((row) => row.Quota)
-        .filter((quota) => typeof quota === "number");
+        if (!jsonData || jsonData.length === 0) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid Excel File",
+            text: "The Excel file is empty or has an invalid format!",
+          });
+          setFile(null);
+          setValue("file", null);
+          setValue("id_user", []);
+          setValue("leave_quota", []);
+          return;
+        }
 
-      setValue("id_user", nrpList);
-      setValue("leave_quota", quotaList);
+        const nrpList = jsonData.map((row) => String(row.NRP)).filter((nrp) => !!nrp);
+        if (nrpList.length === 0) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid Data",
+            text: "No valid NRP found in the Excel file!",
+          });
+          setFile(null);
+          setValue("file", null);
+          setValue("id_user", []);
+          setValue("leave_quota", []);
+          return;
+        }
+
+        const quotaList = [];
+        const invalidQuotaRows = [];
+
+        jsonData.forEach((row, index) => {
+          const quota = row.Quota;
+
+          if (quota === undefined || quota === null) {
+            invalidQuotaRows.push(`Row ${index + 2}: Quota is missing`);
+            return;
+          }
+
+          const numericQuota = Number(quota);
+          if (isNaN(numericQuota) || numericQuota < 0) {
+            invalidQuotaRows.push(`Row ${index + 2}: "${quota}" is not a valid number`);
+            return;
+          }
+
+          if (!Number.isInteger(numericQuota)) {
+            invalidQuotaRows.push(`Row ${index + 2}: "${quota}" must be an integer`);
+            return;
+          }
+
+          quotaList.push(numericQuota);
+        });
+
+        if (invalidQuotaRows.length > 0) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid Quota Data",
+            html: `
+          <div style="text-align: left;">
+            <p>The following rows contain invalid quota values:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              ${invalidQuotaRows.map(error => `<li>${error}</li>`).join('')}
+            </ul>
+            <p><strong>Requirements:</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Quota must be a number</li>
+              <li>Quota must be 0 or positive</li>
+              <li>Quota must be an integer</li>
+            </ul>
+          </div>
+          `,
+            width: 500,
+          });
+          setFile(null);
+          setValue("file", null);
+          setValue("id_user", []);
+          setValue("leave_quota", []);
+          return;
+        }
+
+        if (nrpList.length !== quotaList.length) {
+          Swal.fire({
+            icon: "error",
+            title: "Data Mismatch",
+            text: `Number of NRPs (${nrpList.length}) does not match the number of valid quotas (${quotaList.length})!`,
+          });
+          setFile(null);
+          setValue("file", null);
+          setValue("id_user", []);
+          setValue("leave_quota", []);
+          return;
+        }
+
+        setValue("id_user", nrpList);
+        setValue("leave_quota", quotaList);
+
+        Swal.fire({
+          icon: "success",
+          title: "Excel Imported Successfully",
+          text: `${nrpList.length} employees imported with valid quota data.`,
+          timer: 2000,
+        });
+
+      } catch (error) {
+        console.error("Error parsing Excel:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Excel Parsing Error",
+          text: "Failed to read the Excel file. Please check the file format.",
+        });
+        setFile(null);
+        setValue("file", null);
+      }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsBinaryString(uploadedFile);
   };
 
   return (
@@ -310,6 +499,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
       <div className="modal-header">
         <h3 className="modal-title">Add Transaction Leave Quota</h3>
         <button
+          type="button"
           className="btn btn-xs btn-icon btn-light"
           onClick={() => {
             setFile(null);
@@ -323,7 +513,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         <div className="modal-body scrollable-y py-0 my-5 pl-6 pr-3 mr-3 h-auto max-h-[65vh]">
           <div className="grid grid-cols-2 gap-4">
             <div className="form-group mb-2">
-              <label className="form-label mb-1">Valid From</label>
+              <label className="form-label mb-1">Valid From<span className="text-red-500">*</span></label>
               <Controller
                 name="valid_from"
                 control={control}
@@ -347,7 +537,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
               )}
             </div>
             <div className="form-group mb-2">
-              <label className="form-label mb-1">Valid To</label>
+              <label className="form-label mb-1">Valid To<span className="text-red-500">*</span></label>
               <Controller
                 name="valid_to"
                 control={control}
@@ -371,7 +561,7 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
               )}
             </div>
             <div className="form-group mb-2">
-              <label className="form-label mb-1">Leave Type</label>
+              <label className="form-label mb-1">Leave Type<span className="text-red-500">*</span></label>
               <Controller
                 name="leave_type_id"
                 control={control}
@@ -406,9 +596,9 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                 </p>
               )}
             </div>
-            {inputMethod === "table" && (
+            {currentInputMethod === "table" && (
               <div className="form-group mb-2">
-                <label className="form-label mb-1">Leave Quota</label>
+                <label className="form-label mb-1">Leave Quota<span className="text-red-500">*</span></label>
                 <Controller
                   name="leave_quota_1"
                   control={control}
@@ -436,40 +626,46 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             <div className="form-group col-span-2 flex items-center gap-12 mb-2">
               <label className="form-label flex items-center gap-2.5 text-nowrap">
                 <input
+                  {...register("inputMethod")}
                   className="radio"
                   name="radio2"
                   type="radio"
                   value="excel"
-                  checked={inputMethod === "excel"}
-                  onChange={() => {
-                    setInputMethod("excel");
-                    setValue("inputMethod", "excel");
+                  checked={currentInputMethod === "excel"}
+                  onChange={(e) => {
+                    setValue("inputMethod", e.target.value);
+                    setValue("id_user", []);
+                    setValue("file", null);
+                    setFile(null);
+                    setValue("leave_quota_1", null);
+                    setValue("leave_quota", []);
                   }}
                 />
                 Upload Excel
               </label>
               <label className="form-label flex items-center gap-2.5 text-nowrap">
                 <input
+                  {...register("inputMethod")}
                   className="radio"
                   name="radio2"
                   type="radio"
                   value="table"
-                  checked={inputMethod === "table"}
-                  onChange={() => {
-                    setInputMethod("table");
-                    setValue("inputMethod", "table");
+                  checked={currentInputMethod === "table"}
+                  onChange={(e) => {
+                    setValue("inputMethod", e.target.value);
+                    setValue("file", null);
+                    setFile(null);
+                    setValue("id_user", []);
+                    setValue("leave_quota", []);
                   }}
                 />
                 Checklist Table
               </label>
             </div>
-            {inputMethod === "excel" ? (
+            {currentInputMethod === "excel" ? (
               <div className="form-group col-span-2">
                 <label className="form-label mb-1">Upload Excel</label>
-                <button
-                  className="btn btn-link mb-2"
-                  onClick={handleDownloadTemplate}
-                >
+                <button type="button" className="btn btn-link mb-2" onClick={handleDownloadTemplate}>
                   Download Template Excel
                 </button>
                 <Controller
@@ -477,29 +673,29 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
                   control={control}
                   render={({ field }) => (
                     <div
-                      {...field}
-                      {...getRootProps()}
-                      className="border-2 border-dashed border-gray-300 p-4 text-center cursor-pointer"
+                      {...getRootProps({
+                        className: clsx(
+                          "border-2 border-dashed border-gray-300 p-4 text-center cursor-pointer",
+                          errors.file ? "border-red-500" : ""
+                        )
+                      })}
                     >
                       <input
                         {...getInputProps()}
                         onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file);
+                          const uploadedFile = e.target.files?.[0];
+                          if (uploadedFile) handleFileUpload(uploadedFile);
+                          field.onChange(uploadedFile);
                         }}
                       />
                       <p className="text-sm text-gray-600">
-                        {file
-                          ? file.name
-                          : "Click to select file or drag & drop here"}
+                        {file ? file.name : "Click to select file or drag & drop here"}
                       </p>
                     </div>
                   )}
                 />
                 {errors.file && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.file.message}
-                  </p>
+                  <p className="text-red-500 text-sm mt-1">{errors.file.message}</p>
                 )}
                 {watch("id_user")?.length > 0 && (
                   <p className="text-green-600 text-sm mt-1">
@@ -510,7 +706,6 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
             ) : (
               <div className="form-group col-span-2">
                 <DataTable
-                  title={"User List"}
                   columns={columns}
                   url={`${process.env.NEXT_PUBLIC_API_URL}/api/master/user`}
                   isRefetch={isRefetch}
@@ -528,17 +723,38 @@ const CreateModal = ({ isModalOpen, onClose, setRefetch, isRefetch }) => {
         <div className="modal-footer justify-end flex-shrink-0">
           <div className="flex gap-2">
             <button
-              type="button"
-              className="btn btn-light"
-              onClick={() => {
-                setFile(null);
-                onClose();
-              }}
+              type="button" className="btn btn-light" onClick={() => { setFile(null); onClose(); }}
             >
-              Cancel
+              Discard
             </button>
-            <button type="submit" className="btn btn-primary">
-              Submit
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 mr-3 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Loading...
+                </>
+              ) : (
+                "Submit"
+              )}
             </button>
           </div>
         </div>
